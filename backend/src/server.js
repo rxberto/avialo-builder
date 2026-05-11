@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { routeModel, routeUnknownTask } from './models/router.js';
+import { SYSTEM_PROMPT, isOutOfScope } from './prompts/system-base.js';
 
 const app = express();
 const PORT = 3000;
@@ -34,6 +35,31 @@ app.post('/classify', async (req, res) => {
   res.json(result);
 });
 
+// ── Chat con la IA — con filtro de scope
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.status(400).json({ error: 'Falta el campo message' });
+  }
+
+  if (isOutOfScope(message)) {
+    return res.json({
+      blocked: true,
+      response: 'Eso está fuera de mi área. El equipo de Avialo puede ayudarte en hola@avialo.es',
+    });
+  }
+
+  const routing = await routeModel('chat_support');
+
+  res.json({
+    blocked: false,
+    routing,
+    systemPromptLength: SYSTEM_PROMPT.length,
+    message: `Mensaje en scope — se procesaría con ${routing.modelId}`,
+  });
+});
+
 // ── Generar web — endpoint principal
 app.post('/generate', async (req, res) => {
   const { businessName, sector, city, webType, pages, colors } = req.body;
@@ -65,5 +91,6 @@ app.listen(PORT, () => {
   console.log(`   GET  /health`);
   console.log(`   GET  /route/:taskType`);
   console.log(`   POST /classify`);
+  console.log(`   POST /chat`);
   console.log(`   POST /generate\n`);
 });
