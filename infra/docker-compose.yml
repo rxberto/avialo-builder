@@ -104,6 +104,4 @@ volumes:
 
 networks:
   avialo-network:
-    name: avialo-network
-    driver: bridge
-    attachable: true
+    external: true
