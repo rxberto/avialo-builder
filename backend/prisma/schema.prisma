@@ -1,0 +1,31 @@
+// This is your Prisma schema file for Prisma 7
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                     Int      @id @default(autoincrement())
+  name                   String
+  email                  String   @unique
+  passwordHash           String
+  profession             String?
+  role                   String?
+  plan                   String   @default("none")
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  createdAt              DateTime @default(now())
+
+  // Configuración de la única página web incluida por cuenta
+  siteName               String?
+  siteType               String?
+  siteDomain             String?
+  siteJobId              String?
+  siteStatus             String   @default("none") // "none" | "pending" | "generating" | "deployed" | "failed"
+}

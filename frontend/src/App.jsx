@@ -1,13 +1,28 @@
-import { useState, useEffect } from 'react'
-import OnboardingFlow from './components/onboarding/OnboardingFlow'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, ArrowLeft } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
+import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import UserOnboarding from './components/UserOnboarding';
+import DashboardPage from './components/DashboardPage';
+import OnboardingFlow from './components/onboarding/OnboardingFlow';
+import CheckoutPage from './components/CheckoutPage';
+import JobProgressPage from './components/JobProgressPage';
+import IDEPage from './components/IDEPage';
 import Navbar from './components/layout/Navbar';
+import { createJob, getProfile, updateProfile } from './lib/api';
 
 function App() {
-  const [result, setResult] = useState(null)
-  const [darkMode, setDarkMode] = useState(() => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [user, setUser]               = useState(() => {
+    const saved = localStorage.getItem('avialo_user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [clientData, setClientData]   = useState(null);
+  const [jobId, setJobId]             = useState(null);
+  const [jobError, setJobError]       = useState(null);
+  const [darkMode, setDarkMode]       = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
       return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -15,6 +30,50 @@ function App() {
     return false;
   });
 
+  // Sincronizar el perfil del usuario en tiempo real con PostgreSQL
+  const syncProfile = async (currentUser = user) => {
+    if (currentUser && currentUser.token) {
+      try {
+        const profile = await getProfile();
+        const syncedUser = { ...currentUser, ...profile };
+        setUser(syncedUser);
+        localStorage.setItem('avialo_user', JSON.stringify(syncedUser));
+        localStorage.setItem('avialo_plan', profile.plan || 'none');
+        return syncedUser;
+      } catch (err) {
+        console.warn('⚠️ No se pudo sincronizar el perfil con el backend:', err);
+      }
+    }
+    return currentUser;
+  };
+
+  useEffect(() => {
+    syncProfile();
+  }, []);
+
+  // Escuchar retorno de Stripe
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const selectedPlan = localStorage.getItem('avialo_selected_plan');
+
+    if (payment === 'success' && user) {
+      const plan = selectedPlan || 'pro';
+      const updatedUser = { ...user, plan };
+      setUser(updatedUser);
+      localStorage.setItem('avialo_user', JSON.stringify(updatedUser));
+      localStorage.setItem('avialo_plan', plan);
+      localStorage.removeItem('avialo_selected_plan');
+      
+      window.history.replaceState({}, '', window.location.pathname);
+      navigate('/dashboard');
+    } else if (payment === 'cancel') {
+      window.history.replaceState({}, '', window.location.pathname);
+      navigate('/dashboard');
+    }
+  }, [user]);
+
+  // Aplicar tema oscuro/claro
   useEffect(() => {
     const root = window.document.documentElement;
     if (darkMode) {
@@ -28,43 +87,242 @@ function App() {
 
   const toggleTheme = () => setDarkMode(!darkMode);
 
+  const handleLogin = (loggedInUser) => {
+    setUser(loggedInUser);
+    localStorage.setItem('avialo_user', JSON.stringify(loggedInUser));
+    
+    // Validar si tiene onboarding completo
+    if (!loggedInUser.profession || !loggedInUser.role) {
+      navigate('/user-onboarding');
+    } else if (!loggedInUser.plan || loggedInUser.plan === 'none') {
+      const selectedPlan = localStorage.getItem('avialo_selected_plan') || 'pro';
+      setClientData({
+        businessContext: { name: 'Suscripción SaaS Avialo' },
+        websiteArchitecture: { type: selectedPlan === 'basic' ? 'corporativa' : selectedPlan }
+      });
+      navigate('/checkout');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleRegister = (registeredUser) => {
+    setUser(registeredUser);
+    localStorage.setItem('avialo_user', JSON.stringify(registeredUser));
+    // Obligar a ir a Onboarding de Usuario
+    navigate('/user-onboarding');
+  };
+
+  const handleUserOnboardingComplete = (data) => {
+    // Guardar todas las respuestas recopiladas en la sesión del usuario
+    const updatedUser = { 
+      ...user, 
+      plan: 'none', 
+      profession: data.profession, 
+      role: data.role 
+    };
+    setUser(updatedUser);
+    localStorage.setItem('avialo_user', JSON.stringify(updatedUser));
+    localStorage.setItem('avialo_selected_plan', data.plan);
+
+    // Mandar a pasarela
+    setClientData({
+      businessContext: { name: 'Suscripción SaaS Avialo' },
+      websiteArchitecture: { type: data.plan === 'basic' ? 'corporativa' : data.plan }
+    });
+    navigate('/checkout');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setClientData(null);
+    setJobId(null);
+    localStorage.removeItem('avialo_user');
+    localStorage.removeItem('avialo_plan');
+    localStorage.removeItem('avialo_current_site');
+    localStorage.removeItem('avialo_selected_plan');
+    navigate('/');
+  };
+
+  // Al completar Onboarding de la web
+  const handleOnboardingComplete = async (onboardingData) => {
+    setClientData(onboardingData);
+    navigate('/progress');
+    setJobError(null);
+
+    const newSite = {
+      businessName: onboardingData.businessContext.name,
+      webType: onboardingData.websiteArchitecture.type,
+      dominio: `${onboardingData.businessContext.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.avialo.app`,
+      jobId: null
+    };
+
+    try {
+      const result = await createJob(onboardingData);
+      setJobId(result.jobId);
+      newSite.jobId = result.jobId;
+      localStorage.setItem('avialo_current_site', JSON.stringify(newSite));
+      
+      // Sincronizar de inmediato para reflejar el estado "pending" en el perfil local
+      await syncProfile();
+    } catch (err) {
+      setJobError(err.message || 'Error al conectar con el orquestador.');
+    }
+  };
+
+  // Saltar pago (DEV Mode)
+  const handleSkipPayment = async () => {
+    const selectedPlan = localStorage.getItem('avialo_selected_plan') || 'pro';
+    try {
+      // Guardar el plan simulado en la base de datos de PostgreSQL
+      await updateProfile({ plan: selectedPlan });
+      
+      const updatedUser = { ...user, plan: selectedPlan };
+      setUser(updatedUser);
+      localStorage.setItem('avialo_user', JSON.stringify(updatedUser));
+      localStorage.setItem('avialo_plan', selectedPlan);
+      localStorage.removeItem('avialo_selected_plan');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('⚠️ No se pudo guardar el plan simulado en la base de datos:', err);
+    }
+  };
+
+  const handleReset = async () => {
+    await syncProfile();
+    navigate('/dashboard');
+    setJobId(null);
+    setJobError(null);
+  };
+
+
+
+  const isIDERoute = location.pathname === '/ide';
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
-      <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
-      
-      <main className="flex-1 flex flex-col relative z-0 pt-16">
-      {!result
-        ? <OnboardingFlow onComplete={setResult} />
-        : (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 bg-zinc-50 dark:bg-zinc-950">
-            <Card className="w-full max-w-xl border-zinc-200 dark:border-zinc-800 shadow-md overflow-hidden">
-              <CardHeader className="bg-zinc-900 dark:bg-zinc-900 text-white flex flex-row items-center gap-3 space-y-0">
-                <CheckCircle2 className="text-emerald-400" />
-                <CardTitle className="text-base">Datos de Arquitectura Recibidos</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="relative rounded-lg bg-zinc-950 dark:bg-zinc-900 p-4 overflow-auto border border-zinc-800">
-                  <pre className="text-[11px] font-mono text-emerald-400 leading-relaxed">
-                    {JSON.stringify(result, null, 2)}
-                  </pre>
-                </div>
-                <div className="mt-5 flex justify-end">
-                  <Button
-                    variant="outline"
-                    onClick={() => setResult(null)}
-                    className="gap-2 border-zinc-200 dark:border-zinc-800"
-                  >
-                    <ArrowLeft size={15} /> Reiniciar Flujo
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )
-      }
+      {!isIDERoute && (
+        <Navbar
+          darkMode={darkMode}
+          toggleTheme={toggleTheme}
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={(path) => navigate(path === 'landing' ? '/' : `/${path}`)}
+        />
+      )}
+
+      <main className={`flex-1 flex flex-col relative z-0 ${isIDERoute ? '' : 'pt-16'}`}>
+        <Routes>
+          {/* Landing pública */}
+          <Route path="/" element={<LandingPage onNavigate={(path) => navigate(`/${path}`)} />} />
+
+          {/* Rutas sin sesión */}
+          <Route path="/login" element={
+            <RequireNoAuth user={user}>
+              <LoginPage onLogin={handleLogin} />
+            </RequireNoAuth>
+          } />
+          
+          <Route path="/register" element={
+            <RequireNoAuth user={user}>
+              <RegisterPage onRegister={handleRegister} />
+            </RequireNoAuth>
+          } />
+
+          {/* Rutas con sesión + Protección de Onboarding SaaS estricto */}
+          <Route path="/user-onboarding" element={
+            <RequireAuth user={user} location={location}>
+              <UserOnboarding onComplete={handleUserOnboardingComplete} />
+            </RequireAuth>
+          } />
+
+          <Route path="/dashboard" element={
+            <RequireAuth user={user} location={location}>
+              <DashboardPage
+                user={user}
+                onLogout={handleLogout}
+                onCreateNewSite={() => navigate('/onboarding')}
+                onOpenSiteIDE={(site) => {
+                  setJobId(site.jobId);
+                  navigate('/ide');
+                }}
+                onOpenProgress={(jid) => {
+                  setJobId(jid);
+                  navigate('/progress');
+                }}
+              />
+            </RequireAuth>
+          } />
+
+          <Route path="/onboarding" element={
+            <RequireAuth user={user} location={location}>
+              <OnboardingFlow onComplete={handleOnboardingComplete} />
+            </RequireAuth>
+          } />
+
+          <Route path="/checkout" element={
+            <RequireAuth user={user} location={location}>
+              <CheckoutPage
+                clientData={clientData}
+                onSkipPayment={handleSkipPayment}
+                onPreRedirect={() => {}}
+              />
+            </RequireAuth>
+          } />
+
+          <Route path="/progress" element={
+            <RequireAuth user={user} location={location}>
+              <JobProgressPage
+                jobId={jobId}
+                clientData={clientData}
+                error={jobError}
+                onReset={handleReset}
+                onSyncProfile={() => syncProfile()}
+              />
+            </RequireAuth>
+          } />
+
+          <Route path="/ide" element={
+            <RequireAuth user={user} location={location}>
+              <IDEPage
+                jobId={jobId}
+                user={user}
+                onReset={handleReset}
+                darkMode={darkMode}
+                toggleTheme={toggleTheme}
+              />
+            </RequireAuth>
+          } />
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
     </div>
-  )
+  );
 }
 
-export default App
+// Guardias de seguridad para flujos SaaS estrictos (Declarados fuera del cuerpo de App para evitar el bucle infinito de unmount/remount)
+const RequireAuth = ({ children, user, location }) => {
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si está logueado pero no ha completado el Onboarding de Usuario, forzar a ir allí
+  if ((!user.profession || !user.role) && location.pathname !== '/user-onboarding') {
+    return <Navigate to="/user-onboarding" replace />;
+  }
+
+  // Si tiene Onboarding completo pero no ha pagado, forzar a ir a Checkout
+  if (user.profession && user.role && (!user.plan || user.plan === 'none') && location.pathname !== '/checkout' && location.pathname !== '/user-onboarding') {
+    return <Navigate to="/checkout" replace />;
+  }
+
+  return children;
+};
+
+const RequireNoAuth = ({ children, user }) => {
+  return !user ? children : <Navigate to="/dashboard" replace />;
+};
+
+export default App;

@@ -1,0 +1,20 @@
+{
+  "name": "medusa-backend",
+  "version": "2.0.0",
+  "description": "Avialo Medusa.js v2 Backend Template",
+  "license": "MIT",
+  "scripts": {
+    "dev": "medusa dev",
+    "start": "medusa start",
+    "build": "medusa build"
+  },
+  "dependencies": {
+    "@medusajs/medusa": "^2.0.0",
+    "@medusajs/payment-stripe": "^2.0.0",
+    "redis": "^4.6.13"
+  },
+  "devDependencies": {
+    "@medusajs/cli": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}

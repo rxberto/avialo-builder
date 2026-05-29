@@ -1,0 +1,45 @@
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: avialo-network
+
+certificatesResolvers:
+  # Resolutor básico vía HTTP (para dominios y subdominios específicos individuales)
+  letsencrypt:
+    acme:
+      email: info@avialo.app
+      storage: "/acme.json"
+      httpChallenge:
+        entryPoint: web
+
+  # Resolutor Wildcard vía DNS con Cloudflare (opcional, requiere claves en .env)
+  dns-letsencrypt:
+    acme:
+      email: info@avialo.app
+      storage: "/acme.json"
+      dnsChallenge:
+        provider: cloudflare
+        # Los resolvers DNS evitan problemas de propagación
+        resolvers:
+          - "1.1.1.1:53"
+          - "8.8.8.8:53"

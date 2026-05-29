@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.0
+    container_name: avialo-traefik
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/acme.json:/acme.json
+    networks:
+      - avialo-network
+    environment:
+      # Si usamos DNS challenge con Cloudflare, pasamos los tokens de entorno
+      - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}
+      - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN}
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: avialo-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - avialo-network
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: avialo-pgbouncer-prod
+    restart: always
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${DB_NAME:-postgres}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=2000
+      - DEFAULT_POOL_SIZE=50
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits
+    ports:
+      - "6432:6432"
+    depends_on:
+      - postgres
+    networks:
+      - avialo-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: avialo-redis-prod
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - avialo-network
+
+  orchestrator:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: avialo-orchestrator
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-postgres}?schema=public&pgbouncer=true
+      - REDIS_URL=redis://redis:6379
+      - DOCKER_SOCKET=/var/run/docker.sock
+      - PORT=3000
+      - LITELLM_URL=${LITELLM_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../sandbox:/app/sandbox
+    ports:
+      - "3000:3000"
+    depends_on:
+      - pgbouncer
+      - redis
+    networks:
+      - avialo-network
+    labels:
+      - "traefik.enable=true"
+      # Enrutar api.avialo.app para endpoints del orquestador
+      - "traefik.http.routers.orchestrator.rule=Host(`api.avialo.app`)"
+      - "traefik.http.routers.orchestrator.entrypoints=websecure"
+      - "traefik.http.routers.orchestrator.tls=true"
+      - "traefik.http.routers.orchestrator.tls.certresolver=letsencrypt"
+      - "traefik.http.services.orchestrator.loadbalancer.server.port=3000"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  avialo-network:
+    name: avialo-network
+    driver: bridge
+    attachable: true
