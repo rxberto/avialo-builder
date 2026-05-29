@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
@@ -16,6 +16,55 @@ export default function LoginPage({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Cargar SDK de Google de forma asíncrona
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '148067554316-avialo-custom.apps.googleusercontent.com',
+          callback: handleGoogleCredentialResponse,
+        });
+
+        window.google.accounts.id.renderButton(
+          document.getElementById('google-signin-btn'),
+          {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'signin_with',
+            shape: 'rectangular',
+          }
+        );
+      }
+    };
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
+  const handleGoogleCredentialResponse = async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const { loginWithGoogle } = await import('../lib/api');
+      const result = await loginWithGoogle(response.credential);
+      onLogin(result.user, result.isNewGoogleUser);
+    } catch (err) {
+      setError(err.message || 'Error al conectar con tu cuenta de Google.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -138,6 +187,18 @@ export default function LoginPage({ onLogin }) {
               )}
             </Button>
           </form>
+
+          {/* Google Sign-in Separator & Button */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">O continuar con</span>
+            </div>
+          </div>
+
+          <div id="google-signin-btn" className="w-full flex justify-center overflow-hidden rounded-xl border border-border" />
 
           {/* Footer */}
           <div className="mt-6 text-center border-t border-border pt-5">

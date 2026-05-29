@@ -10,6 +10,7 @@ import CheckoutPage from './components/CheckoutPage';
 import JobProgressPage from './components/JobProgressPage';
 import IDEPage from './components/IDEPage';
 import Navbar from './components/layout/Navbar';
+import GoogleOnboarding from './components/GoogleOnboarding';
 import { createJob, getProfile, updateProfile } from './lib/api';
 
 function App() {
@@ -87,12 +88,14 @@ function App() {
 
   const toggleTheme = () => setDarkMode(!darkMode);
 
-  const handleLogin = (loggedInUser) => {
+  const handleLogin = (loggedInUser, isNewGoogleUser = false) => {
     setUser(loggedInUser);
     localStorage.setItem('avialo_user', JSON.stringify(loggedInUser));
     
-    // Validar si tiene onboarding completo
-    if (!loggedInUser.profession || !loggedInUser.role) {
+    // Validar si tiene onboarding completo o si es un registro nuevo de Google
+    if (isNewGoogleUser) {
+      navigate('/google-onboarding');
+    } else if (!loggedInUser.profession || !loggedInUser.role) {
       navigate('/user-onboarding');
     } else if (!loggedInUser.plan || loggedInUser.plan === 'none') {
       const selectedPlan = localStorage.getItem('avialo_selected_plan') || 'pro';
@@ -106,11 +109,16 @@ function App() {
     }
   };
 
-  const handleRegister = (registeredUser) => {
+  const handleRegister = (registeredUser, isNewGoogleUser = false) => {
     setUser(registeredUser);
     localStorage.setItem('avialo_user', JSON.stringify(registeredUser));
-    // Obligar a ir a Onboarding de Usuario
-    navigate('/user-onboarding');
+    
+    if (isNewGoogleUser) {
+      navigate('/google-onboarding');
+    } else {
+      // Obligar a ir a Onboarding de Usuario
+      navigate('/user-onboarding');
+    }
   };
 
   const handleUserOnboardingComplete = (data) => {
@@ -236,6 +244,15 @@ function App() {
             </RequireAuth>
           } />
 
+          <Route path="/google-onboarding" element={
+            <RequireAuth user={user} location={location}>
+              <GoogleOnboarding user={user} onUpdateUser={(updated) => {
+                setUser(updated);
+                localStorage.setItem('avialo_user', JSON.stringify(updated));
+              }} />
+            </RequireAuth>
+          } />
+
           <Route path="/dashboard" element={
             <RequireAuth user={user} location={location}>
               <DashboardPage
@@ -309,7 +326,7 @@ const RequireAuth = ({ children, user, location }) => {
   }
 
   // Si está logueado pero no ha completado el Onboarding de Usuario, forzar a ir allí
-  if ((!user.profession || !user.role) && location.pathname !== '/user-onboarding') {
+  if ((!user.profession || !user.role) && location.pathname !== '/user-onboarding' && location.pathname !== '/google-onboarding') {
     return <Navigate to="/user-onboarding" replace />;
   }
 

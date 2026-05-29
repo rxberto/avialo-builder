@@ -161,7 +161,7 @@ authRouter.get('/me', authenticateToken as any, async (req: AuthRequest, res: Re
 
 // 4. Actualizar Respuestas del Onboarding de Usuario
 authRouter.post('/update-profile', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
-  const { profession, role, plan } = req.body;
+  const { name, profession, role, plan } = req.body;
 
   if (!req.user) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -171,6 +171,7 @@ authRouter.post('/update-profile', authenticateToken as any, async (req: AuthReq
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: {
+        name: name || undefined,
         profession: profession || undefined,
         role: role || undefined,
         plan: plan || undefined
@@ -194,3 +195,76 @@ authRouter.post('/update-profile', authenticateToken as any, async (req: AuthReq
     res.status(500).json({ error: 'Error al actualizar perfil: ' + error.message });
   }
 });
+
+// 5. Endpoint de Autenticación con Google OAuth
+authRouter.post('/google', async (req: Request, res: Response): Promise<any> => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    return res.status(400).json({ error: 'Token de Google no proporcionado.' });
+  }
+
+  try {
+    // Validar el token de forma segura con la API de Google
+    const googleVerifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+    if (!googleVerifyRes.ok) {
+      return res.status(400).json({ error: 'Token de Google inválido o expirado.' });
+    }
+
+    const payload = (await googleVerifyRes.json()) as any;
+    const { email, email_verified, name } = payload;
+
+    if (!email || email_verified !== 'true') {
+      return res.status(400).json({ error: 'El correo de Google no está verificado.' });
+    }
+
+    // Buscar si el usuario ya existe
+    let user = await prisma.user.findUnique({ where: { email } });
+    let isNewGoogleUser = false;
+
+    if (!user) {
+      // Registrar por primera vez
+      isNewGoogleUser = true;
+      const randomPassword = Math.random().toString(36).slice(-16);
+      const passwordHash = await bcrypt.hash(randomPassword, 10);
+
+      user = await prisma.user.create({
+        data: {
+          name: name || 'Usuario de Google',
+          email,
+          passwordHash,
+          plan: 'none'
+        }
+      });
+    } else {
+      // Si existe pero no ha configurado profesión u onboarding, lo tratamos como nuevo
+      if (!user.profession || !user.role) {
+        isNewGoogleUser = true;
+      }
+    }
+
+    // Generar token JWT de Avialo
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      isNewGoogleUser,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        plan: user.plan,
+        profession: user.profession,
+        role: user.role,
+        siteName: user.siteName,
+        siteType: user.siteType,
+        siteDomain: user.siteDomain,
+        siteJobId: user.siteJobId,
+        siteStatus: user.siteStatus
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Error en la autenticación con Google: ' + error.message });
+  }
+});
+

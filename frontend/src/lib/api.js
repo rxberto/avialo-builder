@@ -179,3 +179,20 @@ export async function editJob(jobId, prompt) {
   }
   return response.json();
 }
+
+/**
+ * Autentica o registra un usuario utilizando Google OAuth.
+ */
+export async function loginWithGoogle(credential) {
+  const response = await fetch(`${API_BASE}/api/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error en la autenticación con Google.');
+  }
+  return response.json();
+}
+
