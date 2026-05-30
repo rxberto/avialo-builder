@@ -166,7 +166,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         setTimeout(async () => {
           try {
             const stripe = await stripePromise;
-            const checkout = await stripe.initEmbeddedCheckout({
+            const checkout = await stripe.createEmbeddedCheckoutPage({
               clientSecret: session.clientSecret,
             });
             checkout.mount('#checkout-container');
