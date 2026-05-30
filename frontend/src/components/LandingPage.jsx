@@ -41,7 +41,7 @@ export default function LandingPage({ onNavigate }) {
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState(null);
 
-  // Dynamic 3D Hover rotation calculations with spring dampening
+  // Dynamic 3D Hover rotation calculations with sophisticated spring dampening
   const handleMouseMove = (e) => {
     const card = e.currentTarget;
     const box = card.getBoundingClientRect();
@@ -53,7 +53,7 @@ export default function LandingPage({ onNavigate }) {
     const rotateY = (x / (box.width / 2)) * 6;
 
     setTiltStyle({
-      transform: `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.015, 1.015, 1.015)`,
+      transform: `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`,
       transition: 'transform 0.08s cubic-bezier(0.25, 1, 0.5, 1)'
     });
   };
@@ -71,7 +71,7 @@ export default function LandingPage({ onNavigate }) {
       id: 'hosteleria',
       icon: <Utensils className="w-4 h-4" />,
       label: 'Mesón Familiar',
-      prompt: 'Tengo un mesón de toda la vida y quiero que los clientes reserven mesa los domingos por internet sin que me suene el móvil.',
+      prompt: 'Tengo un mesón tradicional y quiero recibir reservas de mesa online los domingos de forma automática.',
       algorithmTitle: 'RESERVAS DE MESA AUTOMÁTICAS',
       algorithmDesc: 'Tus clientes reservan directamente en la web. El sistema calcula las mesas libres de forma automática y te llega un aviso directo.',
       beforeText: 'Teléfono colapsado los sábados, llamadas perdidas fuera de hora, reservas cruzadas en papel.',
@@ -81,7 +81,7 @@ export default function LandingPage({ onNavigate }) {
       id: 'salud',
       icon: <Stethoscope className="w-4 h-4" />,
       label: 'Clínica Dental / Fisio',
-      prompt: 'Tengo una consulta y necesito que los pacientes reserven cita previa para primera visita de forma online.',
+      prompt: 'Tengo una clínica de barrio y necesito que los pacientes reserven cita previa online de forma rápida.',
       algorithmTitle: 'CITA PREVIA ONLINE',
       algorithmDesc: 'Tus pacientes eligen el tratamiento, ven tus horas libres en tiempo real y reservan su cita al instante.',
       beforeText: 'Hojas de agenda tachadas, interrumpir tratamientos para coger llamadas, despistes de citas.',
@@ -112,19 +112,6 @@ export default function LandingPage({ onNavigate }) {
       setActivePyme(key);
       setIsAnimating(false);
     }, 280);
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.08 }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 120, damping: 18 } }
   };
 
   // Straight to the point reviews
@@ -219,86 +206,52 @@ export default function LandingPage({ onNavigate }) {
   ];
 
   return (
-    // Bounded framed layout (recuadro Stripe style) with select-highlight fully enabled
-    <div className="bg-background text-foreground min-h-screen relative border-x border-zinc-200/50 dark:border-zinc-850/60 max-w-[1400px] mx-auto shadow-2xl">
+    // FULL WIDTH layout container (no max-width bounding globally to avoid cutting page width!)
+    <div className="bg-background text-foreground min-h-screen relative w-full selection:bg-indigo-500/20">
       
-      {/* Dot pattern background */}
-      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+      {/* Dot pattern background spanning 100% full width */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none w-full">
         <DotPattern
           className={cn(
-            "[mask-image:radial-gradient(1000px_circle_at_center,white,transparent)] opacity-60 dark:opacity-40"
+            "[mask-image:radial-gradient(1200px_circle_at_center,white,transparent)] opacity-60 dark:opacity-40"
           )}
         />
       </div>
 
-      {/* Modern fluid background blur blobs */}
+      {/* Modern fluid background blur blobs spanning full width */}
       <div className="absolute top-[-150px] left-[10%] w-[50rem] h-[50rem] bg-indigo-500/10 dark:bg-brand/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[7s] z-0" />
       <div className="absolute top-[-100px] right-[10%] w-[45rem] h-[45rem] bg-purple-500/10 dark:bg-brand-2/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[9s] z-0" />
 
-      {/* Spectacular IDE/Code Background Vector Illustration for Hero (No raw image dependencies) */}
-      <div className="absolute top-12 inset-x-0 h-[620px] pointer-events-none overflow-hidden opacity-5 dark:opacity-10 z-0 flex items-center justify-center">
-        <svg width="100%" height="100%" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-w-5xl">
-          {/* Coding canvas frame */}
-          <rect x="50" y="50" width="1100" height="700" rx="20" stroke="currentColor" strokeWidth="2" strokeDasharray="8 8" />
-          <line x1="50" y1="120" x2="1150" y2="120" stroke="currentColor" strokeWidth="1.5" />
-          <line x1="300" y1="120" x2="300" y2="750" stroke="currentColor" strokeWidth="1.5" />
-          {/* Mock code lines */}
-          <rect x="80" y="150" width="150" height="12" rx="4" fill="currentColor" opacity="0.6" />
-          <rect x="80" y="180" width="100" height="12" rx="4" fill="currentColor" opacity="0.4" />
-          <rect x="80" y="210" width="120" height="12" rx="4" fill="currentColor" opacity="0.4" />
-          <rect x="340" y="150" width="220" height="16" rx="6" fill="currentColor" opacity="0.5" />
-          <rect x="340" y="180" width="380" height="16" rx="6" fill="currentColor" opacity="0.3" />
-          <rect x="380" y="210" width="280" height="14" rx="5" fill="currentColor" opacity="0.25" />
-          <rect x="380" y="240" width="410" height="14" rx="5" fill="currentColor" opacity="0.3" />
-          {/* Dynamic database nodes */}
-          <circle cx="950" cy="220" r="40" stroke="currentColor" strokeWidth="2" />
-          <path d="M925 210 C925 195, 975 195, 975 210 M925 220 C925 205, 975 205, 975 220 M925 230 C925 215, 975 215, 975 230" stroke="currentColor" strokeWidth="2" />
-          <text x="905" y="285" fill="currentColor" fontSize="10" fontWeight="bold" opacity="0.7">POSTGRESQL</text>
-          {/* Visual canvas grid */}
-          <rect x="750" y="380" width="340" height="300" rx="16" stroke="currentColor" strokeWidth="2" />
-          <circle cx="780" cy="405" r="5" fill="currentColor" opacity="0.5" />
-          <circle cx="795" cy="405" r="5" fill="currentColor" opacity="0.5" />
-          <circle cx="810" cy="405" r="5" fill="currentColor" opacity="0.5" />
-          <rect x="775" y="440" width="220" height="12" rx="4" fill="currentColor" opacity="0.4" />
-          <rect x="775" y="470" width="290" height="180" rx="12" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 4" />
-        </svg>
-      </div>
+      {/* Hero Section: Spectacular Split Screen Layout (Left: Text, Right: 3D Mockup with overlapping Z-Index shadows) */}
+      <section className="relative z-10 pt-20 pb-16 md:pt-32 md:pb-24 px-6 max-w-7xl mx-auto w-full flex flex-col lg:flex-row items-center justify-between gap-16">
+        
+        {/* Left Column: Breathtaking Text Pitch */}
+        <div className="flex flex-col items-start text-left w-full lg:w-[48%] shrink-0 space-y-8 z-20">
+          
+          {/* Animated Glow Pill Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/30 text-indigo-650 dark:text-brand text-xs font-black uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-indigo-500 dark:text-brand animate-spin duration-[4s]" />
+            <span>Algoritmo Avialo v2</span>
+          </div>
 
-      {/* Hero Section */}
-      <section className="relative z-10 pt-20 pb-10 md:pt-32 md:pb-12 flex flex-col items-center justify-center text-center px-6 max-w-7xl mx-auto">
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="flex flex-col items-center w-full"
-        >
-          {/* Spectacular Centralized, Ultra-Modern and Stable H1 */}
-          <motion.h1
-            variants={itemVariants}
-            className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-8 leading-[1.05] max-w-5xl text-zinc-900 dark:text-white"
-          >
-            Tu negocio de toda la vida, <br className="hidden sm:inline" />
+          {/* Simple, Solid, High-Impact H1 Title (Left aligned) */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[4.8rem] font-black tracking-tight leading-[1.05] text-zinc-900 dark:text-white">
+            Tu negocio de toda la vida,<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-brand dark:via-brand-accent dark:to-brand-2">
               digitalizado en 2 minutos.
             </span>
-          </motion.h1>
+          </h1>
 
           {/* Sincere, simple and clear subtitle */}
-          <motion.p
-            variants={itemVariants}
-            className="text-base sm:text-lg md:text-xl text-zinc-500 dark:text-zinc-400 mb-12 max-w-4xl font-medium leading-relaxed"
-          >
+          <p className="text-sm sm:text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed max-w-xl">
             Creamos la página web profesional, el sistema de reservas y la tienda online para tu negocio local de forma automática. Sin tecnicismos raros, sin complicaciones y listo para recibir clientes de inmediato.
-          </motion.p>
+          </p>
 
           {/* Spectacular CTAs */}
-          <motion.div 
-            variants={itemVariants} 
-            className="flex flex-col sm:flex-row gap-5 justify-center items-center w-full sm:w-auto mb-14"
-          >
+          <div className="flex flex-col sm:flex-row gap-4 items-center w-full sm:w-auto pt-2">
             <ShimmerButton
               onClick={() => onNavigate('register')}
-              className="px-8 py-4.5 text-sm font-black tracking-wider shadow-xl shadow-indigo-500/10 dark:shadow-brand/10 transition-transform active:scale-[0.98]"
+              className="px-8 py-4 text-xs font-black tracking-widest uppercase shadow-xl shadow-indigo-500/10 dark:shadow-brand/10 transition-transform active:scale-[0.98] w-full sm:w-auto"
               borderRadius="1rem"
               shimmerColor="var(--brand-accent)"
               background="linear-gradient(135deg, var(--brand), var(--brand-2))"
@@ -309,422 +262,390 @@ export default function LandingPage({ onNavigate }) {
 
             <a
               href="#pricing"
-              className="inline-flex items-center justify-center px-8 py-4.5 rounded-2xl bg-white hover:bg-zinc-50 dark:bg-zinc-900/60 dark:hover:bg-zinc-850/80 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-350 font-bold transition-all duration-300 text-xs active:scale-[0.98] shadow-sm"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-white hover:bg-zinc-50 dark:bg-zinc-900/60 dark:hover:bg-zinc-850/80 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-350 font-bold transition-all duration-300 text-xs active:scale-[0.98] shadow-sm w-full sm:w-auto"
             >
               Ver Planes y Precios
             </a>
-          </motion.div>
-
-          {/* Plain simple trust values */}
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-wrap justify-center gap-3.5 max-w-4xl mx-auto mb-16 px-4 text-xs font-bold text-zinc-650 dark:text-zinc-350 uppercase tracking-wider"
-          >
-            <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> Web autogestionada</span>
-            <span className="h-4 w-px bg-zinc-300 dark:bg-zinc-800 hidden sm:block" />
-            <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> Sin comisiones por reservas</span>
-            <span className="h-4 w-px bg-zinc-300 dark:bg-zinc-800 hidden sm:block" />
-            <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-500" /> Dominio propio incluido</span>
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* Redesigned Showcase: Clean, Solid borders. Glassmorphism only inside the mockup cards */}
-      <section id="algoritmo" className="py-8 px-6 max-w-6xl mx-auto relative z-10 mb-24 scroll-mt-20">
-        <div className="text-center mb-10">
-          <span className="text-[10px] bg-indigo-500/10 text-indigo-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
-            Algoritmo Avialo en Acción
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
-            Mira cómo transformamos tu negocio físico
-          </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto">
-            Elige una pestaña de negocio tradicional. Pasa el ratón por encima del panel para experimentar el **efecto de rotación 3D en tiempo real**.
-          </p>
-        </div>
-
-        {/* Clean, Non-glassmorphic solid container for the simulator box (Vercel-style grey canvas) */}
-        <div
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          style={tiltStyle}
-          className="rounded-[2rem] border border-zinc-200 dark:border-zinc-900 overflow-hidden shadow-2xl bg-zinc-50 dark:bg-zinc-950 transition-shadow duration-300 hover:shadow-[0_40px_100px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_40px_100px_rgba(124,58,237,0.12)] cursor-pointer relative"
-        >
-          <BorderBeam size={350} duration={14} borderWidth={1.5} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
-
-          {/* Interactive tabs with Emil Kowalski sliding capsule layout animation */}
-          <div className="flex flex-wrap md:flex-nowrap border-b border-zinc-200 dark:border-zinc-850 bg-zinc-100/50 dark:bg-zinc-950 p-2 gap-2 relative z-20">
-            {Object.keys(pymes).map((key) => (
-              <button
-                key={key}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePymeChange(key);
-                }}
-                className="relative flex-1 flex items-center justify-center gap-2 py-3.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-colors duration-250 cursor-pointer select-none z-10 outline-none"
-              >
-                {activePyme === key && (
-                  <motion.div
-                    layoutId="activePymeTabCapsule"
-                    className="absolute inset-0 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-xl shadow-sm z-0"
-                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-2">
-                  {pymes[key].icon}
-                  <span>{pymes[key].label}</span>
-                </span>
-              </button>
-            ))}
           </div>
 
-          <div className="p-6 md:p-10 min-h-[460px] flex flex-col lg:flex-row gap-10 relative z-10">
-            
-            {/* Left Column: Glassmorphic explanation block */}
-            <div className="flex-1 flex flex-col justify-between text-left space-y-6">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activePyme}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.25, ease: 'easeOut' }}
-                  className="space-y-6"
-                >
-                  <div className="space-y-3">
-                    <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded-lg font-black uppercase tracking-widest inline-block">
-                      {pymes[activePyme].algorithmTitle}
-                    </span>
-                    <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50 leading-tight">
-                      Así digitalizamos tu negocio de toda la vida:
-                    </h3>
-                    <p className="text-zinc-500 dark:text-zinc-405 text-xs sm:text-sm leading-relaxed font-medium">
-                      {pymes[activePyme].algorithmDesc}
-                    </p>
-                  </div>
+          {/* Plain simple trust values list */}
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-black text-zinc-450 dark:text-zinc-400 uppercase tracking-wider pt-4 border-t border-zinc-200/50 dark:border-zinc-850/50 w-full">
+            <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Web autogestionada</span>
+            <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Sin comisiones por reservas</span>
+            <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Dominio propio incluido</span>
+          </div>
 
-                  {/* Glassmorphic prompt simulation block */}
-                  <div className="p-4 glass rounded-2xl border border-zinc-200/40 dark:border-zinc-850/60 flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-955 flex items-center justify-center font-bold text-[9px] uppercase shrink-0 mt-0.5 shadow">
-                      PY
-                    </div>
-                    <div className="space-y-1">
-                      <span className="text-[9px] text-zinc-450 dark:text-zinc-505 font-black uppercase tracking-wider block">Tu idea simple en español:</span>
-                      <p className="text-xs text-zinc-700 dark:text-zinc-300 italic font-semibold">
-                        "{pymes[activePyme].prompt}"
-                      </p>
-                    </div>
-                  </div>
+        </div>
 
-                  {/* Before vs After comparison */}
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="p-4 rounded-2xl border border-red-500/10 bg-red-500/5 text-left">
-                      <span className="text-[10px] text-red-500 font-black uppercase tracking-wider block mb-1">❌ Antes (Tradicional):</span>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
-                        {pymes[activePyme].beforeText}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 text-left">
-                      <span className="text-[10px] text-emerald-500 font-black uppercase tracking-wider block mb-1">🎉 Después (Con Avialo):</span>
-                      <p className="text-[11px] text-zinc-850 dark:text-zinc-300 leading-relaxed font-semibold">
-                        {pymes[activePyme].afterText}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              </AnimatePresence>
+        {/* Right Column: Breathtaking 3D Rotating Showcase with Overlapping Z-Index Cards */}
+        <div className="w-full lg:w-[50%] flex justify-center items-center relative h-[560px] z-10 mt-6 lg:mt-0">
+          
+          {/* Overlapping Glassmorphic Card 1 (Hovering in front, z-index 30, casting high-fidelity shadow) */}
+          <motion.div
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-6 -left-6 z-30 max-w-[210px] p-4 glass border border-zinc-200/40 dark:border-zinc-800/70 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] text-left flex items-start gap-3 pointer-events-none select-none"
+          >
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+              <Check className="w-4 h-4" />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-wider block leading-tight">Cita Confirmada</span>
+              <span className="text-[8.5px] text-zinc-550 dark:text-zinc-400 block leading-normal">Guardada al instante en PostgreSQL de tu PYME.</span>
+            </div>
+          </motion.div>
 
-              {/* General pitch button to proceed */}
-              <div className="pt-6 border-t border-zinc-200/50 dark:border-zinc-850/50">
+          {/* Overlapping Glassmorphic Card 2 (Hovering bottom-right, z-index 30, casting high-fidelity shadow) */}
+          <motion.div
+            animate={{ y: [0, 8, 0] }}
+            transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -bottom-4 -right-4 z-30 max-w-[210px] p-4 glass border border-zinc-200/40 dark:border-zinc-800/70 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] text-left flex items-start gap-3 pointer-events-none select-none"
+          >
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
+              <CreditCard className="w-4 h-4" />
+            </div>
+            <div className="space-y-1">
+              <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-wider block leading-tight">Pago con Stripe</span>
+              <span className="text-[8.5px] text-zinc-550 dark:text-zinc-400 block leading-normal">Venta procesada con éxito por pasarela segura.</span>
+            </div>
+          </motion.div>
+
+          {/* Spectacular Vector IDE Line Art behind the mockup */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] pointer-events-none opacity-4 dark:opacity-8 z-0">
+            <svg width="100%" height="100%" viewBox="0 0 600 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="300" cy="300" r="220" stroke="currentColor" strokeWidth="1.5" strokeDasharray="6 6" />
+              <line x1="80" y1="300" x2="520" y2="300" stroke="currentColor" strokeWidth="1" />
+              <line x1="300" y1="80" x2="300" y2="520" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </div>
+
+          {/* Breathtaking 3D Rotating Showcase Mockup Box */}
+          <div
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={tiltStyle}
+            className="w-full max-w-md h-[460px] rounded-[2rem] border border-zinc-200 dark:border-zinc-900 overflow-hidden shadow-2xl bg-zinc-50 dark:bg-zinc-950 flex flex-col transition-shadow duration-300 relative pointer-events-auto z-10"
+          >
+            <BorderBeam size={280} duration={12} borderWidth={1.5} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
+
+            {/* Showcase header tab navigation */}
+            <div className="flex border-b border-zinc-200 dark:border-zinc-850 bg-zinc-100/50 dark:bg-zinc-950 p-1.5 gap-1.5 relative z-20">
+              {Object.keys(pymes).map((key) => (
                 <button
+                  key={key}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onNavigate('register');
+                    handlePymeChange(key);
                   }}
-                  className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-650 dark:text-brand hover:translate-x-1.5 transition-all outline-none"
+                  className="relative flex-1 flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-colors duration-250 cursor-pointer select-none z-10 outline-none"
                 >
-                  <span>Probar esta solución gratis</span>
-                  <ArrowRight size={14} />
+                  {activePyme === key && (
+                    <motion.div
+                      layoutId="activePymeTabCapsuleHero"
+                      className="absolute inset-0 bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-xl shadow z-0"
+                      transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-1 shrink-0 text-zinc-700 dark:text-zinc-300">
+                    {pymes[key].icon}
+                    <span className="hidden sm:inline">{pymes[key].label.split(' ')[0]}</span>
+                  </span>
                 </button>
-              </div>
+              ))}
             </div>
 
-            {/* Right Column: Visual Preview Canvas (Solid background frame) */}
-            <div className="flex-1 bg-zinc-100 dark:bg-zinc-900/40 rounded-2xl p-4 md:p-6 border border-zinc-200/50 dark:border-zinc-850/50 flex items-center justify-center min-h-[340px]">
-              <div 
-                className="w-full h-full bg-white dark:bg-zinc-950 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-850 flex flex-col overflow-hidden max-w-md mx-auto"
-                onClick={(e) => e.stopPropagation()}
-              >
-                
-                {/* Visual Header */}
-                <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-850/50 px-4.5 py-3.5 bg-zinc-50/50 dark:bg-zinc-900">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-pulse" />
-                    <span className="text-[10px] font-black text-zinc-550 dark:text-zinc-400 tracking-wider">
-                      {activePyme === 'hosteleria' && 'meson-asturiano.com'}
-                      {activePyme === 'salud' && 'dentalia-consulta.es'}
-                      {activePyme === 'comercio' && 'zapatos-artesanales.es'}
-                    </span>
+            {/* Content canvas inside the mockup */}
+            <div className="p-5 flex-1 flex flex-col justify-between overflow-y-auto text-xs text-left bg-white dark:bg-zinc-950">
+              <AnimatePresence mode="wait">
+                {isAnimating ? (
+                  <div className="flex-1 flex flex-col items-center justify-center py-10">
+                    <RefreshCw className="w-8 h-8 text-indigo-500 dark:text-brand animate-spin mb-3" />
+                    <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider animate-pulse">Generando web...</span>
                   </div>
-                  <span className="text-[8px] bg-indigo-500/10 text-indigo-650 px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                    TU NUEVA WEB
-                  </span>
-                </div>
+                ) : (
+                  <motion.div
+                    key={activePyme}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.22 }}
+                    className="flex-grow flex flex-col justify-between"
+                  >
+                    {/* Visual Header */}
+                    <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-850/60 pb-3 mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 block animate-pulse" />
+                        <span className="text-[9px] font-black text-zinc-550 dark:text-zinc-400">
+                          {activePyme === 'hosteleria' && 'meson-asturiano.com'}
+                          {activePyme === 'salud' && 'dentalia-consulta.es'}
+                          {activePyme === 'comercio' && 'zapatos-artesanales.es'}
+                        </span>
+                      </div>
+                      <span className="text-[8px] bg-indigo-500/10 text-indigo-650 px-2 py-0.5 rounded font-black uppercase tracking-wider shrink-0">
+                        TU WEB SAAS
+                      </span>
+                    </div>
 
-                {/* Simulated Content Screen */}
-                <div className="p-6 flex-1 flex flex-col justify-between overflow-y-auto space-y-4 text-xs text-left">
-                  <AnimatePresence mode="wait">
-                    {isAnimating ? (
-                      <motion.div
-                        key="loader"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="flex-1 flex flex-col items-center justify-center py-10"
-                      >
-                        <RefreshCw className="w-8 h-8 text-indigo-500 dark:text-brand animate-spin mb-3" />
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider animate-pulse">Generando web...</span>
-                      </motion.div>
-                    ) : (
-                      <motion.div
-                        key={activePyme}
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.25 }}
-                        className="flex-1 flex flex-col justify-between"
-                      >
-                        {/* Preset 1: Restaurant Booking Preview */}
-                        {activePyme === 'hosteleria' && (
-                          <div className="space-y-4 flex-grow flex flex-col justify-between">
-                            <div className="space-y-2">
-                              <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">🥘 Mesón Asturiano Tradicional</span>
-                              <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
-                                Recetas familiares tradicionales. Elige una hora los domingos y reserva tu mesa online en un clic.
-                              </p>
-                            </div>
+                    {/* Preset 1: Restaurant Booking Preview */}
+                    {activePyme === 'hosteleria' && (
+                      <div className="space-y-4 flex-grow flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block">🥘 Mesón Asturiano Tradicional</span>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                            Sidrería tradicional. Elige hora los domingos y reserva tu mesa online en un clic.
+                          </p>
+                        </div>
 
-                            {/* Glassmorphic Reservas Widget (Glassmorphism only inside the mockup) */}
-                            <div className="glass border border-indigo-200/40 dark:border-indigo-900/30 rounded-2xl p-4 bg-indigo-50/10 dark:bg-indigo-950/5 shadow-inner">
-                              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 block mb-2">
-                                📅 RESERVA TU MESA ONLINE
-                              </span>
+                        {/* Glassmorphic Reservas Widget */}
+                        <div className="glass border border-indigo-200/40 dark:border-indigo-900/30 rounded-xl p-3.5 bg-indigo-50/10 dark:bg-indigo-950/5 shadow-inner">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 block mb-2">
+                            📅 RESERVA TU MESA ONLINE
+                          </span>
 
-                              {!tableBooked ? (
-                                <div className="space-y-3">
-                                  <div className="grid grid-cols-3 gap-1.5">
-                                    {['13:30h', '14:30h', '15:30h'].map((time) => (
-                                      <button
-                                        key={time}
-                                        onClick={() => setSelectedTime(time)}
-                                        className={cn(
-                                          "py-2 rounded-xl text-[10px] font-bold border transition-all text-center duration-150 ease-out active:scale-[0.96]",
-                                          selectedTime === time
-                                            ? "bg-indigo-500 dark:bg-brand text-white border-transparent shadow-sm"
-                                            : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
-                                        )}
-                                      >
-                                        {time}
-                                      </button>
-                                    ))}
-                                  </div>
-                                  
-                                  {/* Guest selector */}
-                                  <div className="flex justify-between items-center bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-xl p-2 text-[10px] font-bold">
-                                    <span className="text-zinc-550">Comensales:</span>
-                                    <div className="flex items-center gap-2">
-                                      <button 
-                                        onClick={() => setTableCount(c => Math.max(1, c - 1))}
-                                        className="w-5 h-5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-650 dark:text-zinc-300"
-                                      >
-                                        -
-                                      </button>
-                                      <span>{tableCount}</span>
-                                      <button 
-                                        onClick={() => setTableCount(c => c + 1)}
-                                        className="w-5 h-5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-650 dark:text-zinc-300"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  </div>
-
+                          {!tableBooked ? (
+                            <div className="space-y-2.5">
+                              <div className="grid grid-cols-3 gap-1">
+                                {['13:30h', '14:30h', '15:30h'].map((time) => (
                                   <button
-                                    disabled={!selectedTime}
-                                    onClick={() => setTableBooked(true)}
-                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                                    key={time}
+                                    onClick={() => setSelectedTime(time)}
+                                    className={cn(
+                                      "py-1.5 rounded-lg text-[9px] font-bold border transition-all text-center duration-150 ease-out active:scale-[0.96]",
+                                      selectedTime === time
+                                        ? "bg-indigo-500 dark:bg-brand text-white border-transparent shadow"
+                                        : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
+                                    )}
                                   >
-                                    Confirmar Mesa ({tableCount} pers.)
+                                    {time}
+                                  </button>
+                                ))}
+                              </div>
+                              
+                              <div className="flex justify-between items-center bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-lg p-1.5 text-[9px] font-bold">
+                                <span className="text-zinc-550">Comensales:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <button 
+                                    onClick={() => setTableCount(c => Math.max(1, c - 1))}
+                                    className="w-4 h-4 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-650 dark:text-zinc-300"
+                                  >
+                                    -
+                                  </button>
+                                  <span>{tableCount}</span>
+                                  <button 
+                                    onClick={() => setTableCount(c => c + 1)}
+                                    className="w-4 h-4 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-650 dark:text-zinc-300"
+                                  >
+                                    +
                                   </button>
                                 </div>
-                              ) : (
-                                <motion.div 
-                                  initial={{ scale: 0.96 }}
-                                  animate={{ scale: 1 }}
-                                  className="text-center py-4 space-y-2.5 text-emerald-500 font-bold"
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
-                                    <Check size={16} />
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Mesa Reservada!</span>
-                                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-550 block mt-1">
-                                      Tu reserva para {tableCount} personas a las {selectedTime} se ha confirmado. ¡Te esperamos!
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => { setTableBooked(false); setSelectedTime(null); }}
-                                    className="text-[9px] text-indigo-500 dark:text-brand hover:underline font-bold"
-                                  >
-                                    Cambiar reserva
-                                  </button>
-                                </motion.div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Preset 2: Clinic Schedule Preview */}
-                        {activePyme === 'salud' && (
-                          <div className="space-y-4 flex-grow flex flex-col justify-between">
-                            <div className="space-y-2">
-                              <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">🦷 Dentalia Clínica</span>
-                              <p className="text-[11px] text-zinc-500 dark:text-zinc-455 leading-relaxed font-medium">
-                                Tu clínica dental de confianza. Selecciona el servicio y reserva tu cita previa al instante.
-                              </p>
-                            </div>
-
-                            {/* Glassmorphic Citas Widget (Glassmorphism only inside the mockup) */}
-                            <div className="glass border border-purple-200/40 dark:border-purple-900/30 rounded-2xl p-4 bg-purple-50/10 dark:bg-purple-950/5 shadow-inner">
-                              <span className="text-[9px] font-black uppercase tracking-wider text-purple-650 dark:text-brand-accent block mb-2">
-                                👨‍⚕️ RESERVAR CITA PREVIA
-                              </span>
-
-                              {!clinicBooked ? (
-                                <div className="space-y-3">
-                                  <div className="space-y-1.5">
-                                    {['🦷 Primera Revisión Gratis', '🧼 Limpieza Bucal Completa'].map((service, i) => (
-                                      <button
-                                        key={i}
-                                        onClick={() => setSelectedService(service)}
-                                        className={cn(
-                                          "w-full text-left p-2.5 rounded-xl border transition-all text-[9.5px] font-bold flex justify-between items-center duration-150 active:scale-[0.98]",
-                                          selectedService === service
-                                            ? "bg-purple-600 text-white border-transparent shadow-sm"
-                                            : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
-                                        )}
-                                      >
-                                        <span className="truncate pr-3">{service}</span>
-                                        {selectedService === service && <Check size={10} />}
-                                      </button>
-                                    ))}
-                                  </div>
-
-                                  <button
-                                    disabled={!selectedService}
-                                    onClick={() => setClinicBooked(true)}
-                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
-                                  >
-                                    Confirmar Hora de Cita
-                                  </button>
-                                </div>
-                              ) : (
-                                <motion.div 
-                                  initial={{ scale: 0.96 }}
-                                  animate={{ scale: 1 }}
-                                  className="text-center py-4 space-y-2.5 text-emerald-500 font-bold"
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
-                                    <Check size={16} />
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Cita Confirmada!</span>
-                                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-550 block mt-1 leading-normal">
-                                      Tu cita para <strong>{selectedService}</strong> se ha guardado correctamente.
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => { setClinicBooked(false); setSelectedService(null); }}
-                                    className="text-[9px] text-purple-600 dark:text-brand hover:underline font-bold"
-                                  >
-                                    Reservar otra cita
-                                  </button>
-                                </motion.div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Preset 3: Local Store Purchase Preview */}
-                        {activePyme === 'comercio' && (
-                          <div className="space-y-4 flex-grow flex flex-col justify-between">
-                            <div className="space-y-2">
-                              <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">👟 Zapatos Artesanales Soria</span>
-                              <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
-                                Calzado hecho a mano con cuero natural. Calidad tradicional directa a tu casa.
-                              </p>
-                            </div>
-
-                            {/* Glassmorphic Store Widget (Glassmorphism only inside the mockup) */}
-                            <div className="glass border border-amber-250/30 dark:border-amber-900/30 rounded-2xl p-4 bg-amber-50/10 dark:bg-zinc-900/10 shadow-inner">
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-650 dark:text-amber-400">
-                                  📦 MODELO CLÁSICO ARTESANO
-                                </span>
-                                <span className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100">89,00 €</span>
                               </div>
 
-                              {!purchaseSuccess ? (
-                                <div className="space-y-3">
-                                  <div className="p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[8.5px] text-zinc-450 font-bold uppercase tracking-wider text-center">
-                                    💳 Cobro con tarjeta seguro
-                                  </div>
-                                  <button
-                                    onClick={() => setPurchaseSuccess(true)}
-                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-150 active:scale-[0.97]"
-                                  >
-                                    Comprar Ahora
-                                  </button>
-                                </div>
-                              ) : (
-                                <motion.div 
-                                  initial={{ scale: 0.96 }}
-                                  animate={{ scale: 1 }}
-                                  className="text-center py-4 space-y-2.5 text-emerald-500 font-bold"
-                                >
-                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
-                                    <Check size={16} />
-                                  </div>
-                                  <div>
-                                    <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Pago Recibido!</span>
-                                    <span className="text-[8.5px] text-zinc-400 dark:text-zinc-550 block mt-1">
-                                      Tu pedido se ha procesado con éxito. Te llegará un aviso con el envío.
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() => setPurchaseSuccess(false)}
-                                    className="text-[9px] text-zinc-550 hover:underline font-bold"
-                                  >
-                                    Volver a la tienda
-                                  </button>
-                                </motion.div>
-                              )}
+                              <button
+                                disabled={!selectedTime}
+                                onClick={() => setTableBooked(true)}
+                                className="w-full py-2 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                              >
+                                Confirmar Mesa
+                              </button>
                             </div>
-                          </div>
-                        )}
-                      </motion.div>
+                          ) : (
+                            <motion.div 
+                              initial={{ scale: 0.96 }}
+                              animate={{ scale: 1 }}
+                              className="text-center py-2.5 space-y-2 text-emerald-500 font-bold"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
+                                <Check size={12} />
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Mesa Reservada!</span>
+                                <span className="text-[8px] text-zinc-400 dark:text-zinc-500 block mt-0.5 leading-tight">
+                                  Mesa para {tableCount} personas el domingo a las {selectedTime} guardada en Postgres.
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => { setTableBooked(false); setSelectedTime(null); }}
+                                className="text-[8px] text-indigo-500 dark:text-brand hover:underline font-bold"
+                              >
+                                Cambiar reserva
+                              </button>
+                            </motion.div>
+                          )}
+                        </div>
+                      </div>
                     )}
-                  </AnimatePresence>
-                </div>
 
-              </div>
+                    {/* Preset 2: Clinic Schedule Preview */}
+                    {activePyme === 'salud' && (
+                      <div className="space-y-4 flex-grow flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block">🦷 Dentalia Clínica</span>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-455 leading-relaxed font-medium">
+                            Tu clínica dental de confianza. Selecciona el servicio y reserva tu cita previa al instante.
+                          </p>
+                        </div>
+
+                        {/* Glassmorphic Citas Widget */}
+                        <div className="glass border border-purple-200/40 dark:border-purple-900/30 rounded-xl p-3.5 bg-purple-50/10 dark:bg-purple-950/5 shadow-inner">
+                          <span className="text-[8px] font-black uppercase tracking-wider text-purple-650 dark:text-brand-accent block mb-2">
+                            👨‍⚕️ CITA PREVIA ONLINE
+                          </span>
+
+                          {!clinicBooked ? (
+                            <div className="space-y-2.5">
+                              <div className="space-y-1.5">
+                                {['🦷 Primera Revisión Gratis', '🧼 Limpieza Bucal Completa'].map((service, i) => (
+                                  <button
+                                    key={i}
+                                    onClick={() => setSelectedService(service)}
+                                    className={cn(
+                                      "w-full text-left p-2 rounded-lg border transition-all text-[9px] font-bold flex justify-between items-center duration-155 active:scale-[0.98]",
+                                      selectedService === service
+                                        ? "bg-purple-600 text-white border-transparent shadow"
+                                        : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
+                                    )}
+                                  >
+                                    <span className="truncate pr-2">{service}</span>
+                                    {selectedService === service && <Check size={8} />}
+                                  </button>
+                                ))}
+                              </div>
+
+                              <button
+                                disabled={!selectedService}
+                                onClick={() => setClinicBooked(true)}
+                                className="w-full py-2 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                              >
+                                Confirmar Hora
+                              </button>
+                            </div>
+                          ) : (
+                            <motion.div 
+                              initial={{ scale: 0.96 }}
+                              animate={{ scale: 1 }}
+                              className="text-center py-2.5 space-y-2 text-emerald-500 font-bold"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
+                                <Check size={12} />
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Cita Confirmada!</span>
+                                <span className="text-[8px] text-zinc-400 dark:text-zinc-550 block mt-0.5 leading-tight">
+                                  Tu cita para <strong>{selectedService}</strong> se ha guardado correctamente.
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => { setClinicBooked(false); setSelectedService(null); }}
+                                className="text-[8px] text-purple-600 dark:text-brand hover:underline font-bold"
+                              >
+                                Reservar otra
+                              </button>
+                            </motion.div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Preset 3: Local Store Purchase Preview */}
+                    {activePyme === 'comercio' && (
+                      <div className="space-y-4 flex-grow flex flex-col justify-between">
+                        <div className="space-y-1.5">
+                          <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 block">👟 Zapatos Artesanales Soria</span>
+                          <p className="text-[10px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                            Calzado hecho a mano con cuero natural. Calidad tradicional directa a tu casa.
+                          </p>
+                        </div>
+
+                        {/* Glassmorphic Store Widget */}
+                        <div className="glass border border-amber-250/30 dark:border-amber-900/30 rounded-xl p-3.5 bg-amber-50/10 dark:bg-zinc-900/10 shadow-inner">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-[8px] font-black uppercase tracking-wider text-amber-650 dark:text-amber-400">
+                              📦 MODELO CLÁSICO ARTESANO
+                            </span>
+                            <span className="text-[9px] font-bold text-zinc-900 dark:text-zinc-100">89,00 €</span>
+                          </div>
+
+                          {!purchaseSuccess ? (
+                            <div className="space-y-2.5">
+                              <div className="p-1.5 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg text-[8px] text-zinc-450 font-bold uppercase tracking-wider text-center">
+                                💳 Cobro con tarjeta seguro
+                              </div>
+                              <button
+                                onClick={() => setPurchaseSuccess(true)}
+                                className="w-full py-2 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all duration-150 active:scale-[0.97]"
+                              >
+                                Comprar Ahora
+                              </button>
+                            </div>
+                          ) : (
+                            <motion.div 
+                              initial={{ scale: 0.96 }}
+                              animate={{ scale: 1 }}
+                              className="text-center py-2.5 space-y-2 text-emerald-500 font-bold"
+                            >
+                              <div className="w-6 h-6 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
+                                <Check size={12} />
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Pago Recibido!</span>
+                                <span className="text-[8px] text-zinc-400 dark:text-zinc-550 block mt-0.5 leading-tight">
+                                  Tu pedido se ha procesado con éxito. Te llegará un aviso con el envío.
+                                </span>
+                              </div>
+                              <button
+                                onClick={() => setPurchaseSuccess(false)}
+                                className="text-[8px] text-zinc-550 hover:underline font-bold"
+                              >
+                                Volver a la tienda
+                              </button>
+                            </motion.div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
+          </div>
+        </div>
+
+      </section>
+
+      {/* Interactive PYME Under the Hood explanation section (Details of the active showcase) */}
+      <section className="py-8 px-6 max-w-7xl mx-auto relative z-10 mb-20 border-t border-zinc-200/40 dark:border-zinc-850/50">
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          <div className="text-left space-y-5">
+            <span className="text-[9px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded-lg font-black uppercase tracking-widest inline-block">
+              {pymes[activePyme].algorithmTitle}
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-zinc-50 leading-tight">
+              Así digitalizamos este negocio de toda la vida:
+            </h2>
+            <p className="text-zinc-505 dark:text-zinc-400 text-sm leading-relaxed font-medium">
+              {pymes[activePyme].algorithmDesc}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-5 rounded-2xl border border-red-500/10 bg-red-500/5 text-left space-y-1">
+              <span className="text-[10px] text-red-500 font-black uppercase tracking-wider block">❌ Antes (Tradicional):</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                {pymes[activePyme].beforeText}
+              </p>
+            </div>
+            <div className="p-5 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 text-left space-y-1">
+              <span className="text-[10px] text-emerald-500 font-black uppercase tracking-wider block">🎉 Después (Con Avialo):</span>
+              <p className="text-xs text-zinc-800 dark:text-zinc-350 leading-relaxed font-semibold">
+                {pymes[activePyme].afterText}
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Product Details Section (Cómo te podemos ayudar - detailed info for curious visitors) */}
-      <section id="como-ayudamos" className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      <section id="como-ayudamos" className="py-24 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
         <div className="text-center mb-16">
           <span className="text-[10px] bg-indigo-500/10 text-indigo-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             ¿Cómo te ayudamos?
@@ -732,7 +653,7 @@ export default function LandingPage({ onNavigate }) {
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-4">
             Digitalización sencilla paso a paso
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-405 text-xs sm:text-sm max-w-xl mx-auto">
+          <p className="text-zinc-505 dark:text-zinc-405 text-xs sm:text-sm max-w-xl mx-auto">
             Hemos diseñado nuestro algoritmo propio para que no tengas que preocuparte de tecnicismos complejos. Vamos al grano.
           </p>
         </div>
@@ -783,7 +704,7 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* Spectacular Real SME Owner Testimonials (Punchy, real-sounding reviews) */}
-      <section id="testimonios" className="py-20 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      <section id="testimonios" className="py-20 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
         <div className="text-center mb-16">
           <span className="text-[10px] bg-purple-500/10 text-purple-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             Opiniones Reales
@@ -828,8 +749,8 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* Pricing Section (Clean balance. NO highlighted popular banner, all animate on hover with high-fidelity Emil spring specs) */}
-      <section id="pricing" className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      {/* Pricing Section (Clean balance. NO highlighted popular banner, all animate on hover) */}
+      <section id="pricing" className="py-24 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
         <div className="text-center mb-20">
           <span className="text-[10px] bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/20 text-emerald-650 dark:text-brand-success px-3.5 py-1.5 rounded-full font-black uppercase tracking-wider mb-4 inline-block">
             Precios Claros y Transparentes
@@ -989,7 +910,7 @@ export default function LandingPage({ onNavigate }) {
 
       {/* Spectacular Extensive Footer (Fully compliant with Avialo branding terms) */}
       <footer className="py-20 border-t border-zinc-200/50 dark:border-zinc-850/50 bg-zinc-50/40 dark:bg-zinc-950/90 px-8 relative z-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10 text-left mb-16">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10 text-left mb-16">
           
           {/* Main Info Column */}
           <div className="md:col-span-2 space-y-5">
@@ -1002,7 +923,7 @@ export default function LandingPage({ onNavigate }) {
             <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
               Transformación digital autónoma y de alto rendimiento para pequeños y medianos negocios tradicionales españoles de toda la vida.
             </p>
-            <div className="pt-1.5 space-y-2 text-[11px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider">
+            <div className="pt-1.5 space-y-2 text-[11px] text-zinc-450 dark:text-zinc-505 font-bold uppercase tracking-wider">
               <div className="flex items-center gap-2">
                 <Building size={14} className="text-indigo-500 shrink-0" />
                 <span>Creado por Avialo Soluciones S.L.</span>
@@ -1052,11 +973,11 @@ export default function LandingPage({ onNavigate }) {
 
         </div>
 
-        <div className="max-w-6xl mx-auto pt-8 border-t border-zinc-200/50 dark:border-zinc-800/80 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto pt-8 border-t border-zinc-200/50 dark:border-zinc-800/80 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-[11px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">
             &copy; {new Date().getFullYear()} Avialo Soluciones S.L. Todos los derechos reservados.
           </p>
-          <div className="text-[11px] text-zinc-450 dark:text-zinc-500 font-bold flex gap-4 uppercase tracking-wider">
+          <div className="text-[11px] text-zinc-450 dark:text-zinc-505 font-bold flex gap-4 uppercase tracking-wider">
             <span>Socio tecnológico de la PYME española</span>
           </div>
         </div>
