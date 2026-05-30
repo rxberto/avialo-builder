@@ -5,7 +5,7 @@ import {
   Smartphone, Zap, Shield, Play, ArrowUpRight, Cpu, 
   Database, ShoppingBag, Eye, RefreshCw, HelpCircle, 
   ChevronDown, Calendar, CreditCard, Sun, Moon, Info, Star,
-  Utensils, Stethoscope, Store
+  Utensils, Stethoscope, Store, Building, Mail, Phone
 } from 'lucide-react';
 import Logo from './ui/Logo';
 import { DotPattern } from './ui/dot-pattern';
@@ -163,7 +163,6 @@ export default function LandingPage({ onNavigate }) {
         'Soporte por email en español'
       ],
       cta: 'Empezar Plan Basic',
-      popular: false,
       tier: 'basic'
     },
     {
@@ -180,7 +179,6 @@ export default function LandingPage({ onNavigate }) {
         'Soporte prioritario por teléfono'
       ],
       cta: 'Empezar Plan Pro',
-      popular: true,
       tier: 'pro'
     },
     {
@@ -197,7 +195,6 @@ export default function LandingPage({ onNavigate }) {
         'Soporte VIP inmediato'
       ],
       cta: 'Empezar Plan Ecommerce',
-      popular: false,
       tier: 'ecommerce'
     }
   ];
@@ -222,9 +219,10 @@ export default function LandingPage({ onNavigate }) {
   ];
 
   return (
-    // Note: Removed select-none entirely to allow highlighting/selecting text freely with the mouse!
-    <div className="bg-background text-foreground overflow-x-hidden min-h-screen relative">
-      {/* Background Dot Pattern with Mask */}
+    // Defined a sleek frame recuadro wrapper running vertically, Stripe-style (max-w-[1400px])
+    <div className="bg-background text-foreground min-h-screen relative border-x border-zinc-200/50 dark:border-zinc-850/60 max-w-[1400px] mx-auto shadow-2xl">
+      
+      {/* Dot pattern background */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <DotPattern
           className={cn(
@@ -237,6 +235,35 @@ export default function LandingPage({ onNavigate }) {
       <div className="absolute top-[-150px] left-[10%] w-[50rem] h-[50rem] bg-indigo-500/10 dark:bg-brand/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[7s] z-0" />
       <div className="absolute top-[-100px] right-[10%] w-[45rem] h-[45rem] bg-purple-500/10 dark:bg-brand-2/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[9s] z-0" />
 
+      {/* Spectacular IDE/Code Background Vector Illustration for Hero (No raw image dependencies) */}
+      <div className="absolute top-12 inset-x-0 h-[620px] pointer-events-none overflow-hidden opacity-5 dark:opacity-10 z-0 flex items-center justify-center">
+        <svg width="100%" height="100%" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-w-5xl">
+          {/* Coding canvas frame */}
+          <rect x="50" y="50" width="1100" height="700" rx="20" stroke="currentColor" strokeWidth="2" strokeDasharray="8 8" />
+          <line x1="50" y1="120" x2="1150" y2="120" stroke="currentColor" strokeWidth="1.5" />
+          <line x1="300" y1="120" x2="300" y2="750" stroke="currentColor" strokeWidth="1.5" />
+          {/* Mock code lines */}
+          <rect x="80" y="150" width="150" height="12" rx="4" fill="currentColor" opacity="0.6" />
+          <rect x="80" y="180" width="100" height="12" rx="4" fill="currentColor" opacity="0.4" />
+          <rect x="80" y="210" width="120" height="12" rx="4" fill="currentColor" opacity="0.4" />
+          <rect x="340" y="150" width="220" height="16" rx="6" fill="currentColor" opacity="0.5" />
+          <rect x="340" y="180" width="380" height="16" rx="6" fill="currentColor" opacity="0.3" />
+          <rect x="380" y="210" width="280" height="14" rx="5" fill="currentColor" opacity="0.25" />
+          <rect x="380" y="240" width="410" height="14" rx="5" fill="currentColor" opacity="0.3" />
+          {/* Dynamic database nodes */}
+          <circle cx="950" cy="220" r="40" stroke="currentColor" strokeWidth="2" />
+          <path d="M925 210 C925 195, 975 195, 975 210 M925 220 C925 205, 975 205, 975 220 M925 230 C925 215, 975 215, 975 230" stroke="currentColor" strokeWidth="2" />
+          <text x="905" y="285" fill="currentColor" fontSize="10" fontWeight="bold" opacity="0.7">POSTGRESQL</text>
+          {/* Visual canvas grid */}
+          <rect x="750" y="380" width="340" height="300" rx="16" stroke="currentColor" strokeWidth="2" />
+          <circle cx="780" cy="405" r="5" fill="currentColor" opacity="0.5" />
+          <circle cx="795" cy="405" r="5" fill="currentColor" opacity="0.5" />
+          <circle cx="810" cy="405" r="5" fill="currentColor" opacity="0.5" />
+          <rect x="775" y="440" width="220" height="12" rx="4" fill="currentColor" opacity="0.4" />
+          <rect x="775" y="470" width="290" height="180" rx="12" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 4" />
+        </svg>
+      </div>
+
       {/* Hero Section */}
       <section className="relative z-10 pt-24 pb-12 md:pt-36 md:pb-16 flex flex-col items-center justify-center text-center px-6 max-w-7xl mx-auto">
         <motion.div
@@ -245,23 +272,12 @@ export default function LandingPage({ onNavigate }) {
           animate="visible"
           className="flex flex-col items-center w-full"
         >
-          {/* Animated Glow Pill Badge */}
-          <motion.div variants={itemVariants} className="mb-8">
-            <AnimatedGradientText className="px-5 py-2">
-              <Sparkles className="w-4 h-4 mr-2 text-indigo-500 dark:text-brand animate-spin duration-[4s]" />
-              <span className="text-xs font-semibold tracking-wide bg-gradient-to-r from-zinc-850 to-zinc-650 dark:from-zinc-100 dark:to-zinc-350 bg-clip-text text-transparent">
-                Digitalización fácil para negocios locales
-              </span>
-              <ArrowRight className="w-3.5 h-3.5 ml-2 text-indigo-500 dark:text-brand" />
-            </AnimatedGradientText>
-          </motion.div>
-
-          {/* Simple, Solid, High-Impact H1 Title (No technical jargon) */}
+          {/* Spectacular Centralized, Ultra-Modern and Stable H1 */}
           <motion.h1
             variants={itemVariants}
             className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-8 leading-[1.05] max-w-5xl text-zinc-900 dark:text-white"
           >
-            Tu negocio de toda la vida,<br />
+            Tu negocio de toda la vida, <br className="hidden sm:inline" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-brand dark:via-brand-accent dark:to-brand-2">
               digitalizado en 2 minutos.
             </span>
@@ -313,8 +329,8 @@ export default function LandingPage({ onNavigate }) {
         </motion.div>
       </section>
 
-      {/* Glassmorphic Showcase with Dynamic 3D Rotation on Hover */}
-      <section className="py-8 px-6 max-w-6xl mx-auto relative z-10 mb-24">
+      {/* Redesigned Showcase: Clean, Solid borders. Glassmorphism only inside the mockup cards */}
+      <section id="algoritmo" className="py-8 px-6 max-w-6xl mx-auto relative z-10 mb-24 scroll-mt-20">
         <div className="text-center mb-10">
           <span className="text-[10px] bg-indigo-500/10 text-indigo-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             Algoritmo Avialo en Acción
@@ -327,22 +343,22 @@ export default function LandingPage({ onNavigate }) {
           </p>
         </div>
 
-        {/* 3D Rotatable Glassmorphic Card Container */}
-        <motion.div
+        {/* Clean, Non-glassmorphic solid container for the simulator box (Vercel-style grey canvas) */}
+        <div
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
           style={tiltStyle}
-          className="glass rounded-[2rem] border border-zinc-250 dark:border-zinc-800/70 overflow-hidden shadow-2xl bg-card/45 backdrop-blur-xl relative transition-shadow duration-300 hover:shadow-[0_40px_100px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_40px_100px_rgba(124,58,237,0.12)] cursor-pointer"
+          className="rounded-[2rem] border border-zinc-200 dark:border-zinc-900 overflow-hidden shadow-2xl bg-zinc-50 dark:bg-zinc-950 transition-shadow duration-300 hover:shadow-[0_40px_100px_rgba(0,0,0,0.18)] dark:hover:shadow-[0_40px_100px_rgba(124,58,237,0.12)] cursor-pointer relative"
         >
           <BorderBeam size={350} duration={14} borderWidth={1.5} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
 
           {/* Interactive tabs */}
-          <div className="flex flex-wrap md:flex-nowrap border-b border-zinc-200 dark:border-zinc-850 bg-zinc-100/50 dark:bg-zinc-950/80 p-2 gap-2 relative z-20">
+          <div className="flex flex-wrap md:flex-nowrap border-b border-zinc-200 dark:border-zinc-850 bg-zinc-100/50 dark:bg-zinc-950 p-2 gap-2 relative z-20">
             {Object.keys(pymes).map((key) => (
               <button
                 key={key}
                 onClick={(e) => {
-                  e.stopPropagation(); // Stop trigger of parent 3d click if any
+                  e.stopPropagation();
                   handlePymeChange(key);
                 }}
                 className={cn(
@@ -360,7 +376,7 @@ export default function LandingPage({ onNavigate }) {
 
           <div className="p-6 md:p-10 min-h-[460px] flex flex-col lg:flex-row gap-10 relative z-10">
             
-            {/* Left Transformation Explanation card (No tech jargon, simple) */}
+            {/* Left Column: Glassmorphic explanation block */}
             <div className="flex-1 flex flex-col justify-between text-left space-y-6">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -383,13 +399,13 @@ export default function LandingPage({ onNavigate }) {
                     </p>
                   </div>
 
-                  {/* Prompt simulation */}
-                  <div className="p-4 bg-zinc-150/40 dark:bg-zinc-950/60 rounded-2xl border border-zinc-200/40 dark:border-zinc-850 flex items-start gap-3">
+                  {/* Glassmorphic prompt simulation block */}
+                  <div className="p-4 glass rounded-2xl border border-zinc-200/40 dark:border-zinc-850/60 flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-950 flex items-center justify-center font-bold text-[9px] uppercase shrink-0 mt-0.5 shadow">
                       PY
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-black uppercase tracking-wider block">Tu idea simple en español:</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-505 font-black uppercase tracking-wider block">Tu idea simple en español:</span>
                       <p className="text-xs text-zinc-700 dark:text-zinc-300 italic font-semibold">
                         "{pymes[activePyme].prompt}"
                       </p>
@@ -406,7 +422,7 @@ export default function LandingPage({ onNavigate }) {
                     </div>
                     <div className="p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 text-left">
                       <span className="text-[10px] text-emerald-500 font-black uppercase tracking-wider block mb-1">🎉 Después (Con Avialo):</span>
-                      <p className="text-[11px] text-zinc-800 dark:text-zinc-350 leading-relaxed font-semibold">
+                      <p className="text-[11px] text-zinc-850 dark:text-zinc-300 leading-relaxed font-semibold">
                         {pymes[activePyme].afterText}
                       </p>
                     </div>
@@ -429,17 +445,17 @@ export default function LandingPage({ onNavigate }) {
               </div>
             </div>
 
-            {/* Right side Visual Preview Canvas (Ultra clean and interactive) */}
-            <div className="flex-1 bg-zinc-100/50 dark:bg-zinc-900/10 rounded-2xl p-4 md:p-6 border border-zinc-200/50 dark:border-zinc-850/50 flex items-center justify-center min-h-[340px]">
+            {/* Right Column: Visual Preview Canvas (Solid background frame) */}
+            <div className="flex-1 bg-zinc-100 dark:bg-zinc-900/40 rounded-2xl p-4 md:p-6 border border-zinc-200/50 dark:border-zinc-850/50 flex items-center justify-center min-h-[340px]">
               <div 
                 className="w-full h-full bg-white dark:bg-zinc-950 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-850 flex flex-col overflow-hidden max-w-md mx-auto"
-                onClick={(e) => e.stopPropagation()} // Stop clicking elements in visual mockup from triggering 3D click
+                onClick={(e) => e.stopPropagation()}
               >
                 
                 {/* Visual Header */}
                 <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-850/50 px-4.5 py-3.5 bg-zinc-50/50 dark:bg-zinc-900">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-pulse animate-pulse-glow" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-pulse" />
                     <span className="text-[10px] font-black text-zinc-550 dark:text-zinc-400 tracking-wider">
                       {activePyme === 'hosteleria' && 'meson-asturiano.com'}
                       {activePyme === 'salud' && 'dentalia-consulta.es'}
@@ -483,8 +499,8 @@ export default function LandingPage({ onNavigate }) {
                               </p>
                             </div>
 
-                            {/* Reservas Widget */}
-                            <div className="border border-indigo-200/50 dark:border-indigo-900/30 rounded-2xl p-4 bg-indigo-50/15 dark:bg-indigo-950/10 shadow-inner">
+                            {/* Glassmorphic Reservas Widget (Glassmorphism only inside the mockup) */}
+                            <div className="glass border border-indigo-200/40 dark:border-indigo-900/30 rounded-2xl p-4 bg-indigo-50/10 dark:bg-indigo-950/5 shadow-inner">
                               <span className="text-[9px] font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 block mb-2">
                                 📅 RESERVA TU MESA ONLINE
                               </span>
@@ -573,8 +589,8 @@ export default function LandingPage({ onNavigate }) {
                               </p>
                             </div>
 
-                            {/* Citas Widget */}
-                            <div className="border border-purple-200/50 dark:border-purple-900/30 rounded-2xl p-4 bg-purple-50/15 dark:bg-purple-950/10 shadow-inner">
+                            {/* Glassmorphic Citas Widget (Glassmorphism only inside the mockup) */}
+                            <div className="glass border border-purple-200/40 dark:border-purple-900/30 rounded-2xl p-4 bg-purple-50/10 dark:bg-purple-950/5 shadow-inner">
                               <span className="text-[9px] font-black uppercase tracking-wider text-purple-650 dark:text-brand-accent block mb-2">
                                 👨‍⚕️ RESERVAR CITA PREVIA
                               </span>
@@ -602,7 +618,7 @@ export default function LandingPage({ onNavigate }) {
                                   <button
                                     disabled={!selectedService}
                                     onClick={() => setClinicBooked(true)}
-                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
                                   >
                                     Confirmar Hora de Cita
                                   </button>
@@ -644,8 +660,8 @@ export default function LandingPage({ onNavigate }) {
                               </p>
                             </div>
 
-                            {/* Store Widget */}
-                            <div className="border border-amber-250/50 dark:border-amber-900/30 rounded-2xl p-4 bg-amber-50/15 dark:bg-zinc-900/50 shadow-inner">
+                            {/* Glassmorphic Store Widget (Glassmorphism only inside the mockup) */}
+                            <div className="glass border border-amber-250/30 dark:border-amber-900/30 rounded-2xl p-4 bg-amber-50/10 dark:bg-zinc-900/10 shadow-inner">
                               <div className="flex justify-between items-center mb-3">
                                 <span className="text-[9px] font-black uppercase tracking-wider text-amber-650 dark:text-amber-400">
                                   📦 MODELO CLÁSICO ARTESANO
@@ -655,12 +671,12 @@ export default function LandingPage({ onNavigate }) {
 
                               {!purchaseSuccess ? (
                                 <div className="space-y-3">
-                                  <div className="p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[8.5px] text-zinc-400 font-bold uppercase tracking-wider text-center">
+                                  <div className="p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[8.5px] text-zinc-450 font-bold uppercase tracking-wider text-center">
                                     💳 Cobro con tarjeta seguro
                                   </div>
                                   <button
                                     onClick={() => setPurchaseSuccess(true)}
-                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                                   >
                                     Comprar Ahora
                                   </button>
@@ -700,17 +716,64 @@ export default function LandingPage({ onNavigate }) {
             </div>
 
           </div>
-        </motion.div>
+        </div>
+      </section>
+
+      {/* Product Details Section (Cómo te podemos ayudar - detailed info for curious visitors) */}
+      <section id="como-ayudamos" className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+        <div className="text-center mb-16">
+          <span className="text-[10px] bg-indigo-500/10 text-indigo-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
+            ¿Cómo te ayudamos?
+          </span>
+          <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-4">
+            Digitalización sencilla paso a paso
+          </h2>
+          <p className="text-zinc-500 dark:text-zinc-405 text-xs sm:text-sm max-w-xl mx-auto">
+            Hemos diseñado nuestro algoritmo propio para que no tengas que preocuparte de tecnicismos complejos. Vamos al grano.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-850/60 rounded-[2rem] text-left">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-brand flex items-center justify-center font-bold text-sm mb-6 border border-indigo-500/10">
+              1
+            </div>
+            <h3 className="text-base font-black uppercase tracking-wider mb-3 text-zinc-900 dark:text-white">Describes tu idea</h3>
+            <p className="text-zinc-500 dark:text-zinc-405 text-xs leading-relaxed font-medium">
+              Escribe cómo es tu negocio tradicional usando tus propias palabras (por ejemplo: "tengo un mesón y quiero reservas de mesa los domingos"). Sin saber programar y sin tecnicismos raros.
+            </p>
+          </div>
+
+          <div className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-850/60 rounded-[2rem] text-left">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-650 dark:text-brand-accent flex items-center justify-center font-bold text-sm mb-6 border border-purple-500/10">
+              2
+            </div>
+            <h3 className="text-base font-black uppercase tracking-wider mb-3 text-zinc-900 dark:text-white">El algoritmo trabaja</h3>
+            <p className="text-zinc-500 dark:text-zinc-405 text-xs leading-relaxed font-medium">
+              Nuestro algoritmo propio procesa el requerimiento, genera el código limpio, activa un sistema de reservas o catálogo comercial en una base de datos segura y despliega tu página en internet.
+            </p>
+          </div>
+
+          <div className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-850/60 rounded-[2rem] text-left">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-sm mb-6 border border-emerald-500/10">
+              3
+            </div>
+            <h3 className="text-base font-black uppercase tracking-wider mb-3 text-zinc-900 dark:text-white">Listo en 2 minutos</h3>
+            <p className="text-zinc-500 dark:text-zinc-405 text-xs leading-relaxed font-medium">
+              Tu web se publica automáticamente con dominio profesional incluido. Si necesitas cambiar algún plato, foto, horario o texto, solo tienes que pedírselo a la IA por el chat de tu panel.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* Spectacular Real SME Owner Testimonials (Punchy, real-sounding reviews) */}
-      <section className="py-20 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50">
+      <section id="testimonios" className="py-20 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
         <div className="text-center mb-16">
           <span className="text-[10px] bg-purple-500/10 text-purple-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             Opiniones Reales
           </span>
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3">
-            Negocios que ya se han transformado
+            Negocios que ya se han digitalizado
           </h2>
           <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto">
             Hablamos con pequeños empresarios españoles de toda la vida que han dado el salto digital con Avialo.
@@ -730,7 +793,7 @@ export default function LandingPage({ onNavigate }) {
                     <Star key={idx} className="w-4 h-4 text-amber-500 fill-amber-500" />
                   ))}
                 </div>
-                <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed font-semibold italic">
+                <p className="text-xs sm:text-sm text-zinc-700 dark:text-zinc-350 leading-relaxed font-semibold italic">
                   "{rev.text}"
                 </p>
               </div>
@@ -740,7 +803,7 @@ export default function LandingPage({ onNavigate }) {
                 </div>
                 <div>
                   <span className="text-xs font-black text-zinc-900 dark:text-white block">{rev.author}</span>
-                  <span className="text-[10px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider block">{rev.business}</span>
+                  <span className="text-[10px] text-zinc-450 dark:text-zinc-505 font-bold uppercase tracking-wider block">{rev.business}</span>
                 </div>
               </div>
             </motion.div>
@@ -748,8 +811,8 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50">
+      {/* Pricing Section (Clean balance. NO highlighted popular banner, all animate on hover) */}
+      <section id="pricing" className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
         <div className="text-center mb-20">
           <span className="text-[10px] bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/20 text-emerald-650 dark:text-brand-success px-3.5 py-1.5 rounded-full font-black uppercase tracking-wider mb-4 inline-block">
             Precios Claros y Transparentes
@@ -766,20 +829,10 @@ export default function LandingPage({ onNavigate }) {
           {plans.map((plan) => (
             <motion.div
               key={plan.name}
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 220 }}
-              className={`p-8.5 rounded-[2.2rem] border flex flex-col justify-between relative bg-card shadow-lg transition-all duration-300 overflow-hidden ${
-                plan.popular
-                  ? 'border-indigo-500 dark:border-brand shadow-indigo-500/5 dark:shadow-brand/5 ring-2 ring-indigo-500/20 dark:ring-brand/20'
-                  : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
-              }`}
+              whileHover={{ y: -8, scale: 1.02 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 20 }}
+              className="p-8.5 rounded-[2.2rem] border flex flex-col justify-between relative bg-card shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-zinc-200 dark:border-zinc-850 hover:border-zinc-350 dark:hover:border-zinc-700"
             >
-              {plan.popular && (
-                <span className="absolute top-4 right-4 px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 dark:from-brand dark:to-brand-2 text-white text-[9px] font-black tracking-widest shadow-md z-10 flex items-center gap-1 uppercase">
-                  <Star size={9.5} fill="currentColor" /> MÁS POPULAR
-                </span>
-              )}
-
               <div>
                 <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-505 px-3 py-1 rounded-lg font-black uppercase tracking-widest mb-4 inline-block">
                   {plan.tier}
@@ -808,11 +861,7 @@ export default function LandingPage({ onNavigate }) {
 
               <button
                 onClick={() => onNavigate('register')}
-                className={`w-full py-4.5 px-4 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 active:scale-[0.98] ${
-                  plan.popular
-                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-brand dark:to-brand-2 text-white hover:opacity-95 shadow-md shadow-indigo-500/10 dark:shadow-brand/10'
-                    : 'bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-955 hover:bg-zinc-850 dark:hover:bg-zinc-250 shadow'
-                }`}
+                className="w-full py-4.5 px-4 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 active:scale-[0.98] bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-955 hover:bg-zinc-800 dark:hover:bg-zinc-250 shadow"
               >
                 {plan.cta}
               </button>
@@ -921,25 +970,78 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-16 border-t border-zinc-200/50 dark:border-zinc-850/50 bg-zinc-100/30 dark:bg-zinc-950/80 px-6 text-center relative z-10">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex flex-col md:flex-row items-center gap-4 text-left">
+      {/* Spectacular Extensive Footer (Fully compliant with Avialo branding terms) */}
+      <footer className="py-20 border-t border-zinc-200/50 dark:border-zinc-850/50 bg-zinc-50/40 dark:bg-zinc-950/90 px-8 relative z-10">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-10 text-left mb-16">
+          
+          {/* Main Info Column */}
+          <div className="md:col-span-2 space-y-5">
             <div className="flex items-center gap-2">
               <Logo className="w-6 h-6 text-zinc-900 dark:text-zinc-100" />
-              <span className="font-black tracking-tight text-base text-zinc-900 dark:text-white">
+              <span className="font-black text-lg text-zinc-900 dark:text-white">
                 Avialo Builder<span className="text-brand">.</span>
               </span>
             </div>
-            <div className="h-4 w-px bg-zinc-300 dark:bg-zinc-800 hidden md:block" />
-            <span className="text-xs text-zinc-450 dark:text-zinc-500 font-semibold">
-              Transformación digital sencilla para pymes tradicionales.
-            </span>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+              Transformación digital autónoma y de alto rendimiento para pequeños y medianos negocios tradicionales españoles de toda la vida.
+            </p>
+            <div className="pt-1.5 space-y-2 text-[11px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2">
+                <Building size={14} className="text-indigo-500 shrink-0" />
+                <span>Creado por Avialo Soluciones S.L.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Globe size={14} className="text-purple-500 shrink-0" />
+                <span>Avialo Builder es un producto de <a href="https://avialo.app" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">avialo.app</a></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Info size={14} className="text-emerald-500 shrink-0" />
+                <span>Este servicio está creado por <a href="https://avialo.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">Avialo.es</a></span>
+              </div>
+            </div>
           </div>
 
-          <p className="text-xs text-zinc-500 dark:text-zinc-500 font-medium">
-            &copy; {new Date().getFullYear()} Avialo S.L. Todos los derechos reservados. 1 Sitio web por cuenta.
+          {/* Product links */}
+          <div className="space-y-4">
+            <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest block">Producto</span>
+            <ul className="space-y-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              <li><a href="#algoritmo" className="hover:text-foreground transition-colors">Algoritmo Autónomo</a></li>
+              <li><a href="#como-ayudamos" className="hover:text-foreground transition-colors">Reservas de Mesa</a></li>
+              <li><a href="#como-ayudamos" className="hover:text-foreground transition-colors">Citas Previas</a></li>
+              <li><a href="#como-ayudamos" className="hover:text-foreground transition-colors">Tiendas Headless</a></li>
+            </ul>
+          </div>
+
+          {/* Support links */}
+          <div className="space-y-4">
+            <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest block">Soporte</span>
+            <ul className="space-y-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              <li><a href="#faq" className="hover:text-foreground transition-colors">Centro de Ayuda</a></li>
+              <li><span className="flex items-center gap-1.5"><Mail size={12} /> info@avialo.es</span></li>
+              <li><span className="flex items-center gap-1.5"><Phone size={12} /> +34 900 avialo</span></li>
+            </ul>
+          </div>
+
+          {/* Company links */}
+          <div className="space-y-4">
+            <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest block">Legal</span>
+            <ul className="space-y-2.5 text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              <li><a href="#" className="hover:text-foreground transition-colors">Aviso Legal</a></li>
+              <li><a href="#" className="hover:text-foreground transition-colors">Política de Privacidad</a></li>
+              <li><a href="#" className="hover:text-foreground transition-colors">Términos del Servicio</a></li>
+              <li><a href="#" className="hover:text-foreground transition-colors">Política de Cookies</a></li>
+            </ul>
+          </div>
+
+        </div>
+
+        <div className="max-w-6xl mx-auto pt-8 border-t border-zinc-200/50 dark:border-zinc-800/50 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">
+            &copy; {new Date().getFullYear()} Avialo Soluciones S.L. Todos los derechos reservados.
           </p>
+          <div className="text-[11px] text-zinc-450 dark:text-zinc-500 font-bold flex gap-4 uppercase tracking-wider">
+            <span>Socio tecnológico de la PYME española</span>
+          </div>
         </div>
       </footer>
     </div>

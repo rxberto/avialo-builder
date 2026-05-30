@@ -114,6 +114,82 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
             </span>
           </div>
 
+          {/* Desktop Central Public Links (If NOT logged in) */}
+          {!user && (
+            <div className="hidden md:flex items-center gap-7 text-xs font-black uppercase tracking-wider text-muted-foreground/80">
+              {/* Product category with Resend/Stripe-like dropdown */}
+              <div className="relative group/nav">
+                <button className="flex items-center gap-1 hover:text-foreground transition-colors py-2 outline-none cursor-pointer">
+                  <span>Producto</span>
+                  <ChevronDown size={12} className="group-hover/nav:rotate-180 transition-transform duration-300" />
+                </button>
+                {/* Dropdown Menu */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl shadow-xl p-4 opacity-0 scale-95 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:scale-100 group-hover/nav:pointer-events-auto transition-all duration-300 origin-top z-50">
+                  <div className="space-y-3">
+                    <a href="#algoritmo" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                      <Zap className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Algoritmo Autónomo</span>
+                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Digitaliza tu negocio tradicional en 2 minutos sin programar.</span>
+                      </div>
+                    </a>
+                    <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                      <Cpu className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Citas y Cobros</span>
+                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Reservas automáticas para comensales, pacientes y pasarela Stripe.</span>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* How we help category */}
+              <div className="relative group/nav">
+                <button className="flex items-center gap-1 hover:text-foreground transition-colors py-2 outline-none cursor-pointer">
+                  <span>Cómo ayudamos</span>
+                  <ChevronDown size={12} className="group-hover/nav:rotate-180 transition-transform duration-300" />
+                </button>
+                {/* Dropdown Menu */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl shadow-xl p-4 opacity-0 scale-95 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:scale-100 group-hover/nav:pointer-events-auto transition-all duration-300 origin-top z-50">
+                  <div className="space-y-3">
+                    <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                      <Utensils className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Mesones y Hostelería</span>
+                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Reservas de mesa online autónomas y control de comensales.</span>
+                      </div>
+                    </a>
+                    <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                      <Stethoscope className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Clínicas y Consultas</span>
+                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Cita previa para dentistas, fisios, estéticas y servicios de barrio.</span>
+                      </div>
+                    </a>
+                    <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                      <Store className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Comercio y Zapaterías</span>
+                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Cobros seguros con tarjeta para vender calzado y productos a toda España.</span>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pricing direct link */}
+              <a href="#pricing" className="hover:text-foreground transition-colors py-2">
+                Precios
+              </a>
+
+              {/* Nosotros */}
+              <a href="#testimonios" className="hover:text-foreground transition-colors py-2">
+                Nosotros
+              </a>
+            </div>
+          )}
+
           {/* Desktop Central Links (Only if logged in) */}
           {user && (
             <div className="hidden md:flex items-center gap-1.5 bg-muted/30 border border-border/40 p-1 rounded-full text-sm">
