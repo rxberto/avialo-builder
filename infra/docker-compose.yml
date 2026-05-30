@@ -94,11 +94,12 @@ services:
     labels:
       - "traefik.enable=true"
       # Enrutar api.avialo.app para endpoints del orquestador
-      - "traefik.http.routers.orchestrator.rule=Host(`api.avialo.app`)"
-      - "traefik.http.routers.orchestrator.entrypoints=websecure"
-      - "traefik.http.routers.orchestrator.tls=true"
-      - "traefik.http.routers.orchestrator.tls.certresolver=letsencrypt"
-      - "traefik.http.services.orchestrator.loadbalancer.server.port=3000"
+      - "traefik.http.routers.avialoapi.rule=Host(`api.avialo.app`)"
+      - "traefik.http.routers.avialoapi.entrypoints=websecure"
+      - "traefik.http.routers.avialoapi.tls=true"
+      - "traefik.http.routers.avialoapi.tls.certresolver=letsencrypt"
+      - "traefik.http.services.avialoapi.loadbalancer.server.port=3000"
+      - "traefik.docker.network=avialo-network"
 
 volumes:
   postgres_data:
