@@ -60,7 +60,7 @@ export default function RegisterPage({ onRegister }) {
       const { loginWithGoogle } = await import('../lib/api');
       const result = await loginWithGoogle(response.credential);
       // Inicia sesión y valida si es usuario nuevo de Google para mandarlo a GoogleOnboarding
-      onRegister(result.user, result.isNewGoogleUser);
+      onRegister({ token: result.token, ...result.user }, result.isNewGoogleUser);
     } catch (err) {
       setError(err.message || 'Error al conectar tu cuenta de Google.');
     } finally {
@@ -78,7 +78,7 @@ export default function RegisterPage({ onRegister }) {
     setLoading(true);
     try {
       const result = await register(name, email, password);
-      onRegister(result);
+      onRegister({ token: result.token, ...result.user });
     } catch (err) {
       setError(err.message || 'Error al crear la cuenta. El correo podría estar en uso.');
     } finally {

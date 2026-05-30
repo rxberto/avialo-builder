@@ -58,7 +58,7 @@ export default function LoginPage({ onLogin }) {
     try {
       const { loginWithGoogle } = await import('../lib/api');
       const result = await loginWithGoogle(response.credential);
-      onLogin(result.user, result.isNewGoogleUser);
+      onLogin({ token: result.token, ...result.user }, result.isNewGoogleUser);
     } catch (err) {
       setError(err.message || 'Error al conectar con tu cuenta de Google.');
     } finally {
@@ -76,7 +76,7 @@ export default function LoginPage({ onLogin }) {
     setLoading(true);
     try {
       const result = await login(email, password);
-      onLogin(result);
+      onLogin({ token: result.token, ...result.user });
     } catch (err) {
       setError(err.message || 'Credenciales incorrectas o servidor fuera de línea.');
     } finally {
