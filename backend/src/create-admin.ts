@@ -11,7 +11,13 @@ async function main() {
       plan: "pro", // Plan Pro activo para saltarse el pago
       aiCredits: 200,
       profession: "Creador",
-      role: "Administrador"
+      role: "Administrador",
+      // Resetear la web a un inicio completamente limpio
+      siteName: null,
+      siteType: null,
+      siteDomain: null,
+      siteJobId: null,
+      siteStatus: "none"
     },
     create: {
       name: "Roberto",
@@ -20,19 +26,23 @@ async function main() {
       plan: "pro",
       aiCredits: 200,
       profession: "Creador",
-      role: "Administrador"
+      role: "Administrador",
+      siteName: null,
+      siteType: null,
+      siteDomain: null,
+      siteJobId: null,
+      siteStatus: "none"
     }
   });
   
-  console.log("✅ Usuario administrador creado/actualizado con éxito:", user);
+  console.log("✅ Usuario administrador reseteado/inicializado a Fresh Start con éxito:", user);
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error al crear el usuario:", e);
+    console.error("❌ Error al resetear el usuario:", e);
     process.exit(1);
   })
   .finally(async () => {
-    // Cerrar la conexión de Prisma
     await prisma.$disconnect();
   });
