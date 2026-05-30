@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:v2.11
     container_name: avialo-traefik
     restart: always
     ports:
@@ -15,6 +15,7 @@ services:
     networks:
       - avialo-network
     environment:
+      - DOCKER_API_VERSION=1.24
       # Si usamos DNS challenge con Cloudflare, pasamos los tokens de entorno
       - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN}
