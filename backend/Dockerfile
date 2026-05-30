@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY prisma ./prisma/
+COPY prisma.config.ts ./
 
 # Instalar todas las dependencias
 RUN npm ci
