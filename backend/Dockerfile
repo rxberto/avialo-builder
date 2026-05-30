@@ -29,4 +29,4 @@ RUN npm prune --production
 EXPOSE 3000
 
 # Aplica migraciones y luego arranca el servidor
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["npm", "start"]

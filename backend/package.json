@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "ts-node-esm src/server.ts",
     "build": "tsc",
+    "prestart": "npx prisma migrate deploy",
     "start": "node dist/server.js",
     "test": "node tests/test-scaffold.js",
     "migrate:tenants": "ts-node-esm src/database/migrator.ts"
