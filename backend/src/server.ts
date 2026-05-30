@@ -124,7 +124,7 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
 
   try {
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded',
+      ui_mode: 'embedded' as any,
       line_items: [{
         price_data: {
           currency: "eur",
