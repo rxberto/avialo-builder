@@ -2,58 +2,73 @@ import { prisma } from "./database/client.js";
 import bcrypt from "bcryptjs";
 
 async function main() {
+  console.log("🔥 Limpiando cuentas de bypass anteriores del script...");
+  
+  // Limpiar las cuentas que creamos en las pruebas anteriores para no dejar basura
+  const oldEmails = [
+    "roberto@roberto.com", 
+    "roberto@com", 
+    "roberto-eco@roberto.com", 
+    "roberto-eco@com"
+  ];
+  
+  const deleted = await prisma.user.deleteMany({
+    where: {
+      email: {
+        in: oldEmails
+      }
+    }
+  });
+  console.log(`🗑️ Eliminadas ${deleted.count} cuentas antiguas de bypass.`);
+
+  const email = "roberto2@gmail.com";
   const password = "123456";
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // Definición de los usuarios a crear con sus respectivos planes
-  const usersToCreate = [
-    // Cuenta con Plan Pro
-    {
-      emails: ["roberto@roberto.com", "roberto@com"],
-      name: "Roberto Pro Bypass",
+  console.log(`⏳ Creando o actualizando cuenta PRO para ${email} con onboarding completado...`);
+
+  // Crear o actualizar la cuenta final roberto2@gmail.com
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      name: "Roberto",
+      passwordHash,
       plan: "pro",
       role: "user",
+      profession: "Emprendedor",
       aiCredits: 500,
+      siteName: "Mi Sitio Web Pro",
+      siteType: "corporativa",
+      siteDomain: "roberto2.avialo.app",
+      siteStatus: "deployed" // "deployed" para que aparezca directamente el dashboard con la web lista
     },
-    // Cuenta con Plan eCommerce
-    {
-      emails: ["roberto-eco@roberto.com", "roberto-eco@com"],
-      name: "Roberto eCommerce Bypass",
-      plan: "ecommerce",
+    create: {
+      name: "Roberto",
+      email,
+      passwordHash,
+      plan: "pro",
       role: "user",
-      aiCredits: 1000,
-    }
-  ];
+      profession: "Emprendedor",
+      aiCredits: 500,
+      siteName: "Mi Sitio Web Pro",
+      siteType: "corporativa",
+      siteDomain: "roberto2.avialo.app",
+      siteStatus: "deployed"
+    },
+  });
 
-  for (const group of usersToCreate) {
-    for (const email of group.emails) {
-      console.log(`⏳ Creando o actualizando usuario ${email} con plan ${group.plan}...`);
-      const user = await prisma.user.upsert({
-        where: { email },
-        update: {
-          passwordHash,
-          plan: group.plan,
-          role: group.role,
-          aiCredits: group.aiCredits,
-        },
-        create: {
-          name: group.name,
-          email,
-          passwordHash,
-          plan: group.plan,
-          role: group.role,
-          aiCredits: group.aiCredits,
-          siteStatus: "none",
-        },
-      });
-      console.log(`✅ Usuario creado/actualizado: ${user.email} | Plan: ${user.plan} | Rol: ${user.role}`);
-    }
-  }
+  console.log("-----------------------------------------");
+  console.log("✅ ¡CUENTA BYPASS CREADA CON ÉXITO!");
+  console.log(`📧 Correo: ${user.email}`);
+  console.log(`🔑 Contraseña: ${password}`);
+  console.log(`📦 Plan: ${user.plan}`);
+  console.log(`🌐 Web: ${user.siteDomain} (${user.siteStatus})`);
+  console.log("-----------------------------------------");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error creando usuarios bypass:", e);
+    console.error("❌ Error creando usuario bypass:", e);
     process.exit(1);
   })
   .finally(async () => {
