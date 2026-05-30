@@ -8,6 +8,7 @@ import { generationQueue } from "./queue/queue.js";
 import { jobStatuses } from "./queue/worker.js";
 import { jobLogEmitter, getJobLogs } from "./queue/logs.js";
 import { authRouter, authenticateToken, AuthRequest, verifyAndResetCredits } from "./routes/auth.js";
+import { adminRouter } from "./routes/admin.js";
 import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
 import { runEditAutocorrectionLoop } from "./agent/editLoop.js";
@@ -28,6 +29,7 @@ app.use(express.json({ limit: "10mb" }));
 // REGISTRO DE RUTAS DE AUTENTICACIÓN (NUEVO)
 // ============================================
 app.use("/api/auth", authRouter);
+app.use("/api/admin", adminRouter);
 
 // ============================================
 // ENDPOINTS DE SALUD Y UTILIDADES

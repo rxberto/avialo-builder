@@ -13,6 +13,7 @@ import Navbar from './components/layout/Navbar';
 import GoogleOnboarding from './components/GoogleOnboarding';
 import SettingsPage from './components/SettingsPage';
 import NotificationsModal from './components/NotificationsModal';
+import AdminPage from './components/AdminPage';
 import { createJob, getProfile, updateProfile } from './lib/api';
 
 function App() {
@@ -429,6 +430,11 @@ function App() {
                 toggleTheme={toggleTheme}
               />
             </RequireAuth>
+          } />
+
+          {/* Admin — solo roberto@avialo.es */}
+          <Route path="/admin" element={
+            user ? <AdminPage user={user} /> : <Navigate to="/login" replace />
           } />
 
           {/* Fallback */}
