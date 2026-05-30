@@ -17,6 +17,9 @@ export interface AppConfig {
   openai: {
     apiKey?: string;
   };
+  openrouter: {
+    apiKey?: string;
+  };
   redis: {
     url: string;
   };
@@ -37,6 +40,9 @@ export const config: AppConfig = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
+  },
+  openrouter: {
+    apiKey: process.env.OPENROUTER_API_KEY,
   },
   redis: {
     url: process.env.REDIS_URL || "redis://localhost:6379",

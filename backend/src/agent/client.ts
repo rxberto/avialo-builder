@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { OpenAI } from "openai";
 import { config } from "../config/env.js";
 
 // Inicialización segura de los SDKs oficiales
@@ -9,6 +10,13 @@ const anthropicClient = config.anthropic.apiKey
 
 const googleClient = config.gemini.apiKey 
   ? new GoogleGenerativeAI(config.gemini.apiKey) 
+  : null;
+
+const openRouterClient = config.openrouter.apiKey
+  ? new OpenAI({
+      apiKey: config.openrouter.apiKey,
+      baseURL: "https://openrouter.ai/api/v1",
+    })
   : null;
 
 /**
@@ -81,6 +89,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   ) // ERROR DE SINTAXIS INTENCIONADO (Falta llave)
       `;
+    }
+  }
+
+  // Si OpenRouter está configurado en las variables de entorno, canalizar la petición
+  if (openRouterClient) {
+    try {
+      console.log(`🔌 OpenRouter detectado. Canalizando petición de tipo: ${preferredModel.toUpperCase()}`);
+      const modelId = preferredModel === "claude" 
+        ? "anthropic/claude-3.5-sonnet" 
+        : "google/gemini-2.5-flash";
+      return await callOpenRouter(prompt, systemPrompt, modelId);
+    } catch (error: any) {
+      console.warn(`⚠️ OpenRouter falló o dio error: ${error.message || error}. Activando fallback a clientes oficiales directos...`);
     }
   }
 
@@ -164,4 +185,38 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
   }
 
   throw new Error("Gemini devolvió un contenido de respuesta vacío.");
+}
+
+/**
+ * Llama al API de OpenRouter
+ */
+async function callOpenRouter(prompt: string, systemPrompt: string, modelId: string): Promise<string> {
+  if (!openRouterClient) {
+    throw new Error("Cliente de OpenRouter no inicializado.");
+  }
+
+  const response = await openRouterClient.chat.completions.create({
+    model: modelId,
+    messages: [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    extraHeaders: {
+      "HTTP-Referer": "https://avialo.app",
+      "X-Title": "Avialo Builder",
+    }
+  } as any);
+
+  const text = response.choices[0]?.message?.content;
+  if (text) {
+    return text;
+  }
+  
+  throw new Error("OpenRouter devolvió un contenido de respuesta vacío.");
 }
