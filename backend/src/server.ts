@@ -22,7 +22,30 @@ const stripe = stripeSecretKey && stripeSecretKey !== "sk_test_..."
   ? new Stripe(stripeSecretKey, { apiVersion: "2024-04-10" as any })
   : null;
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://avialo.app',
+    'https://www.avialo.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
+
+// Responder preflight OPTIONS inmediatamente para todas las rutas
+app.options('*', cors({
+  origin: [
+    'https://avialo.app',
+    'https://www.avialo.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}));
 app.use(express.json({ limit: "10mb" }));
 
 // ============================================
