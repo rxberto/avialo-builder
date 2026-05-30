@@ -2,19 +2,21 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../database/client.js';
 import { authenticateToken, AuthRequest } from './auth.js';
 import { execSync } from 'child_process';
-import path from 'path';
 
 export const adminRouter = Router();
 
-const ADMIN_EMAIL = 'roberto@avialo.es';
-
-// Middleware: solo el admin puede entrar
-function requireAdmin(req: AuthRequest, res: Response, next: any) {
+// Middleware: solo usuarios con role='admin' en la BD
+async function requireAdmin(req: AuthRequest, res: Response, next: any) {
   if (!req.user) return res.status(401).json({ error: 'No autenticado' });
-  if ((req.user as any).email !== ADMIN_EMAIL) {
-    return res.status(403).json({ error: 'Acceso denegado. Solo el administrador puede acceder.' });
+  try {
+    const dbUser = await prisma.user.findUnique({ where: { id: (req.user as any).id } });
+    if (!dbUser || dbUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' });
+    }
+    next();
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
   }
-  next();
 }
 
 // GET /api/admin/users — lista todos los usuarios

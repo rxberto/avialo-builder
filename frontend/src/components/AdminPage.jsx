@@ -14,10 +14,10 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
 }
 
-const ADMIN_EMAIL = 'roberto@avialo.es';
-
 export default function AdminPage({ user }) {
   const navigate = useNavigate();
+  // Guard: solo role='admin'
+  const isAdmin = user?.role === 'admin';
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -26,9 +26,8 @@ export default function AdminPage({ user }) {
   const [editCredits, setEditCredits] = useState({}); // { [userId]: string }
   const [confirmModal, setConfirmModal] = useState(null); // { type, userId, userName }
 
-  // Guard: only admin
   useEffect(() => {
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || user.role !== 'admin') {
       navigate('/dashboard');
     }
   }, [user, navigate]);
@@ -150,7 +149,7 @@ export default function AdminPage({ user }) {
     );
   };
 
-  if (!user || user.email !== ADMIN_EMAIL) return null;
+  if (!user || user.role !== 'admin') return null;
 
   return (
     <div style={{

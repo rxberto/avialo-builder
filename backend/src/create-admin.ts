@@ -1,15 +1,42 @@
 import { prisma } from "./database/client.js";
+import bcrypt from "bcryptjs";
 
 async function main() {
   const email = "roberto@avialo.es";
-  
-  // Eliminar el usuario si existe para empezar de cero (Fresh Start)
-  const result = await prisma.user.deleteMany({
-    where: { email }
+  const passwordHash = await bcrypt.hash("PepitoGrillo123!", 10);
+
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {
+      name: "Roberto",
+      passwordHash,
+      plan: "pro",
+      aiCredits: 200,
+      profession: "Fundador",
+      role: "admin",
+      siteName: null,
+      siteType: null,
+      siteDomain: null,
+      siteJobId: null,
+      siteStatus: "none",
+    },
+    create: {
+      name: "Roberto",
+      email,
+      passwordHash,
+      plan: "pro",
+      aiCredits: 200,
+      profession: "Fundador",
+      role: "admin",
+      siteName: null,
+      siteType: null,
+      siteDomain: null,
+      siteJobId: null,
+      siteStatus: "none",
+    },
   });
-  
-  console.log(`✅ Fresh Start completado con éxito: Se eliminó el usuario '${email}' de la base de datos.`);
-  console.log(`Cantidad de registros borrados: ${result.count}`);
+
+  console.log("✅ Admin creado/actualizado:", user.email, "| plan:", user.plan, "| créditos:", user.aiCredits);
 }
 
 main()
