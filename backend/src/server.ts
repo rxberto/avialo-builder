@@ -124,7 +124,7 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
 
   try {
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
+      ui_mode: 'embedded',
       line_items: [{
         price_data: {
           currency: "eur",
@@ -141,8 +141,7 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       }],
       mode: "subscription",
       customer_email: req.user.email,
-      success_url: successUrl || `${process.env.FRONTEND_URL || "http://localhost:5173"}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  cancelUrl  || `${process.env.FRONTEND_URL || "http://localhost:5173"}?payment=cancel`,
+      return_url: successUrl || `${process.env.FRONTEND_URL || "http://localhost:5173"}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         userId: req.user.id.toString(),
         webType,
@@ -151,16 +150,14 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       },
     });
 
-    console.log(`💳 Sesión de suscripción Stripe creada: ${session.id}`);
-    return res.json({ sessionId: session.id, url: session.url });
+    console.log(`💳 Sesión de suscripción Stripe creada (Embedded): ${session.id}`);
+    return res.json({ sessionId: session.id, clientSecret: session.client_secret });
 
   } catch (error: any) {
     console.error("❌ Error creando sesión de suscripción Stripe:", error);
     return res.status(500).json({ error: "Error al crear sesión de pago.", details: error.message });
   }
 });
-
-// ============================================
 // ENDPOINTS DE TRABAJOS (JOBS) — FASE 2 + 4
 // ============================================
 

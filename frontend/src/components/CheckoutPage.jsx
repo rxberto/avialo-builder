@@ -68,6 +68,20 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
   const [showSimulator, setShowSimulator] = useState(false);
   const [simulatorStep, setSimulatorStep] = useState(0);
 
+  // Estados para Stripe Checkout Empotrado (Embedded)
+  const [stripeClientSecret, setStripeClientSecret] = useState(null);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [checkoutInstance, setCheckoutInstance] = useState(null);
+
+  const handleCloseCheckoutModal = () => {
+    if (checkoutInstance) {
+      checkoutInstance.destroy();
+      setCheckoutInstance(null);
+    }
+    setShowCheckoutModal(false);
+    setStripeClientSecret(null);
+  };
+
   // Formulario B2B Facturación persistido en localStorage
   const getBillingField = (field, defaultValue = '') => {
     try {
@@ -127,8 +141,8 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         cancelUrl: `${window.location.origin}?payment=cancel`,
       });
 
-      // Si es un entorno de desarrollo o Stripe no está configurado (dev: true o sin url)
-      if (session.dev || !session.url) {
+      // Si es un entorno de desarrollo o Stripe no está configurado (dev: true o sin url/clientSecret)
+      if (session.dev || (!session.url && !session.clientSecret)) {
         setShowSimulator(true);
         setSimulatorStep(0);
         
@@ -140,6 +154,28 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
           setShowSimulator(false);
           handleSkipPaymentClick();
         }, 4000);
+        return;
+      }
+
+      if (session.clientSecret) {
+        setStripeClientSecret(session.clientSecret);
+        setShowCheckoutModal(true);
+        setLoading(false);
+
+        // Montar pasarela empotrada de Stripe (Embedded Checkout)
+        setTimeout(async () => {
+          try {
+            const stripe = await stripePromise;
+            const checkout = await stripe.initEmbeddedCheckout({
+              clientSecret: session.clientSecret,
+            });
+            checkout.mount('#checkout-container');
+            setCheckoutInstance(checkout);
+          } catch (e) {
+            console.error("Error al montar Stripe Checkout:", e);
+            setError(e.message || "Error al iniciar pasarela empotrada.");
+          }
+        }, 100);
         return;
       }
 
@@ -474,6 +510,42 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
             <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-center gap-6 text-[9px] text-zinc-500 font-semibold">
               <span className="flex items-center gap-1">🔒 PCI-DSS Compliant</span>
               <span className="flex items-center gap-1">✓ SSL Encrypted</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── STRIPE EMBEDDED CHECKOUT MODAL OVERLAY ── */}
+      {showCheckoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh] text-left">
+            <div className="p-6 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200">
+                  Pago Seguro en Avialo
+                </h3>
+              </div>
+              <button 
+                onClick={handleCloseCheckoutModal}
+                className="text-xs font-bold text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200 transition-colors uppercase tracking-widest"
+              >
+                Cancelar
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 bg-zinc-50 dark:bg-zinc-950 min-h-[350px] flex flex-col justify-center">
+              {/* Spinner while loading */}
+              {!checkoutInstance && (
+                <div className="flex flex-col items-center justify-center gap-4 text-center">
+                  <Loader2 className="animate-spin text-indigo-650" size={32} />
+                  <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                    Cargando pasarela de pago segura...
+                  </p>
+                </div>
+              )}
+              
+              <div id="checkout-container" className={cn("w-full transition-opacity duration-300", checkoutInstance ? "opacity-100" : "opacity-0")} />
             </div>
           </div>
         </div>
