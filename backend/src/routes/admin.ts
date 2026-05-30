@@ -103,3 +103,41 @@ adminRouter.patch('/users/:id/credits', authenticateToken, requireAdmin, async (
     res.status(500).json({ error: e.message });
   }
 });
+
+// POST /api/admin/users — crear un nuevo usuario desde el panel admin
+adminRouter.post('/users', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  const { name, email, password, plan, aiCredits, profession } = req.body;
+
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'name, email y password son obligatorios' });
+  }
+
+  try {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(400).json({ error: 'Ya existe un usuario con ese email' });
+
+    const bcryptLib = await import('bcryptjs');
+    const passwordHash = await bcryptLib.hash(password, 10);
+
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        plan: plan || 'none',
+        aiCredits: typeof aiCredits === 'number' ? aiCredits : 50,
+        profession: profession || '',
+        role: 'user',
+        siteName: null,
+        siteType: null,
+        siteDomain: null,
+        siteJobId: null,
+        siteStatus: 'none',
+      },
+    });
+
+    res.status(201).json({ success: true, message: `Usuario ${email} creado.`, user: newUser });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});

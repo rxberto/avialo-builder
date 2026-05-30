@@ -157,6 +157,12 @@ function App() {
     setUser(loggedInUser);
     localStorage.setItem('avialo_user', JSON.stringify(loggedInUser));
     handleAddNotification('success', 'Sesión iniciada', `Conexión segura como ${loggedInUser.name || loggedInUser.email}.`);
+
+    // Admin va directo al panel, nunca al flujo SaaS
+    if (loggedInUser.role === 'admin') {
+      navigate('/admin');
+      return;
+    }
     
     // Validar si tiene onboarding completo o si es un registro nuevo de Google
     if (isNewGoogleUser) {
@@ -432,9 +438,11 @@ function App() {
             </RequireAuth>
           } />
 
-          {/* Admin — solo roberto@avialo.es */}
+          {/* Admin — role=admin va directo aquí, sin acceso a rutas normales */}
           <Route path="/admin" element={
-            user ? <AdminPage user={user} /> : <Navigate to="/login" replace />
+            !user ? <Navigate to="/login" replace /> :
+            user.role === 'admin' ? <AdminPage user={user} onLogout={handleLogout} /> :
+            <Navigate to="/dashboard" replace />
           } />
 
           {/* Fallback */}
@@ -455,10 +463,15 @@ function App() {
   );
 }
 
-// Guardias de seguridad para flujos SaaS estrictos (Declarados fuera del cuerpo de App para evitar el bucle infinito de unmount/remount)
+// Guardias de seguridad para flujos SaaS estrictos
 const RequireAuth = ({ children, user, location }) => {
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Admin NUNCA entra al flujo normal — siempre al panel admin
+  if (user.role === 'admin') {
+    return <Navigate to="/admin" replace />;
   }
 
   // Si está logueado pero no ha completado el Onboarding de Usuario, forzar a ir allí
