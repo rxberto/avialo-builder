@@ -92,32 +92,54 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   }
 
-  // Si OpenRouter está configurado en las variables de entorno, canalizar la petición
-  if (openRouterClient) {
-    try {
-      console.log(`🔌 OpenRouter detectado. Canalizando petición de tipo: ${preferredModel.toUpperCase()}`);
-      const modelId = preferredModel === "claude" 
-        ? "anthropic/claude-3.5-sonnet" 
-        : "google/gemini-2.5-flash";
-      return await callOpenRouter(prompt, systemPrompt, modelId);
-    } catch (error: any) {
-      console.warn(`⚠️ OpenRouter falló o dio error: ${error.message || error}. Activando fallback a clientes oficiales directos...`);
-    }
-  }
-
+  // Intentar primero con las APIs oficiales directas de pago (alta calidad)
   if (preferredModel === "claude") {
     try {
+      // 1. Intentar Claude Directo (Máxima calidad)
       return await callClaude(prompt, systemPrompt);
-    } catch (error: any) {
-      console.warn(`⚠️ Claude falló o no está configurado: ${error.message || error}. Activando fallback a Gemini...`);
-      return await callGemini(prompt, systemPrompt);
+    } catch (errorClaude: any) {
+      console.warn(`⚠️ Claude Directo falló: ${errorClaude.message}. Probando Gemini Directo...`);
+      try {
+        // 2. Intentar Gemini Directo
+        return await callGemini(prompt, systemPrompt);
+      } catch (errorGemini: any) {
+        console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}.`);
+        
+        // 3. Fallback a OpenRouter con Modelos Gratuitos como salvavidas
+        if (openRouterClient) {
+          try {
+            console.log(`🔌 Activando salvavidas de OpenRouter (Gemini Pro Free) para tarea compleja...`);
+            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-pro:free");
+          } catch (errorOR: any) {
+            throw new Error(`❌ Todos los modelos fallaron. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message} | OpenRouter: ${errorOR.message}`);
+          }
+        }
+        throw new Error(`❌ Modelos principales fallaron y OpenRouter no está configurado. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message}`);
+      }
     }
   } else {
     try {
+      // 1. Intentar Gemini Directo (Rápido y económico)
       return await callGemini(prompt, systemPrompt);
-    } catch (error: any) {
-      console.warn(`⚠️ Gemini falló o no está configurado: ${error.message || error}. Activando fallback a Claude...`);
-      return await callClaude(prompt, systemPrompt);
+    } catch (errorGemini: any) {
+      console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}. Probando Claude Directo...`);
+      try {
+        // 2. Intentar Claude Directo
+        return await callClaude(prompt, systemPrompt);
+      } catch (errorClaude: any) {
+        console.warn(`⚠️ Claude Directo falló: ${errorClaude.message}.`);
+        
+        // 3. Fallback a OpenRouter con Modelos Gratuitos como salvavidas
+        if (openRouterClient) {
+          try {
+            console.log(`🔌 Activando salvavidas de OpenRouter (Gemini Flash Free) para tarea simple...`);
+            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-flash:free");
+          } catch (errorOR: any) {
+            throw new Error(`❌ Todos los modelos fallaron. Gemini: ${errorGemini.message} | Claude: ${errorClaude.message} | OpenRouter: ${errorOR.message}`);
+          }
+        }
+        throw new Error(`❌ Modelos principales fallaron y OpenRouter no está configurado. Gemini: ${errorGemini.message} | Claude: ${errorClaude.message}`);
+      }
     }
   }
 }
