@@ -80,23 +80,28 @@ export default function JobProgressPage({ jobId, clientData, error, onReset, onS
   const statusInfo = STATUS_INFO[status] || STATUS_INFO.pending;
   const StatusIcon = statusInfo.icon;
 
+  const hasSyncedRef = useRef(false);
+
   // Sincronizar el perfil del usuario de forma proactiva al finalizar la generación (éxito/fallo)
   useEffect(() => {
     if ((status === 'deployed' || status === 'failed') && onSyncProfile) {
-      onSyncProfile();
-      if (onAddNotification) {
-        if (status === 'deployed') {
-          onAddNotification(
-            'success', 
-            '¡Web compilada y viva!', 
-            `Tu sitio "${clientData?.businessName || 'SaaS Avialo'}" ha sido desplegado con éxito en el subdominio.`
-          );
-        } else {
-          onAddNotification(
-            'warning', 
-            'Compilación fallida', 
-            `El Agente IA detectó un error al compilar el proyecto. Por favor, reintenta.`
-          );
+      if (!hasSyncedRef.current) {
+        hasSyncedRef.current = true;
+        onSyncProfile();
+        if (onAddNotification) {
+          if (status === 'deployed') {
+            onAddNotification(
+              'success', 
+              '¡Web compilada y viva!', 
+              `Tu sitio "${clientData?.businessName || 'SaaS Avialo'}" ha sido desplegado con éxito en el subdominio.`
+            );
+          } else {
+            onAddNotification(
+              'warning', 
+              'Compilación fallida', 
+              `El Agente IA detectó un error al compilar el proyecto. Por favor, reintenta.`
+            );
+          }
         }
       }
     }
