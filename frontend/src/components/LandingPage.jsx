@@ -16,22 +16,6 @@ import { NumberTicker } from './ui/number-ticker';
 import { cn } from '@/lib/utils';
 
 export default function LandingPage({ onNavigate }) {
-  // Word Rotator state for the spectacular Hero Section
-  const [rotatedWordIndex, setRotatedWordIndex] = useState(0);
-  const words = [
-    'creada por IA.',
-    'editable en chat.',
-    'desplegada en minutos.',
-    'con PostgreSQL real.'
-  ];
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setRotatedWordIndex((prev) => (prev + 1) % words.length);
-    }, 2800);
-    return () => clearInterval(interval);
-  }, []);
-
   // Simulator State
   const [activePreset, setActivePreset] = useState('dentist');
   const [isTyping, setIsTyping] = useState(false);
@@ -216,59 +200,20 @@ export default function LandingPage({ onNavigate }) {
         />
       </div>
 
-      {/* Spectacular decorative background blur blobs */}
-      <div className="absolute top-[-100px] left-[5%] w-[45rem] h-[45rem] bg-indigo-500/10 dark:bg-brand/12 rounded-full blur-[130px] pointer-events-none animate-pulse duration-[6s] z-0" />
-      <div className="absolute top-[100px] right-[5%] w-[45rem] h-[45rem] bg-purple-500/10 dark:bg-brand-2/12 rounded-full blur-[130px] pointer-events-none animate-pulse duration-[8s] z-0" />
-      <div className="absolute top-[35%] left-[25%] w-[35rem] h-[35rem] bg-pink-500/5 dark:bg-brand-accent/5 rounded-full blur-[140px] pointer-events-none z-0" />
-
-      {/* Floating Spectacular Badges orbiting the Hero section */}
-      <div className="absolute inset-0 max-w-7xl mx-auto h-[600px] pointer-events-none overflow-visible z-20 relative">
-        {/* Badge 1: Deployment time */}
-        <motion.div
-          animate={{ y: [0, -12, 0], x: [0, 5, 0] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute left-6 top-32 md:left-12 md:top-40 hidden lg:flex items-center gap-2.5 p-3.5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl shadow-xl shadow-indigo-500/5"
-        >
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-            ⚡ Despliegue en 42s
-          </span>
-        </motion.div>
-
-        {/* Badge 2: PostgreSQL status */}
-        <motion.div
-          animate={{ y: [0, 12, 0], x: [0, -4, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute right-6 top-36 md:right-12 md:top-44 hidden lg:flex items-center gap-2.5 p-3.5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl shadow-xl shadow-purple-500/5"
-        >
-          <Database className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-            🗄️ Postgres Aislado
-          </span>
-        </motion.div>
-
-        {/* Badge 3: eCommerce support */}
-        <motion.div
-          animate={{ y: [0, -8, 0], x: [0, -6, 0] }}
-          transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute left-10 bottom-6 md:left-20 md:bottom-12 hidden lg:flex items-center gap-2.5 p-3.5 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-2xl shadow-xl shadow-pink-500/5"
-        >
-          <ShoppingBag className="w-3.5 h-3.5 text-purple-500" />
-          <span className="text-[10px] font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-            🛍️ eCommerce Headless
-          </span>
-        </motion.div>
-      </div>
+      {/* Modern fluid background blur blobs */}
+      <div className="absolute top-[-150px] left-[10%] w-[50rem] h-[50rem] bg-indigo-500/10 dark:bg-brand/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[7s] z-0" />
+      <div className="absolute top-[-100px] right-[10%] w-[45rem] h-[45rem] bg-purple-500/10 dark:bg-brand-2/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[9s] z-0" />
+      <div className="absolute top-[30%] left-[25%] w-[40rem] h-[40rem] bg-pink-500/5 dark:bg-brand-accent/5 rounded-full blur-[150px] pointer-events-none z-0" />
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-24 pb-16 md:pt-32 md:pb-24 flex flex-col items-center justify-center text-center px-6 max-w-7xl mx-auto">
+      <section className="relative z-10 pt-24 pb-16 md:pt-36 md:pb-24 flex flex-col items-center justify-center text-center px-6 max-w-7xl mx-auto">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="flex flex-col items-center"
+          className="flex flex-col items-center w-full"
         >
-          {/* Spectacular Animated Glow Pill Badge */}
+          {/* Animated Glow Pill Badge */}
           <motion.div variants={itemVariants} className="mb-8">
             <AnimatedGradientText className="px-5 py-2">
               <Sparkles className="w-4 h-4 mr-2 text-indigo-500 dark:text-brand animate-spin duration-[4s]" />
@@ -279,25 +224,15 @@ export default function LandingPage({ onNavigate }) {
             </AnimatedGradientText>
           </motion.div>
 
-          {/* Spectacular Heading Title with Dynamic Word Rotator */}
+          {/* Spectacular Centralized, Ultra-Modern and Stable H1 */}
           <motion.h1
             variants={itemVariants}
-            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 leading-[1.05] max-w-5xl"
+            className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-8 leading-[1.05] max-w-5xl text-zinc-900 dark:text-white"
           >
-            Tu web full-stack, <br className="sm:hidden" />
-            <span className="relative inline-block min-w-[280px] sm:min-w-[580px] text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-500 to-pink-500 dark:from-brand dark:via-brand-accent dark:to-brand-2">
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={rotatedWordIndex}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.35, ease: "easeInOut" }}
-                  className="inline-block"
-                >
-                  {words[rotatedWordIndex]}
-                </motion.span>
-              </AnimatePresence>
+            Tu web full-stack, <br className="hidden sm:inline" />
+            creada por IA y{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-brand dark:via-brand-accent dark:to-brand-2">
+              editable en vivo.
             </span>
           </motion.h1>
 
@@ -312,7 +247,7 @@ export default function LandingPage({ onNavigate }) {
           {/* Spectacular CTAs */}
           <motion.div 
             variants={itemVariants} 
-            className="flex flex-col sm:flex-row gap-5 justify-center items-center w-full sm:w-auto mb-16"
+            className="flex flex-col sm:flex-row gap-5 justify-center items-center w-full sm:w-auto mb-14"
           >
             <ShimmerButton
               onClick={() => onNavigate('register')}
@@ -332,6 +267,37 @@ export default function LandingPage({ onNavigate }) {
               Ver Planes y Características
             </a>
           </motion.div>
+
+          {/* Responsive Row of Elegant Mini-Badges directly below Hero buttons */}
+          <motion.div
+            variants={itemVariants}
+            className="flex flex-wrap justify-center gap-3.5 max-w-4xl mx-auto mb-16 px-4"
+          >
+            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                ⚡ Despliegue en 42s
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <Database className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                🗄️ Postgres Aislado
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <ShoppingBag className="w-3.5 h-3.5 text-purple-500" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                🛍️ eCommerce Headless
+              </span>
+            </div>
+            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+              <Check className="w-3.5 h-3.5 text-brand-success" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                💳 Stripe & Reservas
+              </span>
+            </div>
+          </motion.div>
         </motion.div>
 
         {/* Live IDE Simulator Interactive Mockup */}
@@ -339,7 +305,7 @@ export default function LandingPage({ onNavigate }) {
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.4, type: 'spring', bounce: 0.2 }}
-          className="relative max-w-6xl mx-auto mt-8 w-full rounded-3xl border border-zinc-200 dark:border-zinc-800/80 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.15)] dark:shadow-[0_30px_100px_rgba(124,58,237,0.08)] bg-card/75 backdrop-blur-2xl"
+          className="relative max-w-6xl mx-auto mt-4 w-full rounded-3xl border border-zinc-200 dark:border-zinc-800/80 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.15)] dark:shadow-[0_30px_100px_rgba(124,58,237,0.08)] bg-card/75 backdrop-blur-2xl"
         >
           {/* Moving border beam */}
           <BorderBeam size={280} duration={12} borderWidth={2} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
@@ -510,7 +476,7 @@ export default function LandingPage({ onNavigate }) {
                       {activePreset === 'academy' && 'cody-academy.avialo.app'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-zinc-150 dark:bg-zinc-950 px-2 py-0.5 rounded-lg border border-border/20 text-[9px] font-black tracking-wider text-zinc-400 dark:text-zinc-500 uppercase">
+                  <div className="flex items-center gap-1.5 bg-zinc-150 dark:bg-zinc-950 px-2 py-0.5 rounded-lg border border-border/20 text-[9px] font-black tracking-wider text-zinc-400 dark:text-zinc-550 uppercase">
                     PROVIEW MODE
                   </div>
                 </div>
@@ -676,7 +642,7 @@ export default function LandingPage({ onNavigate }) {
                               </span>
                               <button 
                                 onClick={() => { setCheckoutOpened(false); setPurchaseCompleted(false); }}
-                                className="text-zinc-400 dark:text-zinc-500 text-xs hover:text-zinc-650"
+                                className="text-zinc-400 dark:text-zinc-550 text-xs hover:text-zinc-650"
                               >
                                 ×
                               </button>
@@ -684,7 +650,7 @@ export default function LandingPage({ onNavigate }) {
 
                             {!purchaseCompleted ? (
                               <div className="flex justify-between items-center">
-                                <span className="text-zinc-400 dark:text-zinc-500">Monto total a cobrar: <strong className="text-zinc-900 dark:text-zinc-100">{(cartCount * 89).toFixed(2)} €</strong></span>
+                                <span className="text-zinc-450 dark:text-zinc-500">Monto total a cobrar: <strong className="text-zinc-900 dark:text-zinc-100">{(cartCount * 89).toFixed(2)} €</strong></span>
                                 <button
                                   onClick={() => setPurchaseCompleted(true)}
                                   className="px-4 py-2 bg-emerald-500 hover:bg-emerald-650 text-white rounded-lg font-black uppercase tracking-wider"
@@ -699,7 +665,7 @@ export default function LandingPage({ onNavigate }) {
                                 className="text-center py-2 space-y-1.5 text-emerald-500 font-bold"
                               >
                                 <span>🎉 ¡Pago procesado con éxito por Stripe!</span>
-                                <span className="text-zinc-400 dark:text-zinc-550 block text-[8px]">
+                                <span className="text-zinc-400 dark:text-zinc-555 block text-[8px]">
                                   Base de datos PostgreSQL actualizada (Tenant Stock - {cartCount} unidades).
                                 </span>
                               </motion.div>
@@ -787,13 +753,13 @@ export default function LandingPage({ onNavigate }) {
       {/* Trust & Limits Info banner */}
       <section className="py-10 bg-zinc-50 dark:bg-zinc-900/60 border-t border-b border-zinc-200/60 dark:border-zinc-800/80 text-center px-6 relative z-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-bold flex items-center gap-2 mx-auto md:mx-0">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-455 font-bold flex items-center gap-2 mx-auto md:mx-0">
             <Info size={16} className="text-indigo-500 shrink-0" />
             <span>
               Políticas de Aislamiento Estricto: Cada plan asigna exactamente <strong className="text-zinc-800 dark:text-zinc-250 underline decoration-indigo-500/40 font-black">1 Sitio Web activo</strong> completo.
             </span>
           </p>
-          <div className="flex gap-6 text-xs text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider mx-auto md:mx-0">
+          <div className="flex gap-6 text-xs text-zinc-450 dark:text-zinc-505 font-bold uppercase tracking-wider mx-auto md:mx-0">
             <span className="flex items-center gap-1.5"><Shield size={12} className="text-brand-success" /> SSL Gratis</span>
             <span className="flex items-center gap-1.5"><Database size={12} className="text-indigo-500" /> PostgreSQL</span>
             <span className="flex items-center gap-1.5"><Cpu size={12} className="text-purple-500" /> Medusa.js v2</span>
@@ -940,17 +906,17 @@ export default function LandingPage({ onNavigate }) {
               )}
 
               <div>
-                <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-3 py-1 rounded-lg font-black uppercase tracking-widest mb-4 inline-block">
+                <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-505 px-3 py-1 rounded-lg font-black uppercase tracking-widest mb-4 inline-block">
                   {plan.tier} PLAN
                 </span>
                 <h3 className="text-2xl font-black mb-3">{plan.name}</h3>
-                <p className="text-zinc-500 dark:text-zinc-455 text-xs mb-6 h-10 leading-relaxed font-medium">
+                <p className="text-zinc-505 dark:text-zinc-455 text-xs mb-6 h-10 leading-relaxed font-medium">
                   {plan.description}
                 </p>
                 
                 <div className="flex items-baseline mb-8">
                   <span className="text-4xl md:text-5xl font-black tracking-tight text-zinc-900 dark:text-white">{plan.price}</span>
-                  <span className="text-zinc-450 dark:text-zinc-500 text-xs font-semibold ml-1.5">{plan.period}</span>
+                  <span className="text-zinc-450 dark:text-zinc-505 text-xs font-semibold ml-1.5">{plan.period}</span>
                 </div>
 
                 <ul className="space-y-4 mb-10">
@@ -1015,7 +981,7 @@ export default function LandingPage({ onNavigate }) {
                   <ChevronDown 
                     size={16} 
                     className={cn(
-                      "text-zinc-400 dark:text-zinc-500 transition-transform duration-300 shrink-0 ml-4", 
+                      "text-zinc-400 dark:text-zinc-505 transition-transform duration-300 shrink-0 ml-4", 
                       isOpen && "rotate-180 text-indigo-500 dark:text-brand"
                     )} 
                   />
