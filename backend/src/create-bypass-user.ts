@@ -2,9 +2,9 @@ import { prisma } from "./database/client.js";
 import bcrypt from "bcryptjs";
 
 async function main() {
-  console.log("🔥 Limpiando cuentas de bypass anteriores del script...");
+  console.log("🔥 Reseteando cuentas anteriores del script...");
   
-  // Limpiar las cuentas que creamos en las pruebas anteriores para no dejar basura
+  // Limpiamos todo rastro de las cuentas antiguas
   const oldEmails = [
     "roberto@roberto.com", 
     "roberto@com", 
@@ -12,22 +12,23 @@ async function main() {
     "roberto-eco@com"
   ];
   
-  const deleted = await prisma.user.deleteMany({
+  await prisma.user.deleteMany({
     where: {
       email: {
         in: oldEmails
       }
     }
   });
-  console.log(`🗑️ Eliminadas ${deleted.count} cuentas antiguas de bypass.`);
 
   const email = "roberto2@gmail.com";
   const password = "123456";
   const passwordHash = await bcrypt.hash(password, 10);
 
-  console.log(`⏳ Creando o actualizando cuenta PRO para ${email} con onboarding completado...`);
+  console.log(`⏳ Creando/Actualizando cuenta PRO de ${email} en estado inicial limpio...`);
 
-  // Crear o actualizar la cuenta final roberto2@gmail.com
+  // Creamos la cuenta con plan PRO y onboarding de perfil completado, 
+  // pero sin sitio web pre-creado falso (siteStatus: "none").
+  // Esto le permitirá iniciar la generación de una web REAL desde el Dashboard.
   const user = await prisma.user.upsert({
     where: { email },
     update: {
@@ -37,10 +38,13 @@ async function main() {
       role: "user",
       profession: "Emprendedor",
       aiCredits: 500,
-      siteName: "Mi Sitio Web Pro",
-      siteType: "corporativa",
-      siteDomain: "roberto2.avialo.app",
-      siteStatus: "deployed" // "deployed" para que aparezca directamente el dashboard con la web lista
+      
+      // Reseteamos cualquier sitio falso previo
+      siteName: null,
+      siteType: null,
+      siteDomain: null,
+      siteJobId: null,
+      siteStatus: "none"
     },
     create: {
       name: "Roberto",
@@ -50,19 +54,22 @@ async function main() {
       role: "user",
       profession: "Emprendedor",
       aiCredits: 500,
-      siteName: "Mi Sitio Web Pro",
-      siteType: "corporativa",
-      siteDomain: "roberto2.avialo.app",
-      siteStatus: "deployed"
+      
+      siteName: null,
+      siteType: null,
+      siteDomain: null,
+      siteJobId: null,
+      siteStatus: "none"
     },
   });
 
   console.log("-----------------------------------------");
-  console.log("✅ ¡CUENTA BYPASS CREADA CON ÉXITO!");
+  console.log("✅ ¡CUENTA BYPASS PRO ACTUALIZADA!");
   console.log(`📧 Correo: ${user.email}`);
   console.log(`🔑 Contraseña: ${password}`);
   console.log(`📦 Plan: ${user.plan}`);
-  console.log(`🌐 Web: ${user.siteDomain} (${user.siteStatus})`);
+  console.log("🌐 Estado Web: Ninguna generada aún (siteStatus: none)");
+  console.log("💡 Nota: Podrás iniciar una generación real al entrar.");
   console.log("-----------------------------------------");
 }
 
