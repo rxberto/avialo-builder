@@ -99,6 +99,13 @@ services:
       - "traefik.http.routers.orchestrator.tls=true"
       - "traefik.http.routers.orchestrator.tls.certresolver=letsencrypt"
       - "traefik.http.services.orchestrator.loadbalancer.server.port=3000"
+      # Middleware CORS — necesario para que el preflight OPTIONS funcione desde avialo.app
+      - "traefik.http.routers.orchestrator.middlewares=cors@docker"
+      - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=https://avialo.app,https://www.avialo.app,http://localhost:5173"
+      - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
+      - "traefik.http.middlewares.cors.headers.accesscontrolallowheaders=Content-Type,Authorization"
+      - "traefik.http.middlewares.cors.headers.accesscontrolmaxage=300"
+      - "traefik.http.middlewares.cors.headers.addvaryheader=true"
 
 volumes:
   postgres_data:
