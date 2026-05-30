@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Menu, X, Bell, LayoutDashboard, Settings, LogOut, ChevronDown, User, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Layers } from 'lucide-react';
+import { Sun, Moon, Menu, X, Bell, LayoutDashboard, Settings, LogOut, ChevronDown, User, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Layers, Zap, Cpu, Utensils, Stethoscope, Store } from 'lucide-react';
 import Logo from '../ui/Logo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
