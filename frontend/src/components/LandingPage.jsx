@@ -4,7 +4,8 @@ import {
   ArrowRight, Check, Sparkles, Code, Globe, MessageSquare, 
   Smartphone, Zap, Shield, Play, ArrowUpRight, Cpu, 
   Database, ShoppingBag, Eye, RefreshCw, HelpCircle, 
-  ChevronDown, Calendar, CreditCard, Sun, Moon, Info, Star 
+  ChevronDown, Calendar, CreditCard, Sun, Moon, Info, Star,
+  Utensils, Stethoscope, Store
 } from 'lucide-react';
 import Logo from './ui/Logo';
 import { DotPattern } from './ui/dot-pattern';
@@ -16,95 +17,79 @@ import { NumberTicker } from './ui/number-ticker';
 import { cn } from '@/lib/utils';
 
 export default function LandingPage({ onNavigate }) {
-  // Simulator State
-  const [activePreset, setActivePreset] = useState('dentist');
-  const [isTyping, setIsTyping] = useState(false);
-  const [isCompiling, setIsCompiling] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    {
-      sender: 'user',
-      text: 'Avialo, crea una web para mi clínica dental y añade un calendario de citas con PostgreSQL.'
-    },
-    {
-      sender: 'ai',
-      text: '¡Entendido! He generado un sitio corporativo médico completo. Activé el esquema PostgreSQL y un módulo interactivo de citas. Las reservas se guardan en tiempo real.'
-    }
-  ]);
+  // Selector for the SME (PYME) Traditional Business Showcase
+  const [activePyme, setActivePyme] = useState('hosteleria');
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Simulated appointment state for dentist preset
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [appointmentConfirmed, setAppointmentConfirmed] = useState(false);
+  // Simulated appointment for Restaurant / Hostelería
+  const [tableCount, setTableCount] = useState(2);
+  const [tableBooked, setTableBooked] = useState(false);
+  const [selectedTime, setSelectedTime] = useState(null);
 
-  // Simulated purchase state for ecommerce preset
-  const [cartCount, setCartCount] = useState(0);
-  const [checkoutOpened, setCheckoutOpened] = useState(false);
-  const [purchaseCompleted, setPurchaseCompleted] = useState(false);
+  // Simulated appointment for Clinic / Salud
+  const [selectedService, setSelectedService] = useState(null);
+  const [clinicBooked, setClinicBooked] = useState(false);
 
-  // Simulated course state for academy preset
-  const [activeLesson, setActiveLesson] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Simulated shopping for Local Store / Comercio
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
 
   // FAQ Accordion State
   const [openFaq, setOpenFaq] = useState(null);
 
-  // Presets configuration
-  const presets = {
-    dentist: {
-      title: 'Clínica Dental Dentalia',
-      prompt: 'Avialo, crea una web para mi clínica dental y añade un calendario de citas con PostgreSQL.',
-      reply: '¡Entendido! He generado un sitio corporativo médico completo. Activé el esquema PostgreSQL y un módulo interactivo de citas. Las reservas se guardan en tiempo real.',
-      features: ['Esquema Postgres Aislado', 'Formularios Reactivos', 'Citas Inmediatas']
+  // Traditional Spanish Business (PYMEs) Configuration
+  const pymes = {
+    hosteleria: {
+      id: 'hosteleria',
+      icon: <Utensils className="w-4 h-4" />,
+      label: '🥘 Mesón Familiar (Hostelería)',
+      prompt: 'Tengo un restaurante familiar de comida tradicional asturiana. Quiero que mis clientes puedan reservar mesa online los domingos de forma automática.',
+      algorithmTitle: 'Algoritmo de Hostelería Activo',
+      algorithmDesc: 'Nuestro algoritmo aprovisiona un calendario de reservas sincronizado con tu base de datos PostgreSQL, liberando tu teléfono de reservas manuales.',
+      beforeText: 'Reservas por teléfono los fines de semana, pérdida de clientes que llaman fuera de hora, hojas de papel desorganizadas.',
+      afterText: 'Base de datos en la nube. Reservas automáticas 24/7 sin comisiones de plataformas externas.'
     },
-    ecommerce: {
-      title: 'AERO-KICKS Store',
-      prompt: 'Quiero vender zapatillas online con un eCommerce headless súper rápido.',
-      reply: '¡Perfecto! He aprovisionado una tienda headless con Medusa.js v2 y Stripe en la base de datos de tu esquema aislado. El catálogo carga al instante.',
-      features: ['Medusa.js v2 Headless', 'Stripe Directo', 'Carga < 100ms']
+    salud: {
+      id: 'salud',
+      icon: <Stethoscope className="w-4 h-4" />,
+      label: '🦷 Clínica Dental (Salud/Fisio)',
+      prompt: 'Dirijo una pequeña clínica dental de barrio. Necesito que los pacientes reserven cita previa para primera consulta gratuita e implantes.',
+      algorithmTitle: 'Esquema Médico Aislado',
+      algorithmDesc: 'Estructura una base de datos segura bajo el estricto cumplimiento de privacidad de datos, integrando leads y citas en tiempo real.',
+      beforeText: 'Agendas en papel, llamadas constantes durante tratamientos, recordatorios manuales por WhatsApp.',
+      afterText: 'Ficha médica digital y citas auto-gestionadas sincronizadas con la disponibilidad del doctor.'
     },
-    academy: {
-      title: 'Cody-Academy',
-      prompt: 'Añade una academia online con cursos premium y protección de contenidos.',
-      reply: 'Hecho. He estructurado la base de datos de lecciones y el panel de alumnos para tu academia SaaS. Autenticación y visualización de vídeo integrados.',
-      features: ['Autenticación Segura', 'Control de Progreso', 'Streaming Aislado']
+    comercio: {
+      id: 'comercio',
+      icon: <Store className="w-4 h-4" />,
+      label: '👟 Zapatería Local (Comercio)',
+      prompt: 'Tengo una zapatería local de toda la vida y quiero vender mis modelos hechos a mano en toda España con pasarela de cobros.',
+      algorithmTitle: 'Motor eCommerce Headless',
+      algorithmDesc: 'Genera un catálogo headless ultra veloz conectado con Stripe. Control de inventario y stock automatizado en PostgreSQL.',
+      beforeText: 'Solo ventas físicas locales, stock controlado a ojo, sin presencia en internet.',
+      afterText: 'Tienda online de alto rendimiento con catálogo y pasarela de cobro Stripe activa para vender en todo el país.'
     }
   };
 
-  // Change preset with simulation effect
-  const handlePresetChange = (presetKey) => {
-    if (presetKey === activePreset) return;
-    setIsCompiling(true);
-    setIsTyping(true);
-    setSelectedDate(null);
-    setAppointmentConfirmed(false);
-    setCartCount(0);
-    setCheckoutOpened(false);
-    setPurchaseCompleted(false);
-    setIsPlaying(false);
-
-    setChatMessages([
-      { sender: 'user', text: presets[presetKey].prompt }
-    ]);
+  const handlePymeChange = (key) => {
+    if (key === activePyme) return;
+    setIsAnimating(true);
+    setTableBooked(false);
+    setSelectedTime(null);
+    setSelectedService(null);
+    setClinicBooked(false);
+    setPurchaseSuccess(false);
 
     setTimeout(() => {
-      setIsTyping(false);
-      setChatMessages(prev => [
-        ...prev,
-        { sender: 'ai', text: presets[presetKey].reply }
-      ]);
-      setTimeout(() => {
-        setIsCompiling(false);
-        setActivePreset(presetKey);
-      }, 500);
-    }, 1200);
+      setActivePyme(key);
+      setIsAnimating(false);
+    }, 400);
   };
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.12
-      }
+      transition: { staggerChildren: 0.12 }
     }
   };
 
@@ -203,45 +188,44 @@ export default function LandingPage({ onNavigate }) {
       {/* Modern fluid background blur blobs */}
       <div className="absolute top-[-150px] left-[10%] w-[50rem] h-[50rem] bg-indigo-500/10 dark:bg-brand/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[7s] z-0" />
       <div className="absolute top-[-100px] right-[10%] w-[45rem] h-[45rem] bg-purple-500/10 dark:bg-brand-2/12 rounded-full blur-[140px] pointer-events-none animate-pulse duration-[9s] z-0" />
-      <div className="absolute top-[30%] left-[25%] w-[40rem] h-[40rem] bg-pink-500/5 dark:bg-brand-accent/5 rounded-full blur-[150px] pointer-events-none z-0" />
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-24 pb-16 md:pt-36 md:pb-24 flex flex-col items-center justify-center text-center px-6 max-w-7xl mx-auto">
+      <section className="relative z-10 pt-24 pb-12 md:pt-36 md:pb-16 flex flex-col items-center justify-center text-center px-6 max-w-7xl mx-auto">
         <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
           className="flex flex-col items-center w-full"
         >
-          {/* Animated Glow Pill Badge */}
+          {/* Spectacular Animated Glow Pill Badge */}
           <motion.div variants={itemVariants} className="mb-8">
             <AnimatedGradientText className="px-5 py-2">
               <Sparkles className="w-4 h-4 mr-2 text-indigo-500 dark:text-brand animate-spin duration-[4s]" />
               <span className="text-xs font-semibold tracking-wide bg-gradient-to-r from-zinc-850 to-zinc-650 dark:from-zinc-100 dark:to-zinc-350 bg-clip-text text-transparent">
-                Plataforma SaaS de Desarrollo Autónomo v2.0
+                La Transformación Digital de tu PYME
               </span>
               <ArrowRight className="w-3.5 h-3.5 ml-2 text-indigo-500 dark:text-brand" />
             </AnimatedGradientText>
           </motion.div>
 
-          {/* Spectacular Centralized, Ultra-Modern and Stable H1 */}
+          {/* High-Impact Centered, Ultra-Modern and Stable H1 */}
           <motion.h1
             variants={itemVariants}
             className="text-4xl sm:text-6xl md:text-7xl lg:text-[5.5rem] font-black tracking-tight mb-8 leading-[1.05] max-w-5xl text-zinc-900 dark:text-white"
           >
-            Tu web full-stack, <br className="hidden sm:inline" />
-            creada por IA y{' '}
+            Digitaliza tu negocio <br className="hidden sm:inline" />
+            de toda la vida con nuestro{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 dark:from-brand dark:via-brand-accent dark:to-brand-2">
-              editable en vivo.
+              algoritmo propio.
             </span>
           </motion.h1>
 
-          {/* Spectacular Subtitle Description */}
+          {/* Simple, Explanatory Spanish Subtitle dedicated to local PYMEs */}
           <motion.p
             variants={itemVariants}
-            className="text-base sm:text-lg md:text-xl text-zinc-500 dark:text-zinc-400 mb-12 max-w-3xl font-medium leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-zinc-500 dark:text-zinc-400 mb-12 max-w-4xl font-medium leading-relaxed"
           >
-            Describe tu negocio en español. Nuestra IA diseña interfaces espectaculares, escribe código limpio, aprovisiona bases de datos <span className="text-zinc-800 dark:text-zinc-100 font-semibold underline decoration-indigo-500/40">PostgreSQL reales</span> y despliega de inmediato. Luego, realiza cualquier cambio conversando por chat.
+            Ayudamos a pequeñas y medianas empresas españolas (clínicas, restaurantes, comercios locales, servicios) a dar el salto al mundo digital de forma inmediata. Describe tu negocio en español y nuestro algoritmo generará una web premium con bases de datos PostgreSQL y reservas automatizadas.
           </motion.p>
 
           {/* Spectacular CTAs */}
@@ -256,7 +240,7 @@ export default function LandingPage({ onNavigate }) {
               shimmerColor="var(--brand-accent)"
               background="linear-gradient(135deg, var(--brand), var(--brand-2))"
             >
-              <span>EMPEZAR CON MI CUENTA SAAS</span>
+              <span>EMPEZAR AHORA CON MI PYME</span>
               <ArrowRight className="w-4 h-4" />
             </ShimmerButton>
 
@@ -264,490 +248,408 @@ export default function LandingPage({ onNavigate }) {
               href="#pricing"
               className="inline-flex items-center justify-center px-8 py-4.5 rounded-2xl bg-white hover:bg-zinc-50 dark:bg-zinc-900/60 dark:hover:bg-zinc-850/80 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-350 font-bold transition-all duration-300 text-xs active:scale-[0.98] shadow-sm"
             >
-              Ver Planes y Características
+              Ver Planes desde 29€
             </a>
           </motion.div>
 
-          {/* Responsive Row of Elegant Mini-Badges directly below Hero buttons */}
+          {/* Centralized trust row about isolation and zero programming needed */}
           <motion.div
             variants={itemVariants}
             className="flex flex-wrap justify-center gap-3.5 max-w-4xl mx-auto mb-16 px-4"
           >
-            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+            <div className="flex items-center gap-2 px-4.5 py-2 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                ⚡ Despliegue en 42s
+                🚀 Sin saber programar
               </span>
             </div>
-            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
+            <div className="flex items-center gap-2 px-4.5 py-2 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm">
               <Database className="w-3.5 h-3.5 text-indigo-500" />
               <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                🗄️ Postgres Aislado
+                🗄️ PostgreSQL Privado Aislado
               </span>
             </div>
-            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
-              <ShoppingBag className="w-3.5 h-3.5 text-purple-500" />
+            <div className="flex items-center gap-2 px-4.5 py-2 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm">
+              <Zap className="w-3.5 h-3.5 text-yellow-500 animate-bounce" />
               <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                🛍️ eCommerce Headless
-              </span>
-            </div>
-            <div className="flex items-center gap-2 px-4.5 py-2.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl border border-zinc-200/50 dark:border-zinc-800/80 rounded-full shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
-              <Check className="w-3.5 h-3.5 text-brand-success" />
-              <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                💳 Stripe & Reservas
+                ⚡ Algoritmo Propietario v2
               </span>
             </div>
           </motion.div>
         </motion.div>
+      </section>
 
-        {/* Live IDE Simulator Interactive Mockup */}
-        <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4, type: 'spring', bounce: 0.2 }}
-          className="relative max-w-6xl mx-auto mt-4 w-full rounded-3xl border border-zinc-200 dark:border-zinc-800/80 overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.15)] dark:shadow-[0_30px_100px_rgba(124,58,237,0.08)] bg-card/75 backdrop-blur-2xl"
-        >
-          {/* Moving border beam */}
-          <BorderBeam size={280} duration={12} borderWidth={2} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
+      {/* Redesigned Glassmorphic PYME Transformation Showcase */}
+      <section className="py-8 px-6 max-w-6xl mx-auto relative z-10 mb-20">
+        <div className="text-center mb-10">
+          <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-3">
+            Elige un tipo de negocio y mira la transformación
+          </h2>
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto">
+            Haz clic en las pestañas para ver cómo nuestro algoritmo procesa los requerimientos de una PYME española tradicional y despliega una solución moderna en minutos.
+          </p>
+        </div>
 
-          {/* Editor Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-zinc-100/80 dark:bg-zinc-950/80 border-b border-zinc-200 dark:border-zinc-850">
-            <div className="flex gap-2">
-              <span className="w-3.5 h-3.5 rounded-full bg-red-400 block cursor-pointer hover:bg-red-500 transition-colors" />
-              <span className="w-3.5 h-3.5 rounded-full bg-yellow-400 block cursor-pointer hover:bg-yellow-500 transition-colors" />
-              <span className="w-3.5 h-3.5 rounded-full bg-green-400 block cursor-pointer hover:bg-green-500 transition-colors" />
-            </div>
-            
-            {/* Live Mode Tag */}
-            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 font-bold bg-zinc-200/60 dark:bg-zinc-900/60 px-6 py-1.5 rounded-lg border border-zinc-300/20 flex items-center gap-1.5 shadow-inner">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 dark:bg-brand animate-pulse" />
-              <span>avialobuilder.com/editor-ide/tenant-08</span>
-            </div>
+        {/* Glassmorphic Showcase Tabs Wrapper */}
+        <div className="glass rounded-[2rem] border border-zinc-250 dark:border-zinc-800/70 overflow-hidden shadow-2xl bg-card/45 backdrop-blur-xl relative">
+          <BorderBeam size={350} duration={14} borderWidth={1.5} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
 
-            {/* View Mode badge */}
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-brand-success bg-brand-success/15 border border-brand-success/20 px-2.5 py-1 rounded-full animate-pulse-glow">
-                ● LIVE SYNC
-              </span>
-            </div>
+          {/* Tabs bar */}
+          <div className="flex flex-wrap md:flex-nowrap border-b border-zinc-200 dark:border-zinc-850 bg-zinc-100/50 dark:bg-zinc-950/80 p-2 gap-2">
+            {Object.keys(pymes).map((key) => (
+              <button
+                key={key}
+                onClick={() => handlePymeChange(key)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer",
+                  activePyme === key
+                    ? "bg-white dark:bg-zinc-900 text-indigo-650 dark:text-brand shadow border border-zinc-200/60 dark:border-zinc-800"
+                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-750 dark:hover:text-zinc-200"
+                )}
+              >
+                {pymes[key].icon}
+                <span>{pymes[key].label}</span>
+              </button>
+            ))}
           </div>
 
-          <div className="min-h-[520px] lg:h-[580px] bg-zinc-50/50 dark:bg-zinc-950/40 flex flex-col md:flex-row relative">
-            {/* Left Chat & Control Panel */}
-            <div className="w-full md:w-[350px] border-r border-zinc-200 dark:border-zinc-850 p-6 flex flex-col justify-between bg-white dark:bg-zinc-900/90 text-left shrink-0">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-indigo-500/10 dark:bg-brand/10 flex items-center justify-center">
-                      <Logo className="w-4 h-4 text-indigo-600 dark:text-brand" />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-widest text-zinc-850 dark:text-zinc-200">Avialo Engine</span>
-                  </div>
-                  <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded font-bold">GPT-4o / Claude 3.5</span>
-                </div>
-
-                {/* Preset Switcher inside the IDE */}
-                <div className="space-y-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block">Probar caso de uso:</span>
-                  <div className="grid grid-cols-3 gap-1.5 bg-zinc-100 dark:bg-zinc-950 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                    <button 
-                      onClick={() => handlePresetChange('dentist')}
-                      className={cn(
-                        "text-[9px] font-black uppercase py-2 px-1 rounded-lg transition-all text-center",
-                        activePreset === 'dentist' 
-                          ? "bg-white dark:bg-zinc-850 text-indigo-600 dark:text-brand shadow-sm font-bold border border-zinc-200/50 dark:border-zinc-800" 
-                          : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-650"
-                      )}
-                    >
-                      Médico
-                    </button>
-                    <button 
-                      onClick={() => handlePresetChange('ecommerce')}
-                      className={cn(
-                        "text-[9px] font-black uppercase py-2 px-1 rounded-lg transition-all text-center",
-                        activePreset === 'ecommerce' 
-                          ? "bg-white dark:bg-zinc-850 text-indigo-600 dark:text-brand shadow-sm font-bold border border-zinc-200/50 dark:border-zinc-800" 
-                          : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-650"
-                      )}
-                    >
-                      eCommerce
-                    </button>
-                    <button 
-                      onClick={() => handlePresetChange('academy')}
-                      className={cn(
-                        "text-[9px] font-black uppercase py-2 px-1 rounded-lg transition-all text-center",
-                        activePreset === 'academy' 
-                          ? "bg-white dark:bg-zinc-850 text-indigo-600 dark:text-brand shadow-sm font-bold border border-zinc-200/50 dark:border-zinc-800" 
-                          : "text-zinc-400 dark:text-zinc-500 hover:text-zinc-650"
-                      )}
-                    >
-                      Academia
-                    </button>
-                  </div>
-                </div>
-
-                {/* Simulated Conversation */}
-                <div className="space-y-4 max-h-[260px] overflow-y-auto pr-1">
-                  <AnimatePresence mode="popLayout">
-                    {chatMessages.map((msg, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.3 }}
-                        className={cn(
-                          "p-3.5 rounded-2xl text-xs leading-relaxed border shadow-sm",
-                          msg.sender === 'user'
-                            ? "bg-zinc-50 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 border-zinc-200 dark:border-zinc-850 text-right"
-                            : "bg-indigo-50/50 dark:bg-indigo-950/15 border-indigo-100/60 dark:border-indigo-900/10 text-indigo-900 dark:text-indigo-350"
-                        )}
-                      >
-                        <div className="font-black text-[9px] uppercase tracking-wider mb-1 block">
-                          {msg.sender === 'user' ? 'Roberto (Tú)' : 'Avialo AI'}
-                        </div>
-                        {msg.text}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-
-                  {/* Typing Indicator */}
-                  {isTyping && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex items-center gap-1.5 p-3 bg-zinc-100 dark:bg-zinc-950/60 border border-border/50 rounded-xl max-w-fit"
-                    >
-                      <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" />
-                      <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-
-              {/* Chat Input Field (Disabled for simulator, with custom helper) */}
-              <div className="mt-4 pt-4 border-t border-zinc-150 dark:border-zinc-850">
-                <div className="relative">
-                  <input
-                    type="text"
-                    disabled
-                    placeholder="Escribe para modificar en vivo..."
-                    className="w-full bg-zinc-100 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-4 pr-10 py-3.5 text-xs focus:outline-none placeholder:text-zinc-400 font-medium"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500">
-                    <MessageSquare size={14} />
-                  </div>
-                </div>
-                <span className="text-[9px] text-zinc-400 dark:text-zinc-500 block mt-2 text-center font-semibold uppercase tracking-wider">
-                  💡 Haz clic en los botones de arriba para iterar
-                </span>
-              </div>
-            </div>
-
-            {/* Right Live-Updating Visual Preview Panel */}
-            <div className="flex-1 p-6 flex flex-col bg-zinc-100/50 dark:bg-zinc-900/20 relative items-center justify-center overflow-hidden min-h-[360px] md:min-h-0">
-              {/* Compiling/Updating overlay */}
-              <AnimatePresence>
-                {isCompiling && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-white/70 dark:bg-zinc-950/75 backdrop-blur-md z-30 flex flex-col items-center justify-center"
-                  >
-                    <RefreshCw className="w-10 h-10 text-indigo-500 dark:text-brand animate-spin mb-4" />
-                    <span className="text-xs font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-250 animate-pulse">
-                      Compilando código y esquemas PostgreSQL...
+          <div className="p-6 md:p-10 min-h-[460px] flex flex-col lg:flex-row gap-10">
+            
+            {/* Left Transformation Explanation card (Zero Tech Jargon) */}
+            <div className="flex-1 flex flex-col justify-between text-left space-y-6">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePyme}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  <div className="space-y-3">
+                    <span className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:bg-brand/10 dark:text-brand border border-indigo-500/10 dark:border-brand/20 px-3 py-1 rounded-lg font-black uppercase tracking-widest inline-block">
+                      {pymes[activePyme].algorithmTitle}
                     </span>
-                  </motion.div>
-                )}
+                    <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50">
+                      ¿Cómo digitalizamos este negocio?
+                    </h3>
+                    <p className="text-zinc-500 dark:text-zinc-405 text-xs sm:text-sm leading-relaxed font-medium">
+                      {pymes[activePyme].algorithmDesc}
+                    </p>
+                  </div>
+
+                  {/* Prompt simulation */}
+                  <div className="p-4 bg-zinc-100/50 dark:bg-zinc-950/60 rounded-2xl border border-zinc-200/50 dark:border-zinc-850 flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-[10px] uppercase shrink-0 mt-0.5 shadow-sm">
+                      PY
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider block">Requerimiento del propietario:</span>
+                      <p className="text-xs text-zinc-700 dark:text-zinc-300 italic font-medium">
+                        "{pymes[activePyme].prompt}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Before vs After comparison */}
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                    <div className="p-4 rounded-2xl border border-red-500/10 bg-red-500/5 text-left">
+                      <span className="text-[10px] text-red-500 font-black uppercase tracking-wider block mb-1">❌ Antes (Tradicional):</span>
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                        {pymes[activePyme].beforeText}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 text-left">
+                      <span className="text-[10px] text-emerald-500 font-black uppercase tracking-wider block mb-1">🎉 Después (Con Avialo):</span>
+                      <p className="text-[11px] text-zinc-800 dark:text-zinc-350 leading-relaxed font-semibold">
+                        {pymes[activePyme].afterText}
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
               </AnimatePresence>
 
-              {/* Visual Frame */}
-              <div className="w-full h-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-850 flex flex-col overflow-hidden max-w-lg lg:max-w-none">
-                {/* Visual Frame Nav Bar */}
-                <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-850/60 px-5 py-3 bg-zinc-50/50 dark:bg-zinc-900">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-brand-success block animate-pulse" />
-                    <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400">
-                      {activePreset === 'dentist' && 'clinica-dentalia.avialo.app'}
-                      {activePreset === 'ecommerce' && 'aero-kicks.avialo.app'}
-                      {activePreset === 'academy' && 'cody-academy.avialo.app'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1.5 bg-zinc-150 dark:bg-zinc-950 px-2 py-0.5 rounded-lg border border-border/20 text-[9px] font-black tracking-wider text-zinc-400 dark:text-zinc-550 uppercase">
-                    PROVIEW MODE
-                  </div>
-                </div>
-
-                {/* Simulated Webpage Contents */}
-                <div className="p-6 flex-1 flex flex-col overflow-y-auto space-y-5 text-left text-xs bg-zinc-50/20 dark:bg-zinc-950/10">
-                  {/* Preset 1: Dentist Layout */}
-                  {activePreset === 'dentist' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="space-y-4 flex-1 flex flex-col justify-between"
-                    >
-                      <div className="space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
-                            🦷 Dentalia Premium
-                          </span>
-                          <span className="text-[9px] bg-emerald-500/10 text-emerald-500 py-0.5 px-2 rounded-full border border-emerald-500/20 font-bold">
-                            ★ 4.9 (184 reseñas)
-                          </span>
-                        </div>
-                        <p className="text-zinc-500 dark:text-zinc-450 leading-relaxed text-[11px]">
-                          Cuidamos de tu sonrisa con tecnología avanzada e implantes indoloros. Reserva tu primera cita gratis hoy mismo.
-                        </p>
-                      </div>
-
-                      {/* Interactive Postgres Booking Widget */}
-                      <div className="border border-indigo-200/50 dark:border-indigo-900/30 rounded-2xl p-4 bg-indigo-50/20 dark:bg-indigo-950/10 shadow-sm relative overflow-hidden">
-                        <div className="flex justify-between items-center mb-3">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400">
-                            📅 Agenda Online (PostgreSQL)
-                          </span>
-                          <span className="text-[9px] text-indigo-500 font-bold animate-pulse">2 Huecos Libres Hoy</span>
-                        </div>
-
-                        {!appointmentConfirmed ? (
-                          <div className="space-y-3">
-                            <span className="text-[9px] text-zinc-400 dark:text-zinc-500 block mb-1">Elige una fecha para reservar cita al instante:</span>
-                            <div className="grid grid-cols-4 gap-1.5">
-                              {['Lun 22', 'Mar 23', 'Mié 24', 'Jue 25'].map((date) => (
-                                <button
-                                  key={date}
-                                  onClick={() => setSelectedDate(date)}
-                                  className={cn(
-                                    "py-2 rounded-xl text-[10px] font-bold border transition-all text-center",
-                                    selectedDate === date
-                                      ? "bg-indigo-500 dark:bg-brand text-white border-transparent shadow-md"
-                                      : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
-                                  )}
-                                >
-                                  {date}
-                                </button>
-                              ))}
-                            </div>
-                            <button
-                              disabled={!selectedDate}
-                              onClick={() => setAppointmentConfirmed(true)}
-                              className="w-full mt-2 py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-wider"
-                            >
-                              Reservar cita al instante
-                            </button>
-                          </div>
-                        ) : (
-                          <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="py-4 text-center space-y-2.5"
-                          >
-                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
-                              <Check size={16} />
-                            </div>
-                            <div>
-                              <span className="text-[10px] font-black text-zinc-850 dark:text-zinc-200 block uppercase tracking-wider">¡Cita Guardada Exitosamente!</span>
-                              <span className="text-[9px] text-zinc-400 dark:text-zinc-500 block mt-1">
-                                Confirmado para el <strong className="text-indigo-650 dark:text-brand">{selectedDate}</strong> a las 10:00h en PostgreSQL.
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => {
-                                setAppointmentConfirmed(false);
-                                setSelectedDate(null);
-                              }}
-                              className="text-[9px] text-indigo-500 dark:text-brand hover:underline font-bold"
-                            >
-                              Volver a agendar
-                            </button>
-                          </motion.div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Preset 2: Ecommerce Medusa Layout */}
-                  {activePreset === 'ecommerce' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="space-y-4 flex-1 flex flex-col justify-between"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-black tracking-widest text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 uppercase">
-                          <ShoppingBag size={14} className="text-purple-500" /> AERO-KICKS
-                        </span>
-                        <div className="relative bg-zinc-100 dark:bg-zinc-800 px-3 py-1 rounded-full border border-border/40 text-[10px] font-black flex items-center gap-1.5 shadow-sm">
-                          <span>🛒 Cesta</span>
-                          <span className="w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center text-[9px] font-bold">
-                            {cartCount}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Product Grid */}
-                      <div className="grid grid-cols-2 gap-3.5">
-                        {[
-                          { name: 'Aero Max v2', price: '89,00 €', color: 'de oklch(0.55 0.22 270)' },
-                          { name: 'Cloud Walker', price: '120,00 €', color: 'de oklch(0.65 0.2 25)' }
-                        ].map((prod, i) => (
-                          <div 
-                            key={i} 
-                            className="bg-white dark:bg-zinc-900/60 p-3 rounded-2xl border border-zinc-200/50 dark:border-zinc-800 flex flex-col justify-between h-[130px] shadow-sm relative group"
-                          >
-                            <div>
-                              <span className="text-[10px] font-bold text-zinc-850 dark:text-zinc-200 block truncate">{prod.name}</span>
-                              <span className="text-[9px] text-zinc-400 dark:text-zinc-550 block">Medusa.js Engine</span>
-                            </div>
-                            <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 mx-auto flex items-center justify-center my-1 text-[8px] text-zinc-400 font-bold border border-dashed border-zinc-300 dark:border-zinc-700">
-                              IMG MOCK
-                            </div>
-                            <div className="flex justify-between items-center mt-1">
-                              <span className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100">{prod.price}</span>
-                              <button
-                                onClick={() => setCartCount(c => c + 1)}
-                                className="w-5 h-5 rounded-lg bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-xs shadow"
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Medusa Checkout Module */}
-                      <div className="pt-2">
-                        {cartCount > 0 && !checkoutOpened && (
-                          <button
-                            onClick={() => setCheckoutOpened(true)}
-                            className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all animate-bounce"
-                          >
-                            Ir a Caja Headless ({cartCount} prod.)
-                          </button>
-                        )}
-
-                        {checkoutOpened && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="p-3.5 border border-purple-500/20 rounded-2xl bg-purple-500/5 text-[9px] space-y-2.5 relative"
-                          >
-                            <div className="flex justify-between items-center">
-                              <span className="font-black uppercase tracking-wider text-purple-650 dark:text-purple-400 flex items-center gap-1">
-                                <CreditCard size={10} /> PASARELA STRIPE INTEGRADA
-                              </span>
-                              <button 
-                                onClick={() => { setCheckoutOpened(false); setPurchaseCompleted(false); }}
-                                className="text-zinc-400 dark:text-zinc-550 text-xs hover:text-zinc-650"
-                              >
-                                ×
-                              </button>
-                            </div>
-
-                            {!purchaseCompleted ? (
-                              <div className="flex justify-between items-center">
-                                <span className="text-zinc-450 dark:text-zinc-500">Monto total a cobrar: <strong className="text-zinc-900 dark:text-zinc-100">{(cartCount * 89).toFixed(2)} €</strong></span>
-                                <button
-                                  onClick={() => setPurchaseCompleted(true)}
-                                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-650 text-white rounded-lg font-black uppercase tracking-wider"
-                                >
-                                  Confirmar Pago
-                                </button>
-                              </div>
-                            ) : (
-                              <motion.div 
-                                initial={{ scale: 0.98 }}
-                                animate={{ scale: 1 }}
-                                className="text-center py-2 space-y-1.5 text-emerald-500 font-bold"
-                              >
-                                <span>🎉 ¡Pago procesado con éxito por Stripe!</span>
-                                <span className="text-zinc-400 dark:text-zinc-555 block text-[8px]">
-                                  Base de datos PostgreSQL actualizada (Tenant Stock - {cartCount} unidades).
-                                </span>
-                              </motion.div>
-                            )}
-                          </motion.div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Preset 3: Academy Courses Layout */}
-                  {activePreset === 'academy' && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.98 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="space-y-4 flex-1 flex flex-col justify-between"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-black text-zinc-900 dark:text-zinc-100 uppercase tracking-wider">
-                          📚 CODY ACADEMY
-                        </span>
-                        <div className="flex items-center gap-1 bg-indigo-50 dark:bg-indigo-950/30 px-3 py-1 rounded-full border border-indigo-200/20 text-[9px] text-indigo-650 dark:text-indigo-400 font-bold">
-                          <span>Progreso:</span>
-                          <strong>42%</strong>
-                        </div>
-                      </div>
-
-                      {/* Main Player Simulator */}
-                      <div className="h-[120px] rounded-2xl bg-zinc-900 flex flex-col items-center justify-center relative overflow-hidden border border-zinc-800 shadow-md">
-                        {isPlaying ? (
-                          <div className="absolute inset-0 bg-indigo-950/40 z-10 flex flex-col items-center justify-center">
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest animate-pulse flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                              Reproduciendo Lección {activeLesson + 1}
-                            </span>
-                            <span className="text-[8px] text-zinc-350 mt-1 block">Streaming de vídeo seguro</span>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setIsPlaying(true)}
-                            className="w-10 h-10 rounded-full bg-white text-zinc-900 flex items-center justify-center shadow-lg hover:scale-105 transition-all z-20 cursor-pointer"
-                          >
-                            <Play size={16} fill="currentColor" className="ml-0.5" />
-                          </button>
-                        )}
-                        <span className="absolute bottom-2 left-3 text-[8px] text-zinc-400 font-bold">
-                          Vídeo {activeLesson + 1}: Configurando Medusa v2
-                        </span>
-                      </div>
-
-                      {/* Course Curriculum list */}
-                      <div className="space-y-1.5">
-                        {[
-                          '1. Introducción al entorno SaaS',
-                          '2. Conexión de esquemas PostgreSQL',
-                          '3. Despliegue automático en Vercel'
-                        ].map((lesson, idx) => (
-                          <div
-                            key={idx}
-                            onClick={() => {
-                              setActiveLesson(idx);
-                              setIsPlaying(false);
-                            }}
-                            className={cn(
-                              "p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between text-[10px] font-bold",
-                              activeLesson === idx
-                                ? "bg-indigo-50/40 dark:bg-indigo-950/10 border-indigo-500/20 text-indigo-750 dark:text-brand"
-                                : "bg-white dark:bg-zinc-900 text-zinc-500 border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-850"
-                            )}
-                          >
-                            <span className="truncate pr-4">{lesson}</span>
-                            {activeLesson === idx && <span className="text-[8px] bg-indigo-500 text-white py-0.5 px-1.5 rounded uppercase font-black">Activo</span>}
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
+              {/* General pitch button to proceed */}
+              <div className="pt-6 border-t border-zinc-200/50 dark:border-zinc-850">
+                <button
+                  onClick={() => onNavigate('register')}
+                  className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-indigo-600 dark:text-brand hover:translate-x-1 transition-all outline-none"
+                >
+                  <span>Crear mi web con este algoritmo</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
             </div>
+
+            {/* Right side Visual Preview Canvas (Ultra clean, interactive) */}
+            <div className="flex-1 bg-zinc-100/50 dark:bg-zinc-900/10 rounded-2xl p-4 md:p-6 border border-zinc-200/60 dark:border-zinc-850 flex items-center justify-center min-h-[340px]">
+              <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-850 flex flex-col overflow-hidden max-w-md mx-auto">
+                
+                {/* Visual Header */}
+                <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-850/50 px-4.5 py-3.5 bg-zinc-50/50 dark:bg-zinc-900">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-pulse animate-pulse-glow" />
+                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tracking-wider">
+                      {activePyme === 'hosteleria' && 'meson-familiar.com'}
+                      {activePyme === 'salud' && 'clinica-dentaria.es'}
+                      {activePyme === 'comercio' && 'artesanos-barrio.app'}
+                    </span>
+                  </div>
+                  <span className="text-[8px] bg-indigo-500/10 text-indigo-650 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                    PROPIEDAD DE TU PYME
+                  </span>
+                </div>
+
+                {/* Simulated Content Screen */}
+                <div className="p-6 flex-1 flex flex-col justify-between overflow-y-auto space-y-4 text-xs text-left">
+                  <AnimatePresence mode="wait">
+                    {isAnimating ? (
+                      <motion.div
+                        key="loader"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex-1 flex flex-col items-center justify-center py-10"
+                      >
+                        <RefreshCw className="w-8 h-8 text-indigo-500 dark:text-brand animate-spin mb-3" />
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider animate-pulse">Cargando visualización...</span>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key={activePyme}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.25 }}
+                        className="flex-1 flex flex-col justify-between"
+                      >
+                        {/* Preset 1: Restaurant Booking Preview */}
+                        {activePyme === 'hosteleria' && (
+                          <div className="space-y-4 flex-grow flex flex-col justify-between">
+                            <div className="space-y-2">
+                              <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">🥘 Mesón Asturiano Tradicional</span>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                                Recetas tradicionales de sidrería, fabada e ingredientes frescos importados de Asturias. Reserva tu mesa para el domingo.
+                              </p>
+                            </div>
+
+                            {/* Reservas Widget */}
+                            <div className="border border-indigo-200/50 dark:border-indigo-900/30 rounded-2xl p-4 bg-indigo-50/15 dark:bg-indigo-950/10 shadow-inner">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-650 dark:text-indigo-400 block mb-2">
+                                📅 RESERVAR MESA EN DOMINGO
+                              </span>
+
+                              {!tableBooked ? (
+                                <div className="space-y-3">
+                                  <div className="grid grid-cols-3 gap-1.5">
+                                    {['13:30h', '14:30h', '15:30h'].map((time) => (
+                                      <button
+                                        key={time}
+                                        onClick={() => setSelectedTime(time)}
+                                        className={cn(
+                                          "py-2 rounded-xl text-[10px] font-bold border transition-all text-center",
+                                          selectedTime === time
+                                            ? "bg-indigo-500 dark:bg-brand text-white border-transparent shadow-sm"
+                                            : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
+                                        )}
+                                      >
+                                        {time}
+                                      </button>
+                                    ))}
+                                  </div>
+                                  
+                                  {/* Guest count selector */}
+                                  <div className="flex justify-between items-center bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-xl p-2 text-[10px] font-bold">
+                                    <span className="text-zinc-500">Comensales:</span>
+                                    <div className="flex items-center gap-2">
+                                      <button 
+                                        onClick={() => setTableCount(c => Math.max(1, c - 1))}
+                                        className="w-5 h-5 bg-zinc-100 rounded flex items-center justify-center border text-zinc-650"
+                                      >
+                                        -
+                                      </button>
+                                      <span>{tableCount}</span>
+                                      <button 
+                                        onClick={() => setTableCount(c => c + 1)}
+                                        className="w-5 h-5 bg-zinc-100 rounded flex items-center justify-center border text-zinc-650"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    disabled={!selectedTime}
+                                    onClick={() => setTableBooked(true)}
+                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                                  >
+                                    Reservar Mesa al Instante
+                                  </button>
+                                </div>
+                              ) : (
+                                <motion.div 
+                                  initial={{ scale: 0.96 }}
+                                  animate={{ scale: 1 }}
+                                  className="text-center py-4 space-y-2.5 text-emerald-500 font-bold"
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
+                                    <Check size={16} />
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Mesa Reservada!</span>
+                                    <span className="text-[8px] text-zinc-400 dark:text-zinc-500 block mt-1">
+                                      Confirmada para {tableCount} personas el domingo a las {selectedTime} en PostgreSQL.
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => { setTableBooked(false); setSelectedTime(null); }}
+                                    className="text-[9px] text-indigo-500 dark:text-brand hover:underline font-bold"
+                                  >
+                                    Hacer otra reserva
+                                  </button>
+                                </motion.div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Preset 2: Clinic Schedule Preview */}
+                        {activePyme === 'salud' && (
+                          <div className="space-y-4 flex-grow flex flex-col justify-between">
+                            <div className="space-y-2">
+                              <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">🦷 Clínica Dental Dentalia</span>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-455 leading-relaxed font-medium">
+                                Soluciones dentales, implantes y estética médica con tecnología avanzada.
+                              </p>
+                            </div>
+
+                            {/* Citas Widget */}
+                            <div className="border border-purple-200/50 dark:border-purple-900/30 rounded-2xl p-4 bg-purple-50/15 dark:bg-purple-950/10 shadow-inner">
+                              <span className="text-[9px] font-black uppercase tracking-wider text-purple-650 dark:text-brand-accent block mb-2">
+                                👨‍⚕️ CITA PREVIA GRATUITA
+                              </span>
+
+                              {!clinicBooked ? (
+                                <div className="space-y-3">
+                                  <div className="space-y-1.5">
+                                    {['🦷 Primera Consulta + Diagnóstico (Gratis)', '🧼 Limpieza Dental Avanzada (35€)'].map((service, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => setSelectedService(service)}
+                                        className={cn(
+                                          "w-full text-left p-2.5 rounded-xl border transition-all text-[9.5px] font-bold flex justify-between items-center",
+                                          selectedService === service
+                                            ? "bg-purple-600 text-white border-transparent shadow-sm"
+                                            : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
+                                        )}
+                                      >
+                                        <span className="truncate pr-3">{service}</span>
+                                        {selectedService === service && <Check size={10} />}
+                                      </button>
+                                    ))}
+                                  </div>
+
+                                  <button
+                                    disabled={!selectedService}
+                                    onClick={() => setClinicBooked(true)}
+                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                                  >
+                                    Confirmar Cita Previa
+                                  </button>
+                                </div>
+                              ) : (
+                                <motion.div 
+                                  initial={{ scale: 0.96 }}
+                                  animate={{ scale: 1 }}
+                                  className="text-center py-4 space-y-2.5 text-emerald-500 font-bold"
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
+                                    <Check size={16} />
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Cita Programada!</span>
+                                    <span className="text-[8px] text-zinc-400 dark:text-zinc-550 block mt-1 leading-normal">
+                                      Hemos guardado tu cita de <strong>{selectedService}</strong> en la base de datos PostgreSQL aislada del doctor.
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => { setClinicBooked(false); setSelectedService(null); }}
+                                    className="text-[9px] text-purple-600 dark:text-brand hover:underline font-bold"
+                                  >
+                                    Volver
+                                  </button>
+                                </motion.div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Preset 3: Local Store Purchase Preview */}
+                        {activePyme === 'comercio' && (
+                          <div className="space-y-4 flex-grow flex flex-col justify-between">
+                            <div className="space-y-2">
+                              <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">👟 Zapatería Artesanal Soria</span>
+                              <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                                Calzado hecho a mano con cuero natural. Calidad tradicional exportada a toda España.
+                              </p>
+                            </div>
+
+                            {/* Store Widget */}
+                            <div className="border border-amber-250/50 dark:border-amber-900/30 rounded-2xl p-4 bg-amber-50/15 dark:bg-zinc-900/50 shadow-inner">
+                              <div className="flex justify-between items-center mb-3">
+                                <span className="text-[9px] font-black uppercase tracking-wider text-amber-650 dark:text-amber-400">
+                                  📦 MODELO SENDERISMO PREMIUM
+                                </span>
+                                <span className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100">89,00 €</span>
+                              </div>
+
+                              {!purchaseSuccess ? (
+                                <div className="space-y-3">
+                                  <div className="p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[8.5px] text-zinc-400 font-bold uppercase tracking-wider text-center">
+                                    🛒 Pasarela Stripe Activa
+                                  </div>
+                                  <button
+                                    onClick={() => setPurchaseSuccess(true)}
+                                    className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                                  >
+                                    Comprar Calzado (Stripe)
+                                  </button>
+                                </div>
+                              ) : (
+                                <motion.div 
+                                  initial={{ scale: 0.96 }}
+                                  animate={{ scale: 1 }}
+                                  className="text-center py-4 space-y-2.5 text-emerald-500 font-bold"
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-500 mx-auto flex items-center justify-center border border-emerald-500/20">
+                                    <Check size={16} />
+                                  </div>
+                                  <div>
+                                    <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Pago Confirmado!</span>
+                                    <span className="text-[8px] text-zinc-450 dark:text-zinc-550 block mt-1">
+                                      Cobro procesado por Stripe. Inventario actualizado en PostgreSQL (Tenant Stock -1).
+                                    </span>
+                                  </div>
+                                  <button
+                                    onClick={() => setPurchaseSuccess(false)}
+                                    className="text-[9px] text-zinc-500 hover:underline font-bold"
+                                  >
+                                    Simular otra compra
+                                  </button>
+                                </motion.div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+              </div>
+            </div>
+
           </div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Trust & Limits Info banner */}
@@ -882,7 +784,7 @@ export default function LandingPage({ onNavigate }) {
           <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4 max-w-2xl mx-auto">
             Elige el motor de tu sitio web
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto text-sm font-medium">
+          <p className="text-zinc-505 dark:text-zinc-400 max-w-xl mx-auto text-sm font-medium">
             Todos los planes incluyen 1 sitio web activo e interactivo con su propia base de datos PostgreSQL. Cancela cuando quieras sin contratos ni letra pequeña.
           </p>
         </div>
@@ -910,7 +812,7 @@ export default function LandingPage({ onNavigate }) {
                   {plan.tier} PLAN
                 </span>
                 <h3 className="text-2xl font-black mb-3">{plan.name}</h3>
-                <p className="text-zinc-505 dark:text-zinc-455 text-xs mb-6 h-10 leading-relaxed font-medium">
+                <p className="text-zinc-550 dark:text-zinc-455 text-xs mb-6 h-10 leading-relaxed font-medium">
                   {plan.description}
                 </p>
                 
