@@ -341,11 +341,13 @@ app.get("/api/jobs/:id", (req: Request, res: Response): any => {
 app.get("/api/jobs/:id/logs", (req: Request, res: Response): any => {
   const jobId = req.params.id;
 
+  const origin = (req.headers.origin as string) || "*";
   res.writeHead(200, {
-    "Content-Type":                "text/event-stream",
-    "Cache-Control":               "no-cache",
-    "Connection":                  "keep-alive",
-    "Access-Control-Allow-Origin": process.env.FRONTEND_URL || "http://localhost:5173",
+    "Content-Type":                      "text/event-stream",
+    "Cache-Control":                     "no-cache",
+    "Connection":                        "keep-alive",
+    "Access-Control-Allow-Origin":       origin,
+    "Access-Control-Allow-Credentials":  "true",
   });
 
   const initialLogs = getJobLogs(jobId);
