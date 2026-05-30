@@ -122,6 +122,13 @@ function App() {
       localStorage.setItem('avialo_plan', plan);
       localStorage.removeItem('avialo_selected_plan');
       
+      // Guardar de forma persistente en la base de datos de PostgreSQL real
+      updateProfile({ plan }).then((updatedProfile) => {
+        // Sincronizar inmediatamente para obtener el balance y fecha de reinicio calculada
+        setUser(prev => ({ ...prev, ...updatedProfile }));
+        localStorage.setItem('avialo_user', JSON.stringify({ ...updatedUser, ...updatedProfile }));
+      }).catch(err => console.error('⚠️ Error al registrar plan real de Stripe en la base de datos:', err));
+      
       window.history.replaceState({}, '', window.location.pathname);
       navigate('/dashboard');
     } else if (payment === 'cancel') {
