@@ -15,7 +15,7 @@ services:
     networks:
       - avialo-network
     environment:
-      - DOCKER_API_VERSION=1.24
+      - DOCKER_API_VERSION=1.40
       # Si usamos DNS challenge con Cloudflare, pasamos los tokens de entorno
       - CLOUDFLARE_EMAIL=${CLOUDFLARE_EMAIL}
       - CLOUDFLARE_DNS_API_TOKEN=${CLOUDFLARE_DNS_API_TOKEN}
