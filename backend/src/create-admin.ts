@@ -1,7 +1,12 @@
 import { prisma } from "./database/client.js";
 import bcrypt from "bcryptjs";
+import { execSync } from "child_process";
 
 async function main() {
+  console.log("⏳ Aplicando migraciones de Prisma...");
+  execSync("npx prisma migrate deploy", { stdio: "inherit" });
+  console.log("✅ Migraciones aplicadas.");
+
   console.log("🔥 Limpiando toda la base de datos...");
 
   // Reset completo — borra TODOS los usuarios
