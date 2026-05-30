@@ -1,0 +1,15 @@
+{
+  "clienteId": "robertoco-1780151762005",
+  "webType": "dinamica",
+  "businessName": "Roberto & co.",
+  "sector": "Asesoría / Gestoría",
+  "city": "COSLADA",
+  "primaryColor": "#1a56db",
+  "pages": [
+    "Inicio",
+    "Contacto"
+  ],
+  "dominio": "robertoco.avialo.app",
+  "createdAt": "2026-05-30T14:36:36.774Z",
+  "status": "scaffolded"
+}
