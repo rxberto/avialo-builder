@@ -22,16 +22,21 @@ const stripe = stripeSecretKey && stripeSecretKey !== "sk_test_..."
   ? new Stripe(stripeSecretKey, { apiVersion: "2024-04-10" as any })
   : null;
 
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
-
-// Responder preflight OPTIONS inmediatamente para todas las rutas
-app.options('*', cors({
-  origin: true,
-  credentials: true,
-}));
+// Middleware CORS manual (a prueba de balas para proxies/Traefik)
+app.use((req: Request, res: Response, next: any) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 app.use(express.json({ limit: "10mb" }));
 
 // ============================================
