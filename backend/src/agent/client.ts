@@ -113,7 +113,13 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<string>
   const response = await anthropicClient.messages.create({
     model: "claude-3-5-sonnet-20241022",
     max_tokens: 4096,
-    system: systemPrompt,
+    system: [
+      {
+        type: "text",
+        text: systemPrompt,
+        cache_control: { type: "ephemeral" } as any,
+      }
+    ],
     messages: [
       {
         role: "user",

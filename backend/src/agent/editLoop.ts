@@ -1,4 +1,5 @@
 import { generateCode } from "./client.js";
+import { routeUnknownTask } from "../models/router.js";
 import { writeSandboxFile, runSandboxCommand } from "./executor.js";
 import { listSandboxFiles, getSandboxFileContent } from "../scaffolding/fileHelper.js";
 import { SYSTEM_PROMPT } from "../prompts/system-base.js";
@@ -40,6 +41,16 @@ export async function runEditAutocorrectionLoop(
   addJobLog(jobId, `🤖 [Taller Mágico]: Iniciando procesamiento del prompt de edición del cliente.`);
   addJobLog(jobId, `📝 Solicitud del usuario: "${userPrompt}"`);
   updateProgress("generating", 20);
+
+  // Clasificar la tarea para usar el modelo más económico y adecuado
+  let preferredModel: "claude" | "gemini" = "claude";
+  try {
+    const routing = await routeUnknownTask(userPrompt);
+    preferredModel = (routing.model === "gemini" || routing.model === "gpt") ? "gemini" : "claude";
+    addJobLog(jobId, `🔀 Tarea de edición clasificada: Usando modelo preferido ${preferredModel.toUpperCase()} para optimizar costes.`);
+  } catch (err) {
+    console.warn("⚠️ No se pudo clasificar el prompt de edición, usando Claude por defecto:", err);
+  }
 
   // 1. Escanear todos los archivos del sandbox para dar contexto completo
   addJobLog(jobId, `🔍 Escaneando archivos en el sandbox del proyecto...`);
@@ -110,7 +121,7 @@ export async function runEditAutocorrectionLoop(
     }
 
     try {
-      const llmOutput = await generateCode(finalLLMPrompt, SYSTEM_PROMPT, "claude");
+      const llmOutput = await generateCode(finalLLMPrompt, SYSTEM_PROMPT, preferredModel);
       const fileChanges = parseFileChanges(llmOutput);
 
       if (fileChanges.length === 0) {

@@ -125,8 +125,14 @@ export async function runAutocorrectionLoop(
     }
 
     try {
-      // Llamar al cliente unificado LLM (Claude como principal)
-      const llmOutput = await generateCode(userPrompt, SYSTEM_PROMPT, "claude");
+      // Optimizar costes usando Gemini para webs sencillas (corporativa/landing) y Claude para complejas
+      const preferredModel = (clientData.webType === "ecommerce" || clientData.webType === "dinamica")
+        ? "claude"
+        : "gemini";
+
+      addJobLog(jobId, `🤖 Usando modelo preferido ${preferredModel.toUpperCase()} para generación de tipo ${clientData.webType}.`);
+      
+      const llmOutput = await generateCode(userPrompt, SYSTEM_PROMPT, preferredModel);
       
       // Parsear bloques de archivos
       const fileChanges = parseFileChanges(llmOutput);
