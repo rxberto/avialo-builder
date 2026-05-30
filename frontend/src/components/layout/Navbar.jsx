@@ -1,18 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Sun, Moon, Menu, X, Activity, LogIn, LogOut, User, ChevronRight } from 'lucide-react';
-import { SITE_CONFIG } from '../../data/siteConfig';
+import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
+import { Sun, Moon, Menu, X, Bell, LayoutDashboard, Settings, LogOut, ChevronDown, User, Sparkles, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw, Layers } from 'lucide-react';
 import Logo from '../ui/Logo';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { BorderBeam } from '@/components/ui/border-beam';
+import { Badge } from '@/components/ui/badge';
 
-export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNavigate }) {
+export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNavigate, notifications = [], onMarkRead, onMarkAllRead }) {
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  
+  // Dropdown states
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  
+  const userRef = useRef(null);
+  const notifRef = useRef(null);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userRef.current && !userRef.current.contains(event.target)) {
+        setUserDropdownOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(event.target)) {
+        setNotifDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -20,173 +41,416 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
   const handleNavClick = (e, target) => {
     e.preventDefault();
     setMenuOpen(false);
+    setUserDropdownOpen(false);
+    setNotifDropdownOpen(false);
     onNavigate(target);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  // Relative Time Formatter
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const date = new Date(timeStr);
+      const diffMs = Date.now() - date.getTime();
+      const diffSec = Math.floor(diffMs / 1000);
+      if (diffSec < 15) return 'Ahora mismo';
+      if (diffSec < 60) return `Hace ${diffSec} seg`;
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `Hace ${diffMin} min`;
+      const diffHr = Math.floor(diffMin / 60);
+      if (diffHr < 24) return `Hace ${diffHr} hora${diffHr > 1 ? 's' : ''}`;
+      const diffDay = Math.floor(diffHr / 24);
+      return `Hace ${diffDay} día${diffDay > 1 ? 's' : ''}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Initials Helper for Avatar
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  // Plan Color Helper
+  const getPlanBadge = (plan) => {
+    switch (plan?.toLowerCase()) {
+      case 'basic':
+        return <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 hover:bg-blue-500/15 border-blue-500/20 text-[10px] py-0 px-2 font-semibold">Plan Basic</Badge>;
+      case 'pro':
+        return <Badge variant="secondary" className="bg-purple-500/10 text-purple-500 hover:bg-purple-500/15 border-purple-500/20 text-[10px] py-0 px-2 font-semibold animate-pulse-glow">Plan Pro</Badge>;
+      case 'ecommerce':
+        return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 hover:bg-amber-500/15 border-amber-500/20 text-[10px] py-0 px-2 font-semibold">Plan Ecommerce</Badge>;
+      default:
+        return <Badge variant="outline" className="text-muted-foreground text-[10px] py-0 px-2">Sin Suscripción</Badge>;
+    }
   };
 
   return (
     <>
       <nav
         className={cn(
-          "fixed top-0 left-0 w-full z-50 transition-all duration-500 select-none",
-          scrolled
-            ? "py-3 bg-background/80 backdrop-blur-xl border-b border-border shadow-sm"
-            : "py-5 bg-transparent"
+          "fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b select-none h-16 flex items-center",
+          scrolled || menuOpen
+            ? "bg-background/80 backdrop-blur-xl border-border/80 shadow-md shadow-black/5"
+            : "bg-transparent border-transparent"
         )}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 flex justify-between items-center">
-
-          {/* Brand */}
+        <div className="max-w-7xl mx-auto w-full px-6 lg:px-10 flex justify-between items-center">
+          
+          {/* Brand Logo */}
           <div
             onClick={(e) => handleNavClick(e, user ? 'dashboard' : 'landing')}
-            className="group flex items-center gap-2.5 cursor-pointer outline-none"
+            className="group flex items-center gap-2.5 cursor-pointer outline-none shrink-0"
           >
-            <Logo className="transition-transform group-hover:scale-105 duration-300" />
-            <span className="font-bold text-base tracking-tight text-foreground">
-              {SITE_CONFIG.general.name}
+            <Logo className="transition-transform group-hover:scale-105 duration-500" />
+            <span className="font-bold text-lg tracking-tight text-foreground bg-clip-text text-transparent bg-gradient-to-r from-foreground via-foreground/90 to-foreground/75">
+              Avialo<span className="text-brand">.</span>
             </span>
           </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden lg:flex items-center gap-7">
-            <nav className="flex items-center gap-5 text-sm">
+          {/* Desktop Central Links (Only if logged in) */}
+          {user && (
+            <div className="hidden md:flex items-center gap-1.5 bg-muted/30 border border-border/40 p-1 rounded-full text-sm">
               <a
                 href="#"
-                onClick={(e) => handleNavClick(e, user ? 'dashboard' : 'landing')}
-                className="text-muted-foreground hover:text-foreground transition-colors font-medium"
+                onClick={(e) => handleNavClick(e, 'dashboard')}
+                className={cn(
+                  "px-4 py-1.5 rounded-full transition-all duration-300 font-medium flex items-center gap-2",
+                  isActive('/dashboard') 
+                    ? "bg-background text-foreground shadow-sm shadow-black/5 border border-border/50" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                Inicio
+                <LayoutDashboard size={14} className={cn(isActive('/dashboard') ? "text-brand" : "text-muted-foreground")} />
+                Panel de Control
               </a>
-              {user && (
-                <a
-                  href="#"
-                  onClick={(e) => handleNavClick(e, 'dashboard')}
-                  className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors font-medium group"
-                >
-                  <Activity size={13} className="text-emerald-500 group-hover:animate-pulse" />
-                  Mi Panel
-                </a>
-              )}
-            </nav>
-
-            <div className="h-4 w-px bg-border" />
-
-            <div className="flex items-center gap-2">
-              {/* Theme toggle */}
-              <button
-                aria-label={darkMode ? "Activar modo claro" : "Activar modo oscuro"}
-                onClick={toggleTheme}
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+              <a
+                href="#"
+                onClick={(e) => handleNavClick(e, 'settings')}
+                className={cn(
+                  "px-4 py-1.5 rounded-full transition-all duration-300 font-medium flex items-center gap-2",
+                  isActive('/settings') 
+                    ? "bg-background text-foreground shadow-sm shadow-black/5 border border-border/50" 
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                {darkMode ? <Sun size={15} /> : <Moon size={15} />}
-              </button>
-
-              {user ? (
-                <>
-                  <div className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-muted text-muted-foreground rounded-lg border border-border">
-                    <User size={11} />
-                    <span className="max-w-[100px] truncate">{user.name || user.email}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onLogout}
-                    className="text-xs gap-1.5"
-                  >
-                    <LogOut size={12} /> Salir
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleNavClick(e, 'login')}
-                    className="text-xs gap-1.5"
-                  >
-                    <LogIn size={12} /> Iniciar Sesión
-                  </Button>
-                   <Button
-                     size="sm"
-                     onClick={(e) => handleNavClick(e, 'register')}
-                     className="text-xs font-semibold gap-1.5"
-                   >
-                     Empezar Gratis
-                     <ChevronRight size={12} />
-                   </Button>
-                </>
-              )}
+                <Settings size={14} className={cn(isActive('/settings') ? "text-brand" : "text-muted-foreground")} />
+                Configuración
+              </a>
             </div>
+          )}
+
+          {/* Desktop Action Section */}
+          <div className="hidden md:flex items-center gap-4">
+            
+            {/* Theme Toggle */}
+            <button
+              aria-label="Alternar tema"
+              onClick={toggleTheme}
+              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all duration-300 relative group cursor-pointer"
+            >
+              {darkMode ? <Sun size={16} className="rotate-0 scale-100 transition-all duration-500" /> : <Moon size={16} className="rotate-0 scale-100 transition-all duration-500" />}
+            </button>
+
+            {user ? (
+              <div className="flex items-center gap-3">
+                
+                {/* Notification Bell Center */}
+                <div className="relative" ref={notifRef}>
+                  <button
+                    onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                    className={cn(
+                      "p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 border transition-all duration-300 relative cursor-pointer",
+                      notifDropdownOpen ? "bg-muted border-border text-foreground" : "border-transparent"
+                    )}
+                  >
+                    <Bell size={16} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand rounded-full animate-pulse shadow-md shadow-brand/40" />
+                    )}
+                  </button>
+
+                  {/* Dropdown Menu for Notifications */}
+                  {notifDropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-80 rounded-2xl glass border border-border/50 shadow-xl py-2 z-50 animate-scale-in text-sm overflow-hidden bg-background">
+                      <div className="px-4 py-2 border-b border-border/40 flex justify-between items-center bg-muted/10">
+                        <span className="font-semibold text-foreground">Notificaciones</span>
+                        {unreadCount > 0 ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (onMarkAllRead) onMarkAllRead();
+                            }}
+                            className="text-[10px] text-brand hover:text-brand-2 font-bold cursor-pointer transition-colors outline-none"
+                          >
+                            Marcar todo leído
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">Sin novedades</span>
+                        )}
+                      </div>
+                      
+                      <div className="max-h-72 overflow-y-auto divide-y divide-border/20">
+                        {notifications.length === 0 ? (
+                          <div className="p-6 text-center text-xs text-muted-foreground">
+                            No tienes ninguna notificación pendiente.
+                          </div>
+                        ) : (
+                          notifications.map((notif) => (
+                            <div 
+                              key={notif.id} 
+                              onClick={() => {
+                                if (onMarkRead) onMarkRead(notif.id);
+                              }}
+                              className={cn(
+                                "p-4 hover:bg-muted/20 transition-colors flex gap-3 cursor-pointer",
+                                !notif.read ? "bg-brand/5 hover:bg-brand/10" : ""
+                              )}
+                            >
+                              <div className="mt-0.5">
+                                {notif.type === 'success' && <CheckCircle2 size={16} className="text-brand-success shrink-0" />}
+                                {notif.type === 'info' && <Sparkles size={16} className="text-brand shrink-0" />}
+                                {notif.type === 'warning' && <AlertCircle size={16} className="text-brand-warning shrink-0" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-foreground flex justify-between items-center gap-1">
+                                  <span className="truncate pr-2">{notif.title}</span>
+                                  {!notif.read && <span className="w-1.5 h-1.5 bg-brand rounded-full shrink-0" />}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1 leading-normal break-words">{notif.message}</p>
+                                <span className="text-[10px] text-muted-foreground/60 block mt-1.5">{formatTime(notif.time)}</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      <div 
+                        onClick={(e) => handleNavClick(e, 'dashboard')}
+                        className="px-4 py-2 border-t border-border/40 text-center text-xs text-brand hover:text-brand-2 font-medium cursor-pointer bg-muted/10 hover:bg-muted/20 transition-colors"
+                      >
+                        Ver todas en el panel
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="h-4 w-px bg-border/60" />
+
+                {/* User Dropdown */}
+                <div className="relative" ref={userRef}>
+                  <button
+                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                    className={cn(
+                      "flex items-center gap-2 p-1.5 rounded-full border hover:bg-muted/40 transition-all duration-300 cursor-pointer",
+                      userDropdownOpen ? "bg-muted border-border" : "border-border/60"
+                    )}
+                  >
+                    {/* User Initials Avatar */}
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-br from-brand to-brand-2 flex items-center justify-center text-white text-xs font-bold shadow-md shadow-brand/10">
+                      {getInitials(user.name)}
+                    </div>
+                    <span className="text-xs font-semibold text-foreground max-w-[90px] truncate hidden lg:block">
+                      {user.name || 'Usuario'}
+                    </span>
+                    <ChevronDown size={14} className={cn("text-muted-foreground transition-transform duration-300", userDropdownOpen && "rotate-180")} />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {userDropdownOpen && (
+                    <div className="absolute right-0 mt-3 w-64 rounded-2xl glass border border-border/50 shadow-xl py-2.5 z-50 animate-scale-in text-sm">
+                      <div className="px-4 py-3 border-b border-border/40 flex flex-col gap-1.5">
+                        <div className="font-semibold text-foreground truncate">{user.name || 'Empresa'}</div>
+                        <div className="text-xs text-muted-foreground truncate leading-none">{user.email}</div>
+                        <div className="mt-1">{getPlanBadge(user.plan)}</div>
+                      </div>
+                      
+                      <div className="py-1.5">
+                        <a
+                          href="#"
+                          onClick={(e) => handleNavClick(e, 'dashboard')}
+                          className="flex items-center gap-2.5 px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all"
+                        >
+                          <LayoutDashboard size={15} className="text-brand/80" />
+                          Mi Panel de Control
+                        </a>
+                        <a
+                          href="#"
+                          onClick={(e) => handleNavClick(e, 'settings')}
+                          className="flex items-center gap-2.5 px-4 py-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all"
+                        >
+                          <Settings size={15} className="text-brand-accent/80" />
+                          Ajustes de Cuenta
+                        </a>
+                      </div>
+
+                      <div className="border-t border-border/40 my-1" />
+
+                      <div className="px-1.5 py-1">
+                        <button
+                          onClick={onLogout}
+                          className="w-full flex items-center gap-2.5 px-3 py-2 text-brand-danger hover:bg-red-500/5 hover:text-red-500 rounded-xl transition-all cursor-pointer text-left font-medium"
+                        >
+                          <LogOut size={15} />
+                          Cerrar Sesión
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => handleNavClick(e, 'login')}
+                  className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-all duration-300"
+                >
+                  Iniciar Sesión
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={(e) => handleNavClick(e, 'register')}
+                  className="text-xs font-semibold relative overflow-hidden group shadow-md shadow-brand/10 hover:shadow-brand/20 bg-brand hover:bg-brand/90 text-white rounded-full px-5 h-9 flex items-center gap-1.5"
+                >
+                  Empezar Gratis
+                  <ChevronDown size={14} className="-rotate-90 group-hover:translate-x-0.5 transition-transform" />
+                </Button>
+              </div>
+            )}
           </div>
 
-          {/* Mobile Toggle */}
-          <div className="lg:hidden flex items-center gap-2">
-            <button onClick={toggleTheme} className="p-2 text-muted-foreground">
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
+          {/* Mobile Layout Actions */}
+          <div className="md:hidden flex items-center gap-2">
+            {user && (
+              <button
+                onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
+                className="p-2 rounded-lg text-muted-foreground relative"
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-brand rounded-full" />}
+              </button>
+            )}
+            
             <button
-              aria-label="Menu"
               onClick={() => setMenuOpen(!menuOpen)}
-              className="p-2 text-foreground bg-muted rounded-lg border border-border"
+              className="p-2 text-foreground bg-muted/60 border border-border/40 rounded-xl transition-all"
             >
               {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
+
         </div>
       </nav>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Drawer (Glassmorphic Slide-down) */}
       {menuOpen && (
-        <div className="fixed inset-0 z-40 bg-background/98 backdrop-blur-2xl pt-20 px-8 lg:hidden flex flex-col animate-in fade-in slide-in-from-top-8 duration-300">
-          <div className="flex flex-col gap-5 text-xl font-semibold text-foreground">
-            <a
-              href="#"
-              onClick={(e) => handleNavClick(e, user ? 'dashboard' : 'landing')}
-              className="flex items-center justify-between py-1 border-b border-border/50 group"
-            >
-              Inicio
-              <ChevronRight size={16} className="text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-            </a>
-            {user && (
+        <div className="fixed inset-0 z-40 bg-background/95 backdrop-blur-2xl pt-20 px-6 md:hidden flex flex-col animate-fade-in text-sm select-none">
+          
+          {user && (
+            <div className="flex items-center gap-3 p-4 bg-muted/30 border border-border/40 rounded-2xl mb-6">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-2 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                {getInitials(user.name)}
+              </div>
+              <div className="flex-1 overflow-hidden">
+                <div className="font-semibold text-foreground truncate">{user.name || 'Mi Cuenta'}</div>
+                <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+              </div>
+              <div>{getPlanBadge(user.plan)}</div>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
+            {!user ? (
               <a
                 href="#"
-                onClick={(e) => handleNavClick(e, 'dashboard')}
-                className="flex items-center justify-between py-1 border-b border-border/50 group"
+                onClick={(e) => handleNavClick(e, 'landing')}
+                className={cn(
+                  "flex items-center justify-between p-3.5 rounded-xl border font-medium transition-all",
+                  isActive('/') ? "bg-muted border-border/80 text-foreground" : "border-transparent text-muted-foreground"
+                )}
               >
-                <span className="flex items-center gap-2">
-                  <Activity size={16} className="text-emerald-500" />
-                  Mi Panel
-                </span>
-                <ChevronRight size={16} className="text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+                Inicio
+                <ChevronDown size={14} className="-rotate-90 text-muted-foreground" />
               </a>
+            ) : (
+              <>
+                <a
+                  href="#"
+                  onClick={(e) => handleNavClick(e, 'dashboard')}
+                  className={cn(
+                    "flex items-center justify-between p-3.5 rounded-xl border font-semibold transition-all",
+                    isActive('/dashboard') ? "bg-muted border-border/80 text-foreground" : "border-transparent text-muted-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <LayoutDashboard size={16} className="text-brand" />
+                    Panel de Control
+                  </span>
+                  <ChevronDown size={14} className="-rotate-90 text-muted-foreground" />
+                </a>
+
+                <a
+                  href="#"
+                  onClick={(e) => handleNavClick(e, 'settings')}
+                  className={cn(
+                    "flex items-center justify-between p-3.5 rounded-xl border font-semibold transition-all",
+                    isActive('/settings') ? "bg-muted border-border/80 text-foreground" : "border-transparent text-muted-foreground"
+                  )}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Settings size={16} className="text-brand-accent" />
+                    Ajustes de Cuenta
+                  </span>
+                  <ChevronDown size={14} className="-rotate-90 text-muted-foreground" />
+                </a>
+              </>
             )}
           </div>
 
-          <div className="mt-auto mb-12 flex flex-col gap-3">
+          <div className="mt-auto mb-10 flex flex-col gap-3">
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center justify-between p-3.5 rounded-xl border border-border/40 bg-muted/10 font-semibold text-muted-foreground"
+            >
+              <span>Tema actual</span>
+              <div className="flex items-center gap-1.5 text-foreground bg-muted/80 py-1 px-3 border border-border rounded-lg text-xs">
+                {darkMode ? <><Moon size={12} /> Oscuro</> : <><Sun size={12} /> Claro</>}
+              </div>
+            </button>
+
             {user ? (
               <Button
                 variant="destructive"
                 onClick={onLogout}
-                className="w-full gap-2"
+                className="w-full py-6 rounded-xl gap-2 font-semibold bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 hover:border-red-500/30"
               >
                 <LogOut size={15} /> Cerrar Sesión
               </Button>
             ) : (
-              <>
+              <div className="flex flex-col gap-2.5">
                 <Button
                   variant="outline"
                   onClick={(e) => handleNavClick(e, 'login')}
-                  className="w-full gap-2"
+                  className="w-full py-5 rounded-full font-semibold border-border"
                 >
-                  <LogIn size={15} /> Iniciar Sesión
+                  Iniciar Sesión
                 </Button>
                 <Button
                   onClick={(e) => handleNavClick(e, 'register')}
-                  className="w-full gap-2 font-semibold"
+                  className="w-full py-5 rounded-full font-semibold bg-brand hover:bg-brand/90 text-white shadow-md shadow-brand/10"
                 >
                   Empezar Gratis
                 </Button>
-              </>
+              </div>
             )}
           </div>
         </div>

@@ -19,7 +19,7 @@ const STATUS_INFO = {
 };
 
 const PHASE_STEPS = [
-  { key: 'generating', label: 'IA Redactando', desc: 'Claude + Gemini escribiendo archivos' },
+  { key: 'generating', label: 'IA Redactando', desc: 'Avialo IA escribiendo archivos' },
   { key: 'building',   label: 'TypeScript Build', desc: 'Validando compilación y linter' },
   { key: 'preview',    label: 'Docker Preview', desc: 'Mapeando puertos y levantando' },
   { key: 'deployed',   label: '¡En Línea!', desc: 'Proyecto listo para previsualizar' },
@@ -37,9 +37,10 @@ function getStepState(stepKey, currentStatus) {
   return 'pending';
 }
 
-export default function JobProgressPage({ jobId, clientData, onReset, onSyncProfile }) {
+export default function JobProgressPage({ jobId, clientData, error, onReset, onSyncProfile, onAddNotification }) {
   const navigate = useNavigate();
-  const { logs, status, progress, previewUrl } = useJobSSE(jobId);
+  const { logs, status: sseStatus, progress, previewUrl } = useJobSSE(jobId);
+  const status = error ? 'failed' : sseStatus;
   const logsEndRef = useRef(null);
   const [showAllLogs, setShowAllLogs] = useState(false);
   const [simulatedLogs, setSimulatedLogs] = useState([]);
@@ -60,7 +61,7 @@ export default function JobProgressPage({ jobId, clientData, onReset, onSyncProf
       '🔑 Configuring NextAuth v5 session layer and credential callbacks...',
       '✉️ Initializing SMTP Nodemailer secure mailer bindings...',
       '🌐 Binding dynamic Docker container preview port on range 8081+...',
-      '🤖 AI Code Scaffolding starting (Claude 3.5 Sonnet + Gemini fallback)...'
+      '🤖 AI Code Scaffolding starting (Avialo IA Core)...'
     ];
 
     let idx = 0;
@@ -83,6 +84,21 @@ export default function JobProgressPage({ jobId, clientData, onReset, onSyncProf
   useEffect(() => {
     if ((status === 'deployed' || status === 'failed') && onSyncProfile) {
       onSyncProfile();
+      if (onAddNotification) {
+        if (status === 'deployed') {
+          onAddNotification(
+            'success', 
+            '¡Web compilada y viva!', 
+            `Tu sitio "${clientData?.businessName || 'SaaS Avialo'}" ha sido desplegado con éxito en el subdominio.`
+          );
+        } else {
+          onAddNotification(
+            'warning', 
+            'Compilación fallida', 
+            `El Agente IA detectó un error al compilar el proyecto. Por favor, reintenta.`
+          );
+        }
+      }
     }
   }, [status, onSyncProfile]);
 
@@ -108,6 +124,16 @@ export default function JobProgressPage({ jobId, clientData, onReset, onSyncProf
 
       <div className="w-full max-w-4xl space-y-6 relative z-10">
         
+        {error && (
+          <div className="w-full bg-red-500/10 border border-red-500/20 text-red-500 p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-4">
+            <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <div className="text-sm font-semibold text-left">
+              <span className="block mb-1 font-bold text-red-600 dark:text-red-400">No se pudo iniciar la generación</span>
+              <span className="text-red-500/90">{error}</span>
+            </div>
+          </div>
+        )}
+
         {/* Header cockpit style */}
         <div className="text-center space-y-3">
           <motion.div
@@ -151,7 +177,7 @@ export default function JobProgressPage({ jobId, clientData, onReset, onSyncProf
                 />
               </div>
               <div className="flex justify-between text-[10px] font-bold text-zinc-400">
-                <span>Docker Sandbox ID: {jobId ? jobId.slice(-12) : 'Generando...'}</span>
+                <span>Docker Sandbox ID: {jobId ? String(jobId).slice(-12) : 'Generando...'}</span>
                 <span>Port allocation: 8081+</span>
               </div>
             </div>

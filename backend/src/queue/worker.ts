@@ -79,6 +79,7 @@ export const generationWorker = new Worker<GenerationJobData>(
         city,
         primaryColor,
         pages,
+        fullClientData: job.data.fullClientData,
       });
 
       if (!scaffold.success) {

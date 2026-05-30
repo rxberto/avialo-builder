@@ -86,9 +86,13 @@ export async function runAutocorrectionLoop(
   - Color de Marca Primario: "${clientData.primaryColor || '#2563EB'}"
   - Páginas requeridas: [${(clientData.pages || []).join(", ")}]
 
+  ¡ATENCIÓN! IMPORTANTE PARA AHORRAR TIEMPO:
+  Ya hemos inyectado automáticamente el archivo 'src/config/business.ts' que exporta \`businessConfig\`. Este archivo contiene todos los datos reales y de facturación del cliente (como su CIF/NIF, teléfono y dirección exactos recabados durante el checkout).
+  Por favor, IMPORTA y UTILIZA siempre los datos de \`src/config/business.ts\` (ej. import { businessConfig } from '@/config/business') en el Footer, el Aviso Legal y las páginas de Contacto en lugar de inventar números de teléfono o direcciones aleatorias.
+
   TAREA:
   1. Personaliza la página de inicio (Hero con título e imagen ilustrativa, servicios específicos de su sector, sección de testimonios comerciales).
-  2. Ajusta el aviso legal, aviso de cookies y sitemaps.
+  2. Ajusta el aviso legal, aviso de cookies y sitemaps para consumir el CIF de 'src/config/business.ts'.
   3. Si es de tipo corporativa con Next.js, escribe archivos TSX/CSS necesarios bajo la carpeta 'src/app/' para darle un estilo modernizado y premium.
   4. Si es de tipo ecommerce, edita el storefront para amoldar la paleta de colores.
   

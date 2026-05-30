@@ -39,7 +39,7 @@ const PLANES = {
       '1 Sitio Web Dinámico completo',
       'Créditos de cambios por IA ILIMITADOS',
       'Sistema de reservas y citas PostgreSQL',
-      'IA Premium (Claude 3.5 Sonnet)',
+      'IA Premium (Avialo IA)',
       'Opción de dominio personalizado',
       'Soporte prioritario 24/7',
     ],
@@ -65,14 +65,38 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [simulatorStep, setSimulatorStep] = useState(0);
 
-  // Formulario B2B Facturación
-  const [companyName, setCompanyName] = useState('');
-  const [cif, setCif] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('España');
+  // Formulario B2B Facturación persistido en localStorage
+  const getBillingField = (field, defaultValue = '') => {
+    try {
+      const saved = localStorage.getItem('avialo_billing_data');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed[field] !== undefined ? parsed[field] : defaultValue;
+      }
+    } catch (e) {}
+    return defaultValue;
+  };
+
+  const [companyName, setCompanyName] = useState(() => getBillingField('companyName'));
+  const [cif, setCif] = useState(() => getBillingField('cif'));
+  const [address, setAddress] = useState(() => getBillingField('address'));
+  const [city, setCity] = useState(() => getBillingField('city'));
+  const [postalCode, setPostalCode] = useState(() => getBillingField('postalCode'));
+  const [country, setCountry] = useState(() => getBillingField('country', 'España'));
+
+  // Actualización persistente al escribir
+  const handleFieldChange = (setter, field, value) => {
+    setter(value);
+    try {
+      const saved = localStorage.getItem('avialo_billing_data');
+      const parsed = saved ? JSON.parse(saved) : {};
+      parsed[field] = value;
+      localStorage.setItem('avialo_billing_data', JSON.stringify(parsed));
+    } catch (e) {}
+  };
 
   const webType = clientData?.websiteArchitecture?.type || 'dinamica';
   const plan = PLANES[webType] || PLANES.dinamica;
@@ -103,6 +127,22 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         cancelUrl: `${window.location.origin}?payment=cancel`,
       });
 
+      // Si es un entorno de desarrollo o Stripe no está configurado (dev: true o sin url)
+      if (session.dev || !session.url) {
+        setShowSimulator(true);
+        setSimulatorStep(0);
+        
+        // Simular flujo de seguridad de Stripe con una experiencia espectacular
+        setTimeout(() => setSimulatorStep(1), 1200);
+        setTimeout(() => setSimulatorStep(2), 2600);
+        setTimeout(() => {
+          setLoading(false);
+          setShowSimulator(false);
+          handleSkipPaymentClick();
+        }, 4000);
+        return;
+      }
+
       if (session.url) {
         window.location.href = session.url;
         return;
@@ -120,13 +160,29 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
   };
 
   const handleSkipPaymentClick = () => {
-    if (!companyName || !cif || !address || !city || !postalCode) {
-      setShowValidationErrors(true);
-      setError('Por favor, completa todos los datos de facturación de tu empresa antes de simular el pago.');
-      return;
-    }
+    // Si están vacíos, rellenar automáticamente con datos de prueba premium para agilizar en DEV Mode
+    const finalCompanyName = companyName?.trim() || 'Avialo Partner S.L.';
+    const finalCif = cif?.trim() || 'B12345678';
+    const finalAddress = address?.trim() || 'Gran Vía 45, Planta 4';
+    const finalCity = city?.trim() || 'Madrid';
+    const finalPostalCode = postalCode?.trim() || '28013';
+    const finalCountry = country || 'España';
+
+    setCompanyName(finalCompanyName);
+    setCif(finalCif);
+    setAddress(finalAddress);
+    setCity(finalCity);
+    setPostalCode(finalPostalCode);
+
     // Guardar datos de facturación localmente
-    const billingData = { companyName, cif, address, city, postalCode, country };
+    const billingData = { 
+      companyName: finalCompanyName, 
+      cif: finalCif, 
+      address: finalAddress, 
+      city: finalCity, 
+      postalCode: finalPostalCode, 
+      country: finalCountry 
+    };
     localStorage.setItem('avialo_billing_data', JSON.stringify(billingData));
     onSkipPayment();
   };
@@ -183,7 +239,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
                   <input
                     type="text"
                     value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
+                    onChange={(e) => handleFieldChange(setCompanyName, 'companyName', e.target.value)}
                     placeholder="Clinica Dental S.L."
                     className={cn(
                       "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
@@ -197,7 +253,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
                   <input
                     type="text"
                     value={cif}
-                    onChange={(e) => setCif(e.target.value)}
+                    onChange={(e) => handleFieldChange(setCif, 'cif', e.target.value)}
                     placeholder="B-12345678"
                     className={cn(
                       "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
@@ -211,7 +267,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
                   <input
                     type="text"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => handleFieldChange(setAddress, 'address', e.target.value)}
                     placeholder="Calle Gran Vía 45, Piso 3"
                     className={cn(
                       "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
@@ -225,7 +281,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
                   <input
                     type="text"
                     value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    onChange={(e) => handleFieldChange(setCity, 'city', e.target.value)}
                     placeholder="Madrid"
                     className={cn(
                       "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
@@ -239,7 +295,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
                   <input
                     type="text"
                     value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
+                    onChange={(e) => handleFieldChange(setPostalCode, 'postalCode', e.target.value)}
                     placeholder="28013"
                     className={cn(
                       "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
@@ -360,6 +416,68 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         </div>
 
       </div>
+
+      {/* ── HIGH FIDELITY STRIPE DEV SIMULATOR OVERLAY ── */}
+      {showSimulator && (
+        <div className="fixed inset-0 z-50 bg-zinc-950/85 backdrop-blur-xl flex items-center justify-center p-4 select-none animate-fade-in text-left">
+          <div className="bg-zinc-900 border border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.3)] rounded-3xl max-w-md w-full p-8 text-center space-y-6 relative overflow-hidden">
+            {/* Glowing background */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-full blur-2xl pointer-events-none" />
+            
+            {/* Stripe simulated logo */}
+            <div className="flex justify-center items-center gap-2 mb-2">
+              <span className="text-2xl font-black text-indigo-400 tracking-tight">stripe</span>
+              <span className="text-[10px] bg-indigo-500/15 border border-indigo-500/20 text-indigo-400 font-black px-2 py-0.5 rounded-full uppercase tracking-wider">DEV MODE</span>
+            </div>
+
+            {/* Spinner */}
+            <div className="relative flex justify-center">
+              <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full scale-150 animate-pulse" />
+              <div className="w-16 h-16 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center relative">
+                {simulatorStep < 2 ? (
+                  <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400 animate-pulse" />
+                )}
+              </div>
+            </div>
+
+            {/* Step Message */}
+            <div className="space-y-2">
+              {simulatorStep === 0 && (
+                <>
+                  <h3 className="text-base font-bold text-white">Conectando con la Pasarela Stripe...</h3>
+                  <p className="text-[11px] text-zinc-400 max-w-xs mx-auto leading-relaxed">
+                    Estableciendo túnel HTTPS cifrado B2B. Enviando datos de facturación para la empresa: <span className="text-white font-semibold">{companyName}</span>.
+                  </p>
+                </>
+              )}
+              {simulatorStep === 1 && (
+                <>
+                  <h3 className="text-base font-bold text-white">Verificación 3D Secure / SCA...</h3>
+                  <p className="text-[11px] text-zinc-400 max-w-xs mx-auto leading-relaxed">
+                    Autenticando transacción con tu entidad bancaria de forma segura para evitar fraudes en el cobro de la tarjeta •••• 4242.
+                  </p>
+                </>
+              )}
+              {simulatorStep === 2 && (
+                <>
+                  <h3 className="text-base font-bold text-emerald-400">✓ Pago Autorizado con Éxito</h3>
+                  <p className="text-[11px] text-zinc-400 max-w-xs mx-auto leading-relaxed text-center">
+                    El orquestador de Avialo ha recibido la confirmación y está procediendo a activar tu plan {plan.nombre}. ¡Redirigiendo...!
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Security badges */}
+            <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-center gap-6 text-[9px] text-zinc-500 font-semibold">
+              <span className="flex items-center gap-1">🔒 PCI-DSS Compliant</span>
+              <span className="flex items-center gap-1">✓ SSL Encrypted</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

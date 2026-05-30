@@ -27,9 +27,9 @@ export default function RegisterPage({ onRegister }) {
     document.body.appendChild(script);
 
     script.onload = () => {
-      if (window.google) {
+      if (window.google && import.meta.env.VITE_GOOGLE_CLIENT_ID) {
         window.google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || '148067554316-avialo-custom.apps.googleusercontent.com',
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
           callback: handleGoogleCredentialResponse,
         });
 
@@ -205,16 +205,23 @@ export default function RegisterPage({ onRegister }) {
           </form>
 
           {/* Google Separator and Button */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border" />
+          {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">O continuar con</span>
+                </div>
+              </div>
+              <div id="google-signup-btn" className="w-full flex justify-center overflow-hidden rounded-xl border border-border" />
+            </>
+          ) : (
+            <div className="my-6 text-center text-xs text-muted-foreground">
+              Google Sign-In no configurado
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">O continuar con</span>
-            </div>
-          </div>
-
-          <div id="google-signup-btn" className="w-full flex justify-center overflow-hidden rounded-xl border border-border" />
+          )}
 
           {/* Footer */}
           <div className="mt-6 text-center border-t border-border pt-5">

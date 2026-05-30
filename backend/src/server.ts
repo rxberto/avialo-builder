@@ -7,7 +7,7 @@ import { SYSTEM_PROMPT, isOutOfScope } from "./prompts/system-base.js";
 import { generationQueue } from "./queue/queue.js";
 import { jobStatuses } from "./queue/worker.js";
 import { jobLogEmitter, getJobLogs } from "./queue/logs.js";
-import { authRouter, authenticateToken, AuthRequest } from "./routes/auth.js";
+import { authRouter, authenticateToken, AuthRequest, verifyAndResetCredits } from "./routes/auth.js";
 import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
 import { runEditAutocorrectionLoop } from "./agent/editLoop.js";
@@ -209,11 +209,29 @@ app.post("/api/jobs", authenticateToken as any, async (req: AuthRequest, res: Re
     .replace(/[^a-z0-9]/g, "")}-${Date.now()}`;
 
   try {
-    // Consultar si el usuario ya tiene un sitio activo o en proceso de generación
-    const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    // Consultar si el usuario ya tiene un sitio activo o en proceso de generación (con reseteo de créditos automático)
+    const dbUser = await verifyAndResetCredits(req.user.id);
     if (!dbUser) {
       return res.status(404).json({ error: "Usuario no encontrado en la base de datos." });
     }
+
+    // CONTROL DE CRÉDITOS DE IA / SUSCRIPCIÓN ENTERPRISE
+    // Evita el abuso de solicitudes de generación por usuarios sin plan de pago activo
+    if (!dbUser.plan || dbUser.plan === "none") {
+      return res.status(402).json({
+        error: "Suscripción activa requerida. Por favor, selecciona un plan B2B y completa tu facturación antes de iniciar la generación de tu sitio web.",
+        code: "SUBSCRIPTION_REQUIRED"
+      });
+    }
+
+    // Control de Límite de Créditos IA
+    if (dbUser.aiCredits < 10) {
+      return res.status(402).json({
+        error: "Créditos IA insuficientes. Necesitas al menos 10 créditos para generar una nueva web. Por favor, actualiza tu plan.",
+        code: "INSUFFICIENT_CREDITS"
+      });
+    }
+
 
     // Permitir re-generación, bloqueando únicamente si hay una cola activa real en ejecución en Redis
     if (dbUser.siteStatus && !["none", "failed", "deployed"].includes(dbUser.siteStatus) && dbUser.siteJobId) {
@@ -250,15 +268,16 @@ app.post("/api/jobs", authenticateToken as any, async (req: AuthRequest, res: Re
       updatedAt: new Date().toISOString(),
     });
 
-    // Guardar detalles del sitio web en la tabla User de PostgreSQL
+    // Guardar detalles del sitio web en la tabla User de PostgreSQL y descontar 10 créditos
     await prisma.user.update({
       where: { id: req.user.id },
       data: {
         siteName: businessName,
         siteType: webType,
-        siteDomain: `${businessName.toLowerCase().replace(/[^a-z0-9]/g, '')}.avialo.app`,
+        siteDomain: body.customDomain?.trim().toLowerCase().replace(/https?:\/\//, '') || `${businessName.toLowerCase().replace(/[^a-z0-9]/g, '')}.avialo.app`,
         siteJobId: jobId,
-        siteStatus: "pending"
+        siteStatus: "pending",
+        aiCredits: { decrement: 10 }
       }
     }).catch((err: any) => console.error("⚠️ Error al inicializar sitio en db:", err));
 
@@ -430,6 +449,26 @@ app.post("/api/jobs/:id/edit", authenticateToken as any, async (req: AuthRequest
   }
 
   try {
+    const dbUser = await verifyAndResetCredits(req.user.id);
+    if (!dbUser) {
+      return res.status(404).json({ error: "Usuario no encontrado en la base de datos." });
+    }
+
+    // CONTROL DE CRÉDITOS DE IA / SUSCRIPCIÓN ENTERPRISE PARA EDICIONES
+    if (!dbUser.plan || dbUser.plan === "none") {
+      return res.status(402).json({
+        error: "Suscripción activa requerida. Por favor, selecciona un plan B2B y completa tu facturación antes de solicitar ediciones de IA en tu sitio.",
+        code: "SUBSCRIPTION_REQUIRED"
+      });
+    }
+
+    if (dbUser.aiCredits < 1) {
+      return res.status(402).json({
+        error: "Créditos IA agotados. Has consumido todos los tokens de tu plan actual. Por favor, realiza un upgrade para continuar editando tu web.",
+        code: "INSUFFICIENT_CREDITS"
+      });
+    }
+
     const job = await generationQueue.getJob(jobId);
     if (!job) {
       return res.status(404).json({ error: `Trabajo de generación con ID "${jobId}" no encontrado.` });
@@ -440,10 +479,13 @@ app.post("/api/jobs/:id/edit", authenticateToken as any, async (req: AuthRequest
       return res.status(400).json({ error: "El trabajo no posee un identificador de cliente válido." });
     }
 
-    // Actualizar el estado a "generating" en PostgreSQL y memoria
+    // Actualizar el estado a "generating" en PostgreSQL y memoria, y descontar 1 crédito
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { siteStatus: "generating" }
+      data: { 
+        siteStatus: "generating",
+        aiCredits: { decrement: 1 }
+      }
     });
 
     const currentStatus = jobStatuses.get(jobId);
@@ -473,9 +515,49 @@ app.post("/api/jobs/:id/edit", authenticateToken as any, async (req: AuthRequest
   }
 });
 
-// ============================================
-// INICIALIZACIÓN DE SERVIDORES Y PRISMA
-// ============================================
+// Tarea automática de segundo plano para reseteo automático de créditos (cron job equivalente)
+async function runBackgroundCreditsReset() {
+  try {
+    const now = new Date();
+    // Buscar usuarios cuya fecha de reinicio haya expirado
+    const usersToReset = await prisma.user.findMany({
+      where: {
+        creditsResetDate: {
+          lt: now
+        }
+      }
+    });
+
+    for (const u of usersToReset) {
+      const plan = u.plan || "none";
+      const maxCredits = {
+        none: 50,
+        basic: 50,
+        corporativa: 50,
+        pro: 200,
+        dinamica: 200,
+        ecommerce: 500
+      }[plan] || 50;
+
+      const nextResetDate = new Date();
+      nextResetDate.setDate(nextResetDate.getDate() + 30);
+
+      await prisma.user.update({
+        where: { id: u.id },
+        data: {
+          aiCredits: maxCredits,
+          creditsResetDate: nextResetDate
+        }
+      });
+      console.log(`🔄 [CRON INTERNO] Créditos reseteados para el usuario ${u.email} al máximo del plan "${plan}": ${maxCredits} créditos.`);
+    }
+  } catch (error) {
+    console.error("⚠️ [CRON INTERNO] Error al ejecutar el reseteo de créditos en segundo plano:", error);
+  }
+}
+
+// Ejecutar cada 6 horas para chequear si algún mes ha expirado
+setInterval(runBackgroundCreditsReset, 6 * 60 * 60 * 1000);
 
 async function startServer() {
   // Conectar Prisma a PostgreSQL antes de escuchar peticiones

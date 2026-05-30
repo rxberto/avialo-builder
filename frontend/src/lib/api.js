@@ -196,3 +196,36 @@ export async function loginWithGoogle(credential) {
   return response.json();
 }
 
+/**
+ * Realiza una consulta DNS al backend para verificar si el dominio apunta a la IP de Avialo.
+ */
+export async function verifyDns(domain) {
+  const response = await fetch(`${API_BASE}/api/auth/verify-dns`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ domain }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al verificar el dominio.');
+  }
+  return response.json();
+}
+
+/**
+ * Cambia la contraseña del usuario en la base de datos PostgreSQL.
+ */
+export async function changePassword(currentPassword, newPassword) {
+  const response = await fetch(`${API_BASE}/api/auth/change-password`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al cambiar la contraseña.');
+  }
+  return response.json();
+}
+
+

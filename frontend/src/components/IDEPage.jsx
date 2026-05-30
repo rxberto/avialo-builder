@@ -133,8 +133,29 @@ const INITIAL_DB = {
 /* ─────────────────────────────────────────────
    MAIN COMPONENT
 ───────────────────────────────────────────── */
-export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme }) {
+export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateUser, darkMode, toggleTheme }) {
   const { logs, status, progress, previewUrl } = useJobSSE(jobId);
+
+  /* ── Prompt Tutorial States ── */
+  const [showTutorial, setShowTutorial] = useState(() => {
+    const saved = localStorage.getItem('avialo_hide_ide_tutorial');
+    return saved !== 'true';
+  });
+
+  const handleHideTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('avialo_hide_ide_tutorial', 'true');
+  };
+
+  const userCredits = user?.aiCredits ?? 50;
+  const maxCredits = {
+    none: 50,
+    basic: 50,
+    corporativa: 50,
+    pro: 200,
+    dinamica: 200,
+    ecommerce: 500
+  }[user?.plan] || 50;
 
   /* ── Panel Resizing States & Handlers ── */
   const [sidebarWidth, setSidebarWidth] = useState(280);
@@ -274,6 +295,14 @@ export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme })
     // Show terminal automatically when building
     setShowTerminal(true);
 
+    // Descontar 1 crédito localmente para una respuesta visual instantánea
+    if (onUpdateUser && user) {
+      onUpdateUser({
+        ...user,
+        aiCredits: Math.max(0, (user.aiCredits ?? 50) - 1)
+      });
+    }
+
     try {
       await editJob(jobId, text);
     } catch (err) {
@@ -281,6 +310,10 @@ export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme })
         ? { ...m, text: `❌ Error: ${err.message}`, isGenerating: false }
         : m));
       setIsSending(false);
+      // Re-sincronizar perfil para restaurar el crédito correcto en caso de error
+      if (onSyncProfile) {
+        onSyncProfile();
+      }
     }
   };
 
@@ -292,11 +325,19 @@ export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme })
         ? { ...m, text: '✅ ¡Cambios aplicados! La preview se ha actualizado automáticamente.', isGenerating: false }
         : m));
       loadFiles();
+      // Sincronizar perfil de base de datos para obtener el balance real
+      if (onSyncProfile) {
+        onSyncProfile();
+      }
     } else if (status === 'failed' && isSending) {
       setIsSending(false);
       setChatMessages(prev => prev.map(m => m.isGenerating
         ? { ...m, text: '⚠️ La compilación falló. Revisa la terminal para más detalles.', isGenerating: false }
         : m));
+      // Sincronizar perfil de base de datos para obtener el balance real
+      if (onSyncProfile) {
+        onSyncProfile();
+      }
     }
   }, [status]);
 
@@ -340,7 +381,7 @@ export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme })
                   {user?.siteName || 'Proyecto Avialo'}
                 </div>
                 <div className="text-[9.5px] text-muted-foreground uppercase font-semibold tracking-wider mt-0.5">
-                  {user?.siteType || 'corporativa'} · avialo.io
+                  {user?.siteType || 'corporativa'} · avialo.es
                 </div>
               </div>
             </div>
@@ -571,6 +612,107 @@ export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme })
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {chatMessages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
+              
+              {chatMessages.length === 1 && (
+                <div className="pt-2 flex flex-col gap-3">
+                  
+                  {/* Collapsible Prompt Tutorial Card */}
+                  {showTutorial && (
+                    <Card className="p-4 bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent border border-violet-500/20 rounded-2xl relative overflow-hidden shadow-sm text-left animate-fade-in">
+                      <div className="absolute top-2 right-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-5 w-5 text-zinc-400 hover:text-foreground rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 shrink-0 cursor-pointer" 
+                          onClick={handleHideTutorial}
+                          title="Ocultar tutorial"
+                        >
+                          <X size={10} />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-1.5 mb-2.5">
+                        <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
+                        <span className="text-[10px] font-extrabold text-foreground uppercase tracking-wider">
+                          💡 Guía de Prompts: ¡Ahorra Créditos IA!
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+                        Para evitar abusos y optimizar tu consumo de créditos IA, te recomendamos seguir estas pautas al chatear con el agente:
+                      </p>
+                      <div className="space-y-2 mb-3.5">
+                        <div className="flex gap-2">
+                          <div className="w-4 h-4 rounded bg-violet-500/20 text-violet-500 flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">1</div>
+                          <div className="text-[10.5px] text-muted-foreground leading-relaxed">
+                            <strong className="text-foreground font-semibold">Agrupa tus cambios:</strong> Pide varias ediciones juntas (ej: <em>"Añade una sección FAQ y pon el botón en verde"</em>). Consumirá <strong className="text-violet-500">solo 1 crédito</strong> en lugar de 2.
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="w-4 h-4 rounded bg-violet-500/20 text-violet-500 flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">2</div>
+                          <div className="text-[10.5px] text-muted-foreground leading-relaxed">
+                            <strong className="text-foreground font-semibold">Sé ultra específico:</strong> Indica colores exactos, textos precisos o las secciones deseadas. La IA acertará a la primera y no malgastarás intentos.
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="w-4 h-4 rounded bg-violet-500/20 text-violet-500 flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">3</div>
+                          <div className="text-[10.5px] text-muted-foreground leading-relaxed">
+                            <strong className="text-foreground font-semibold">Evita prompts abstractos:</strong> Frases como <em>"hazlo más chulo"</em> o <em>"cambia el diseño"</em> gastan créditos sin garantías de obtener lo que buscas.
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center bg-violet-500/5 dark:bg-violet-500/[0.03] p-2 py-1.5 rounded-lg border border-violet-500/10">
+                        <span className="text-[9px] text-violet-500 font-bold">
+                          Ediciones: 1 mensaje = 1 crédito
+                        </span>
+                        <button 
+                          className="text-[9px] font-bold text-violet-600 hover:text-violet-750 dark:text-violet-400 dark:hover:text-violet-300 bg-transparent border-none outline-none cursor-pointer" 
+                          onClick={handleHideTutorial}
+                        >
+                          Entendido, ¡vamos! →
+                        </button>
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* Suggestions Grid */}
+                  <div className="grid grid-cols-1 gap-2">
+                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 ml-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Sparkles size={11} className="text-indigo-400" /> Sugerencias de uso
+                      </span>
+                      {!showTutorial && (
+                        <button 
+                          onClick={() => setShowTutorial(true)} 
+                          className="text-[9px] text-violet-500 hover:text-violet-700 font-bold flex items-center gap-0.5 cursor-pointer underline bg-transparent border-none outline-none"
+                        >
+                          Ver Guía
+                        </button>
+                      )}
+                    </div>
+                    {[
+                      { title: 'Añadir nueva sección', desc: 'Añade una sección de preguntas frecuentes (FAQ) debajo de los servicios.', icon: '➕' },
+                      { title: 'Cambiar el diseño', desc: 'Cambia la paleta de colores para que parezca más corporativo, con tonos oscuros y elegantes.', icon: '🎨' },
+                      { title: 'Modificar contenido', desc: 'Reescribe el texto de la cabecera para que sea más persuasivo y enfocado en conversión.', icon: '✍️' },
+                      { title: 'Funcionalidad', desc: 'Inserta un formulario de contacto al final de la página pidiendo Nombre, Email y Teléfono.', icon: '⚡' }
+                    ].map((sug, idx) => (
+                      <div 
+                        key={idx} 
+                        onClick={() => setPromptText(sug.desc)}
+                        className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm cursor-pointer hover:border-indigo-500/40 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 hover:shadow-md transition-all group"
+                      >
+                        <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-0.5 flex items-center gap-2">
+                          <span>{sug.icon}</span>
+                          <span className="group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{sug.title}</span>
+                        </div>
+                        <div className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-relaxed">{sug.desc}</div>
+                      </div>
+                    ))}
+                    <div className="text-center mt-1">
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 italic">Haz clic en una sugerencia para usarla en el chat. Cada mensaje consume 1 crédito IA.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div ref={chatEndRef} />
             </div>
 
@@ -622,6 +764,39 @@ export default function IDEPage({ jobId, user, onReset, darkMode, toggleTheme })
 
             {/* Input area */}
             <div className="p-4 border-t border-border bg-card shrink-0">
+              
+              {/* Progress bar and credits counter */}
+              <div className="mb-3">
+                <div className="flex justify-between items-center text-[10px] font-bold mb-1">
+                  <span className="flex items-center gap-1 text-muted-foreground select-none">
+                    <Zap size={11} className="text-amber-500 fill-amber-500 animate-[pulse_2s_infinite]" />
+                    CRÉDITOS DE IA RESTANTES:
+                  </span>
+                  <span className={cn(
+                    "font-bold font-mono text-[11px]",
+                    userCredits <= 5 ? "text-red-500" : userCredits <= 15 ? "text-amber-500" : "text-violet-500"
+                  )}>
+                    {userCredits} / {maxCredits}
+                  </span>
+                </div>
+                <Progress 
+                  value={(userCredits / maxCredits) * 100} 
+                  className={cn(
+                    "h-1.5 bg-muted rounded-full overflow-hidden transition-all duration-300",
+                    userCredits <= 5 
+                      ? "[&>div]:bg-red-500 [&>div]:shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
+                      : userCredits <= 15 
+                        ? "[&>div]:bg-amber-550 [&>div]:shadow-[0_0_8px_rgba(245,158,11,0.5)]" 
+                        : "[&>div]:bg-gradient-to-r [&>div]:from-violet-600 [&>div]:to-fuchsia-500 [&>div]:shadow-[0_0_8px_rgba(124,58,237,0.5)]"
+                  )} 
+                />
+                {userCredits <= 5 && (
+                  <div className="text-[9.5px] text-red-500 font-bold mt-1.5 animate-pulse text-center select-none">
+                    ⚠️ ¡Créditos casi agotados! Realiza un upgrade en Ajustes para continuar editando tu web.
+                  </div>
+                )}
+              </div>
+
               <form className="flex items-end gap-2" onSubmit={handleSend}>
                 <Textarea
                   ref={inputRef}

@@ -2,6 +2,7 @@ import Docker from "dockerode";
 import { existsSync, promises as fs } from "fs";
 import path from "path";
 import { addJobLog } from "../queue/logs.js";
+import { config } from "../config/env.js";
 
 // Inicialización de Dockerode conectado al Named Pipe de Windows o socket de Linux
 const isWindows = process.platform === "win32";
@@ -85,6 +86,30 @@ export async function startPreviewContainer(
     return { containerId: container.id, port, image: Image };
   }
 
+  // ── OPTIMIZACIÓN DE CONEXIONES Y POOLING ENTERPRISE ──
+  // Construir la DATABASE_URL del tenant usando el pooler o la base del host
+  let tenantDbUrl = config.database.url;
+  
+  // Cambiar el esquema al del tenant actual
+  if (tenantDbUrl.includes("schema=")) {
+    tenantDbUrl = tenantDbUrl.replace(/schema=[^&]*/, `schema=tenant_${clientId}`);
+  } else {
+    const separator = tenantDbUrl.includes("?") ? "&" : "?";
+    tenantDbUrl = `${tenantDbUrl}${separator}schema=tenant_${clientId}`;
+  }
+
+  // Limitar el tamaño de conexiones del cliente a 3 para evitar saturar el pool global
+  if (tenantDbUrl.includes("connection_limit=")) {
+    tenantDbUrl = tenantDbUrl.replace(/connection_limit=[^&]*/, `connection_limit=3`);
+  } else {
+    tenantDbUrl = `${tenantDbUrl}&connection_limit=3`;
+  }
+
+  // Activar pgBouncer mode de Prisma si la base de datos corre en Pgbouncer (puerto 6432)
+  if (tenantDbUrl.includes(":6432/") && !tenantDbUrl.includes("pgbouncer=")) {
+    tenantDbUrl = `${tenantDbUrl}&pgbouncer=true`;
+  }
+
   // FLUJO DINÁMICO ASIMÉTRICO (Node.js / Next.js)
   let buildCmd = ["sh", "-c", "cd /usr/src/app && npm install && npm run build"];
   let runtimeCmd = ["sh", "-c", "cd /usr/src/app && cp -r public .next/standalone/ 2>/dev/null || true && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js"];
@@ -99,6 +124,9 @@ export async function startPreviewContainer(
   const buildContainer = await docker.createContainer({
     Image,
     Cmd: buildCmd,
+    Env: [
+      `DATABASE_URL=${tenantDbUrl}`,
+    ],
     HostConfig: {
       Binds: [`${absolutePath}:/usr/src/app`],
       Memory: 2147483648, // 2GB
@@ -134,6 +162,11 @@ export async function startPreviewContainer(
     name: containerName,
     Cmd: runtimeCmd,
     ExposedPorts,
+    Env: [
+      `DATABASE_URL=${tenantDbUrl}`,
+      `NEXTAUTH_SECRET=${process.env.NEXTAUTH_SECRET || "avialo-nextauth-secret-key-32-chars"}`,
+      `NEXTAUTH_URL=http://localhost:${port}`
+    ],
     HostConfig: {
       Binds: [`${absolutePath}:/usr/src/app`],
       PortBindings,

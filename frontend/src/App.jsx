@@ -11,6 +11,8 @@ import JobProgressPage from './components/JobProgressPage';
 import IDEPage from './components/IDEPage';
 import Navbar from './components/layout/Navbar';
 import GoogleOnboarding from './components/GoogleOnboarding';
+import SettingsPage from './components/SettingsPage';
+import NotificationsModal from './components/NotificationsModal';
 import { createJob, getProfile, updateProfile } from './lib/api';
 
 function App() {
@@ -30,6 +32,60 @@ function App() {
     }
     return false;
   });
+
+  // Real Notifications State
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('avialo_notifications');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return [
+      {
+        id: 'welcome',
+        type: 'info',
+        title: '¡Bienvenido a Avialo!',
+        message: 'Tu espacio de trabajo dedicado multi-tenant ha sido aprovisionado.',
+        time: new Date().toISOString(),
+        read: false
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('avialo_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  const handleAddNotification = (type, title, message) => {
+    const newNotif = {
+      id: Date.now().toString(),
+      type,
+      title,
+      message,
+      time: new Date().toISOString(),
+      read: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const handleMarkNotificationRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
+
+  const handleDeleteNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+  };
+
+  const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
 
   // Sincronizar el perfil del usuario en tiempo real con PostgreSQL
   const syncProfile = async (currentUser = user) => {
@@ -91,6 +147,7 @@ function App() {
   const handleLogin = (loggedInUser, isNewGoogleUser = false) => {
     setUser(loggedInUser);
     localStorage.setItem('avialo_user', JSON.stringify(loggedInUser));
+    handleAddNotification('success', 'Sesión iniciada', `Conexión segura como ${loggedInUser.name || loggedInUser.email}.`);
     
     // Validar si tiene onboarding completo o si es un registro nuevo de Google
     if (isNewGoogleUser) {
@@ -112,6 +169,7 @@ function App() {
   const handleRegister = (registeredUser, isNewGoogleUser = false) => {
     setUser(registeredUser);
     localStorage.setItem('avialo_user', JSON.stringify(registeredUser));
+    handleAddNotification('success', 'Cuenta creada', '¡Bienvenido a Avialo! Perfil inicializado con éxito.');
     
     if (isNewGoogleUser) {
       navigate('/google-onboarding');
@@ -158,15 +216,44 @@ function App() {
     navigate('/progress');
     setJobError(null);
 
+    const cleanDomain = onboardingData.customDomain?.trim().toLowerCase().replace(/https?:\/\//, '') || '';
+    const finalDomain = cleanDomain || `${onboardingData.businessContext.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.avialo.app`;
+
     const newSite = {
       businessName: onboardingData.businessContext.name,
       webType: onboardingData.websiteArchitecture.type,
-      dominio: `${onboardingData.businessContext.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.avialo.app`,
+      dominio: finalDomain,
       jobId: null
     };
 
+    // Pre-guardar el nombre del sitio y el dominio en PostgreSQL para consistencia inmediata
     try {
-      const result = await createJob(onboardingData);
+      await updateProfile({
+        siteName: onboardingData.businessContext.name,
+        siteDomain: finalDomain
+      });
+    } catch (err) {
+      console.warn('⚠️ No se pudo pre-guardar el dominio en PostgreSQL:', err);
+    }
+
+    handleAddNotification('info', 'Compilación Iniciada', `El agente Avialo IA está construyendo tu sitio "${onboardingData.businessContext.name}".`);
+    
+    if (cleanDomain) {
+      handleAddNotification('success', 'Dominio configurado', `Tu sitio se desplegará en tu dominio personalizado: ${cleanDomain}.`);
+    } else {
+      handleAddNotification('warning', 'Dominio temporal asignado', `Tu sitio se desplegará en ${finalDomain}. Añade un dominio personalizado propio en Ajustes.`);
+    }
+
+    try {
+      let finalPayload = { ...onboardingData };
+      try {
+        const billingStr = localStorage.getItem('avialo_billing_data');
+        if (billingStr) {
+          finalPayload.billingData = JSON.parse(billingStr);
+        }
+      } catch(e) {}
+
+      const result = await createJob(finalPayload);
       setJobId(result.jobId);
       newSite.jobId = result.jobId;
       localStorage.setItem('avialo_current_site', JSON.stringify(newSite));
@@ -216,6 +303,10 @@ function App() {
           user={user}
           onLogout={handleLogout}
           onNavigate={(path) => navigate(path === 'landing' ? '/' : `/${path}`)}
+          notifications={notifications}
+          onMarkRead={handleMarkNotificationRead}
+          onMarkAllRead={handleMarkAllNotificationsRead}
+          onOpenNotifications={() => setIsNotificationsModalOpen(true)}
         />
       )}
 
@@ -267,13 +358,31 @@ function App() {
                   setJobId(jid);
                   navigate('/progress');
                 }}
+                onUpdateUser={(updated) => {
+                  setUser(updated);
+                  localStorage.setItem('avialo_user', JSON.stringify(updated));
+                }}
+                onAddNotification={handleAddNotification}
               />
             </RequireAuth>
           } />
 
           <Route path="/onboarding" element={
             <RequireAuth user={user} location={location}>
-              <OnboardingFlow onComplete={handleOnboardingComplete} />
+              <OnboardingFlow user={user} onComplete={handleOnboardingComplete} onSyncProfile={syncProfile} />
+            </RequireAuth>
+          } />
+
+          <Route path="/settings" element={
+            <RequireAuth user={user} location={location}>
+              <SettingsPage 
+                user={user} 
+                onUpdateUser={(updated) => {
+                  setUser(updated);
+                  localStorage.setItem('avialo_user', JSON.stringify(updated));
+                }}
+                onAddNotification={handleAddNotification}
+              />
             </RequireAuth>
           } />
 
@@ -295,6 +404,7 @@ function App() {
                 error={jobError}
                 onReset={handleReset}
                 onSyncProfile={() => syncProfile()}
+                onAddNotification={handleAddNotification}
               />
             </RequireAuth>
           } />
@@ -305,6 +415,8 @@ function App() {
                 jobId={jobId}
                 user={user}
                 onReset={handleReset}
+                onSyncProfile={syncProfile}
+                onUpdateUser={setUser}
                 darkMode={darkMode}
                 toggleTheme={toggleTheme}
               />
@@ -315,6 +427,16 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      <NotificationsModal
+        isOpen={isNotificationsModalOpen}
+        onClose={() => setIsNotificationsModalOpen(false)}
+        notifications={notifications}
+        onMarkRead={handleMarkNotificationRead}
+        onMarkAllRead={handleMarkAllNotificationsRead}
+        onDeleteNotification={handleDeleteNotification}
+        onClearAll={handleClearAllNotifications}
+      />
     </div>
   );
 }

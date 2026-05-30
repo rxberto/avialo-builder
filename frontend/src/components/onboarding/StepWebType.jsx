@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Building2, Zap, ShoppingCart, CheckCircle2, Sparkles } from 'lucide-react';
+import { Building2, Zap, ShoppingCart, CheckCircle2, Sparkles, Loader2, ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -119,9 +119,12 @@ const RECOMMENDED_TYPES = {
   'Peluquería / Estética': 'dinamica',
 };
 
-export default function StepWebType({ datos, updateData }) {
+export default function StepWebType({ datos, updateData, showErrors, user, loadingSubscription }) {
   const recommendedId = RECOMMENDED_TYPES[datos.sector];
   const selectedTypeObj = TIPOS_WEB.find(t => t.id === datos.webType);
+
+  const userPlan = user?.plan || localStorage.getItem('avialo_plan') || 'basic';
+  const isEcommerceLocked = userPlan !== 'ecommerce';
 
   const handleSelectType = (id) => {
     updateData('webType', id);
@@ -142,6 +145,7 @@ export default function StepWebType({ datos, updateData }) {
 
   const sectorExtras = SECTOR_EXTRA_FEATURES[datos.sector] || [];
   const baseFeatures = TIPO_FEATURES[datos.webType] || [];
+  const isWebTypeEmpty = showErrors && !datos.webType;
 
   return (
     <motion.div
@@ -155,10 +159,33 @@ export default function StepWebType({ datos, updateData }) {
         <p className="text-zinc-500 dark:text-zinc-400 text-sm max-w-xl">
           Define el core tecnológico de tu sitio. Todas incluyen diseño responsive y optimización SEO.
         </p>
-        <div className="pt-2">
-          <Badge variant="secondary" className="rounded-md py-1 px-2.5 font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 w-fit mx-auto md:mx-0 border-none">
+        
+        {isWebTypeEmpty && (
+          <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-bold animate-pulse-glow w-fit">
+            ⚠️ Por favor, selecciona el tipo de motor web para tu proyecto.
+          </div>
+        )}
+
+        <div className="pt-2 flex flex-wrap gap-2 justify-center md:justify-start select-none">
+          <Badge variant="secondary" className="rounded-md py-1 px-2.5 font-medium bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5 w-fit border-none">
             <CheckCircle2 size={13} /> Estructura básica (Inicio, Servicios, Contacto) siempre incluida
           </Badge>
+
+          {loadingSubscription ? (
+            <Badge variant="outline" className="rounded-md py-1 px-2.5 font-semibold bg-brand/5 border border-brand/20 text-brand flex items-center gap-1.5 w-fit animate-pulse">
+              <Loader2 size={13} className="animate-spin text-brand" /> Comprobando nivel de suscripción...
+            </Badge>
+          ) : (
+            <Badge variant="outline" className={cn(
+              "rounded-md py-1 px-2.5 font-bold flex items-center gap-1.5 w-fit border-none shadow-sm",
+              isEcommerceLocked 
+                ? "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400" 
+                : "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+            )}>
+              <ShieldCheck size={13} /> 
+              Suscripción B2B: Plan {userPlan.toUpperCase()} {isEcommerceLocked ? '(Básico / Pro)' : '(Ecommerce Full)'}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -167,20 +194,32 @@ export default function StepWebType({ datos, updateData }) {
           const isSelected = datos.webType === tipo.id;
           const isRecommended = recommendedId === tipo.id;
           const Icon = tipo.icono;
+          const isLocked = tipo.id === 'ecommerce' && isEcommerceLocked;
 
           return (
             <button
               key={tipo.id}
               type="button"
+              disabled={isLocked}
               onClick={() => handleSelectType(tipo.id)}
               className={cn(
-                "relative text-left flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 outline-none group overflow-hidden",
-                isSelected 
-                  ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 shadow-md"
-                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-sm"
+                "relative text-left flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 outline-none group overflow-hidden w-full",
+                isLocked
+                  ? "border-zinc-200 dark:border-zinc-800/60 bg-zinc-100/50 dark:bg-zinc-950/20 text-zinc-400 dark:text-zinc-500 opacity-60 cursor-not-allowed"
+                  : isSelected 
+                    ? "border-zinc-900 dark:border-zinc-100 bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 shadow-md cursor-pointer"
+                    : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/50 hover:border-zinc-400 dark:hover:border-zinc-600 hover:shadow-sm cursor-pointer"
               )}
             >
-              {isRecommended && !isSelected && (
+              {isLocked && (
+                <div className="absolute top-0 right-0">
+                  <div className="bg-red-500 text-white text-[9px] font-black uppercase px-2 py-1 rounded-bl-lg flex items-center gap-1">
+                    🔒 Bloqueado
+                  </div>
+                </div>
+              )}
+
+              {isRecommended && !isSelected && !isLocked && (
                 <div className="absolute top-0 right-0">
                   <div className="bg-zinc-900 dark:bg-zinc-100 text-zinc-50 dark:text-zinc-900 text-[10px] font-bold uppercase px-2 py-1 rounded-bl-lg flex items-center gap-1">
                     <Sparkles size={9} fill="currentColor" /> Sugerido
@@ -190,18 +229,26 @@ export default function StepWebType({ datos, updateData }) {
 
               <div className={cn(
                 "w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-colors",
-                isSelected 
-                  ? "bg-zinc-50/10 dark:bg-zinc-900/10" 
-                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200"
+                isLocked 
+                  ? "bg-zinc-200/50 dark:bg-zinc-900/50 text-zinc-400"
+                  : isSelected 
+                    ? "bg-zinc-50/10 dark:bg-zinc-900/10" 
+                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 group-hover:bg-zinc-200"
               )}>
                 <Icon size={22} />
               </div>
-              <h3 className="font-semibold text-[15px] tracking-tight mb-1.5 leading-tight">{tipo.titulo}</h3>
+              <h3 className="font-semibold text-[15px] tracking-tight mb-1.5 leading-tight flex items-center gap-1.5">
+                {tipo.titulo}
+              </h3>
               <p className={cn(
                 "text-xs leading-relaxed font-normal",
-                isSelected ? "text-zinc-300 dark:text-zinc-700" : "text-zinc-500 dark:text-zinc-400"
+                isLocked
+                  ? "text-zinc-400 dark:text-zinc-500"
+                  : isSelected 
+                    ? "text-zinc-300 dark:text-zinc-700" 
+                    : "text-zinc-500 dark:text-zinc-400"
               )}>
-                {tipo.desc}
+                {isLocked ? "Requiere el Plan Ecommerce. Mejora tu suscripción B2B en Ajustes > Plan para activar la tienda online." : tipo.desc}
               </p>
             </button>
           );

@@ -11,6 +11,7 @@ export interface ScaffoldData {
   city: string;
   primaryColor?: string;
   pages?: string[];
+  fullClientData?: Record<string, any>;
 }
 
 // ── Crea la carpeta base del proyecto (Fallback)
@@ -74,7 +75,7 @@ Sitemap: https://${dominio}/sitemap.xml`;
 
 // ── Función principal de Scaffolding
 export async function scaffoldProject(clienteId: string, datos: ScaffoldData): Promise<{ success: boolean; base?: string; dominio?: string; reason?: string; error?: string }> {
-  const { webType, businessName, sector, city, pages = ["Inicio", "Servicios", "Contacto"], primaryColor } = datos;
+  const { webType, businessName, sector, city, pages = ["Inicio", "Servicios", "Contacto"], primaryColor, fullClientData } = datos;
 
   console.log(`\n🏗️  Scaffolding: ${clienteId} (${webType})`);
 
@@ -131,6 +132,50 @@ export async function scaffoldProject(clienteId: string, datos: ScaffoldData): P
     };
     await writeFile(path.join(base, "avialo-meta.json"), JSON.stringify(meta, null, 2));
     console.log(`   ✅ Meta guardada`);
+
+    // Inyectar config/business.ts para que la web tenga los datos reales desde el principio
+    if (fullClientData) {
+      const srcDir = path.join(base, "src");
+      const configDir = path.join(srcDir, "config");
+      
+      if (!existsSync(srcDir)) await mkdir(srcDir, { recursive: true });
+      if (!existsSync(configDir)) await mkdir(configDir, { recursive: true });
+
+      const business = fullClientData.businessContext || {};
+      const billing = fullClientData.billingData || {};
+      
+      // Datos combinados: usamos facturación si están, o el contexto
+      const companyName = billing.companyName || business.name || businessName;
+      const cif = billing.cif || "Pendiente";
+      const phone = business.phone || "+34 900 000 000";
+      const email = business.email || `contacto@${dominio}`;
+      const fullAddress = billing.address 
+        ? `${billing.address}, ${billing.postalCode || ''} ${billing.city || city}, ${billing.country || 'España'}`
+        : `${city}, España`;
+
+      const businessTS = `// Configuración de negocio inyectada automáticamente por Avialo Builder
+export const businessConfig = {
+  name: ${JSON.stringify(companyName)},
+  cif: ${JSON.stringify(cif)},
+  sector: ${JSON.stringify(sector)},
+  contact: {
+    phone: ${JSON.stringify(phone)},
+    email: ${JSON.stringify(email)},
+    address: ${JSON.stringify(fullAddress)}
+  },
+  social: {
+    instagram: ${JSON.stringify(business.instagram || "")},
+    facebook: ${JSON.stringify(business.facebook || "")},
+    linkedin: ${JSON.stringify(business.linkedin || "")}
+  },
+  theme: {
+    primaryColor: ${JSON.stringify(primaryColor)}
+  }
+};
+`;
+      await writeFile(path.join(configDir, "business.ts"), businessTS);
+      console.log(`   ✅ src/config/business.ts inyectado con los datos de facturación y onboarding`);
+    }
 
     console.log(`   🎉 Scaffold completo → ${base}\n`);
     return { success: true, base, dominio };

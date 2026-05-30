@@ -2,6 +2,10 @@ import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../database/client.js';
+import dns from 'dns';
+import { promisify } from 'util';
+
+const resolveA = promisify(dns.resolve4);
 
 export const authRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'avialo-super-secret-key-32-chars';
@@ -129,6 +133,52 @@ authRouter.post('/login', async (req: Request, res: Response): Promise<any> => {
   }
 });
 
+// Función de utilidad para verificar y reiniciar créditos mensuales rotativos de IA
+export async function verifyAndResetCredits(userId: number) {
+  const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+  if (!dbUser) return null;
+
+  const now = new Date();
+  const plan = dbUser.plan || 'none';
+  const maxCredits = {
+    none: 50,
+    basic: 50,
+    corporativa: 50,
+    pro: 200,
+    dinamica: 200,
+    ecommerce: 500
+  }[plan] || 50;
+
+  // Si no tiene fecha de reinicio o la fecha de reinicio está en el pasado
+  if (dbUser.creditsResetDate && dbUser.creditsResetDate < now) {
+    const nextReset = new Date();
+    nextReset.setDate(nextReset.getDate() + 30);
+
+    const updated = await prisma.user.update({
+      where: { id: dbUser.id },
+      data: {
+        aiCredits: maxCredits,
+        creditsResetDate: nextReset
+      }
+    });
+    console.log(`🔄 [CRÉDITOS] Reseteo mensual completado para ${updated.email}: ${maxCredits} créditos. Próximo reinicio: ${nextReset.toISOString()}`);
+    return updated;
+  } else if (!dbUser.creditsResetDate) {
+    // Si es un usuario nuevo o sin fecha, inicializamos la fecha a 30 días en el futuro
+    const nextReset = new Date();
+    nextReset.setDate(nextReset.getDate() + 30);
+    
+    const updated = await prisma.user.update({
+      where: { id: dbUser.id },
+      data: {
+        creditsResetDate: nextReset
+      }
+    });
+    return updated;
+  }
+  return dbUser;
+}
+
 // 3. Obtener Datos del Perfil (Me)
 authRouter.get('/me', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
   if (!req.user) {
@@ -136,7 +186,7 @@ authRouter.get('/me', authenticateToken as any, async (req: AuthRequest, res: Re
   }
 
   try {
-    const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    const dbUser = await verifyAndResetCredits(req.user.id);
     if (!dbUser) {
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
@@ -152,7 +202,8 @@ authRouter.get('/me', authenticateToken as any, async (req: AuthRequest, res: Re
       siteType: dbUser.siteType,
       siteDomain: dbUser.siteDomain,
       siteJobId: dbUser.siteJobId,
-      siteStatus: dbUser.siteStatus
+      siteStatus: dbUser.siteStatus,
+      aiCredits: dbUser.aiCredits
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Error al recuperar perfil: ' + error.message });
@@ -161,20 +212,45 @@ authRouter.get('/me', authenticateToken as any, async (req: AuthRequest, res: Re
 
 // 4. Actualizar Respuestas del Onboarding de Usuario
 authRouter.post('/update-profile', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
-  const { name, profession, role, plan } = req.body;
+  const { name, profession, role, plan, siteName, siteDomain } = req.body;
 
   if (!req.user) {
     return res.status(401).json({ error: 'No autorizado.' });
   }
 
   try {
+    const existingUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    let extraData: any = {};
+    if (plan !== undefined && plan !== existingUser.plan) {
+      const PLAN_CREDITS: Record<string, number> = {
+        none: 50,
+        basic: 50,
+        corporativa: 50,
+        pro: 200,
+        dinamica: 200,
+        ecommerce: 500,
+      };
+      extraData.aiCredits = PLAN_CREDITS[plan] ?? 50;
+      const nextReset = new Date();
+      nextReset.setDate(nextReset.getDate() + 30);
+      extraData.creditsResetDate = nextReset;
+      console.log(`💳 [PLAN ADQUIRIDO] Usuario ${existingUser.email} actualiza plan de "${existingUser.plan}" a "${plan}". Asignados ${extraData.aiCredits} créditos y reset date al ${nextReset.toISOString()}`);
+    }
+
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: {
         name: name || undefined,
         profession: profession || undefined,
         role: role || undefined,
-        plan: plan || undefined
+        plan: plan || undefined,
+        siteName: siteName !== undefined ? siteName : undefined,
+        siteDomain: siteDomain !== undefined ? siteDomain : undefined,
+        ...extraData
       }
     });
 
@@ -189,7 +265,8 @@ authRouter.post('/update-profile', authenticateToken as any, async (req: AuthReq
       siteType: updatedUser.siteType,
       siteDomain: updatedUser.siteDomain,
       siteJobId: updatedUser.siteJobId,
-      siteStatus: updatedUser.siteStatus
+      siteStatus: updatedUser.siteStatus,
+      aiCredits: updatedUser.aiCredits
     });
   } catch (error: any) {
     res.status(500).json({ error: 'Error al actualizar perfil: ' + error.message });
@@ -267,4 +344,67 @@ authRouter.post('/google', async (req: Request, res: Response): Promise<any> => 
     res.status(500).json({ error: 'Error en la autenticación con Google: ' + error.message });
   }
 });
+
+// 6. Endpoint de verificación de DNS real
+authRouter.post('/verify-dns', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const { domain } = req.body;
+
+  if (!domain) {
+    return res.status(400).json({ error: 'Dominio no proporcionado.' });
+  }
+
+  try {
+    const addresses = await resolveA(domain);
+    const pointsToAvialo = addresses.includes('159.69.110.22');
+    res.json({
+      ips: addresses,
+      pointsToAvialo,
+      message: pointsToAvialo 
+        ? '¡Configuración DNS correcta! El dominio está apuntando a Avialo.' 
+        : `El dominio apunta a ${addresses.join(', ')} en lugar de la IP de Avialo 159.69.110.22.`
+    });
+  } catch (err: any) {
+    res.json({
+      ips: [],
+      pointsToAvialo: false,
+      message: `No se pudo resolver el dominio: ${err.message || 'Error de resolución.'}`
+    });
+  }
+});
+
+// 7. Endpoint de cambio de contraseña real
+authRouter.post('/change-password', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!req.user) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Por favor, proporciona la contraseña actual y la nueva.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) {
+      return res.status(400).json({ error: 'La contraseña actual es incorrecta.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { passwordHash }
+    });
+
+    res.json({ message: 'Contraseña actualizada correctamente.' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Error al cambiar la contraseña: ' + error.message });
+  }
+});
+
 

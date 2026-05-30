@@ -15,7 +15,7 @@ const SECTORES = [
   'Construcción / Reformas', 'Otro'
 ];
 
-export default function StepBusinessData({ datos, updateData }) {
+export default function StepBusinessData({ datos, updateData, showErrors }) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -56,6 +56,11 @@ export default function StepBusinessData({ datos, updateData }) {
   };
 
   const isEmailInvalid = datos.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email);
+  const isBusinessNameEmpty = showErrors && !datos.businessName.trim();
+  const isSectorEmpty = showErrors && !datos.sector;
+  const isSectorOtroEmpty = showErrors && datos.sector === 'Otro' && !datos.sectorOtro.trim();
+  const isCityEmpty = showErrors && !datos.city.trim();
+  const isEmailEmpty = showErrors && !datos.email.trim();
 
   return (
     <motion.div
@@ -71,23 +76,39 @@ export default function StepBusinessData({ datos, updateData }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
         <div className="col-span-1 md:col-span-2 space-y-2">
-          <Label htmlFor="businessName">Nombre del negocio *</Label>
+          <Label htmlFor="businessName" className={cn(isBusinessNameEmpty && "text-destructive")}>
+            Nombre del negocio *
+          </Label>
           <Input
             id="businessName"
             placeholder="Ej: Restaurante Casa Paco"
             value={datos.businessName}
             onChange={e => updateData('businessName', e.target.value)}
-            className="h-11 bg-white/50 dark:bg-zinc-900/50"
+            className={cn(
+              "h-11 bg-white/50 dark:bg-zinc-900/50 transition-colors",
+              isBusinessNameEmpty && "border-destructive focus-visible:ring-destructive"
+            )}
           />
+          {isBusinessNameEmpty && (
+            <span className="text-[10px] font-semibold text-destructive mt-1 block">El nombre del negocio es requerido.</span>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="sector">Sector *</Label>
+          <Label htmlFor="sector" className={cn(isSectorEmpty && "text-destructive")}>
+            Sector *
+          </Label>
           <Select 
             value={datos.sector} 
             onValueChange={val => updateData('sector', val)}
           >
-            <SelectTrigger id="sector" className="h-11 bg-white/50 dark:bg-zinc-900/50">
+            <SelectTrigger 
+              id="sector" 
+              className={cn(
+                "h-11 bg-white/50 dark:bg-zinc-900/50 transition-colors",
+                isSectorEmpty && "border-destructive focus-visible:ring-destructive text-destructive"
+              )}
+            >
               <SelectValue placeholder="Selecciona tu sector" />
             </SelectTrigger>
             <SelectContent>
@@ -96,6 +117,9 @@ export default function StepBusinessData({ datos, updateData }) {
               ))}
             </SelectContent>
           </Select>
+          {isSectorEmpty && (
+            <span className="text-[10px] font-semibold text-destructive mt-1 block">Selecciona un sector.</span>
+          )}
         </div>
 
         {datos.sector === 'Otro' ? (
@@ -104,38 +128,62 @@ export default function StepBusinessData({ datos, updateData }) {
             animate={{ opacity: 1, scale: 1 }} 
             className="space-y-2"
           >
-            <Label htmlFor="sectorOtro">Especifica tu sector *</Label>
+            <Label htmlFor="sectorOtro" className={cn(isSectorOtroEmpty && "text-destructive")}>
+              Especifica tu sector *
+            </Label>
             <Input
               id="sectorOtro"
               placeholder="Ej: Organización de eventos"
               value={datos.sectorOtro}
               onChange={e => updateData('sectorOtro', e.target.value)}
-              className="h-11 bg-white/50 dark:bg-zinc-900/50"
+              className={cn(
+                "h-11 bg-white/50 dark:bg-zinc-900/50 transition-colors",
+                isSectorOtroEmpty && "border-destructive focus-visible:ring-destructive"
+              )}
             />
+            {isSectorOtroEmpty && (
+              <span className="text-[10px] font-semibold text-destructive mt-1 block">Especifica el sector de tu negocio.</span>
+            )}
           </motion.div>
         ) : (
           <div className="space-y-2">
-            <Label htmlFor="city">Ciudad *</Label>
+            <Label htmlFor="city" className={cn(isCityEmpty && "text-destructive")}>
+              Ciudad *
+            </Label>
             <Input
               id="city"
               placeholder="Ej: Madrid"
               value={datos.city}
               onChange={e => updateData('city', e.target.value)}
-              className="h-11 bg-white/50 dark:bg-zinc-900/50"
+              className={cn(
+                "h-11 bg-white/50 dark:bg-zinc-900/50 transition-colors",
+                isCityEmpty && "border-destructive focus-visible:ring-destructive"
+              )}
             />
+            {isCityEmpty && (
+              <span className="text-[10px] font-semibold text-destructive mt-1 block">Introduce una ciudad de operaciones.</span>
+            )}
           </div>
         )}
 
         {datos.sector === 'Otro' && (
            <div className="col-span-1 md:col-span-2 space-y-2">
-            <Label htmlFor="city-otro">Ciudad *</Label>
+            <Label htmlFor="city-otro" className={cn(isCityEmpty && "text-destructive")}>
+              Ciudad *
+            </Label>
             <Input
               id="city-otro"
               placeholder="Ej: Madrid"
               value={datos.city}
               onChange={e => updateData('city', e.target.value)}
-              className="h-11 bg-white/50 dark:bg-zinc-900/50"
+              className={cn(
+                "h-11 bg-white/50 dark:bg-zinc-900/50 transition-colors",
+                isCityEmpty && "border-destructive focus-visible:ring-destructive"
+              )}
             />
+            {isCityEmpty && (
+              <span className="text-[10px] font-semibold text-destructive mt-1 block">Introduce una ciudad de operaciones.</span>
+            )}
           </div>
         )}
 
@@ -152,7 +200,9 @@ export default function StepBusinessData({ datos, updateData }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email" className={cn(isEmailInvalid && "text-destructive")}>Email de contacto *</Label>
+          <Label htmlFor="email" className={cn((isEmailInvalid || isEmailEmpty) && "text-destructive")}>
+            Email de contacto *
+          </Label>
           <Input
             id="email"
             type="email"
@@ -161,12 +211,29 @@ export default function StepBusinessData({ datos, updateData }) {
             onChange={e => updateData('email', e.target.value)}
             className={cn(
               "h-11 bg-white/50 dark:bg-zinc-900/50 transition-colors",
-              isEmailInvalid && "border-destructive focus-visible:ring-destructive"
+              (isEmailInvalid || isEmailEmpty) && "border-destructive focus-visible:ring-destructive"
             )}
           />
           {isEmailInvalid && (
-            <span className="text-xs font-medium text-destructive mt-1 block">Introduce un email válido.</span>
+            <span className="text-[10px] font-semibold text-destructive mt-1 block">Introduce un email válido.</span>
           )}
+          {isEmailEmpty && !isEmailInvalid && (
+            <span className="text-[10px] font-semibold text-destructive mt-1 block">El email de contacto es requerido.</span>
+          )}
+        </div>
+
+        <div className="col-span-1 md:col-span-2 space-y-2">
+          <Label htmlFor="customDomain">Dominio Deseado <span className="font-normal text-zinc-400 dark:text-zinc-500">(opcional)</span></Label>
+          <Input
+            id="customDomain"
+            placeholder="Ej: tudominiodeseado.com"
+            value={datos.customDomain || ''}
+            onChange={e => updateData('customDomain', e.target.value)}
+            className="h-11 bg-white/50 dark:bg-zinc-900/50"
+          />
+          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-normal">
+            Escribe el dominio personalizado que deseas para tu web. Si lo dejas vacío, le asignaremos automáticamente un subdominio gratuito acabado en <span className="font-mono">.avialo.app</span>.
+          </span>
         </div>
 
         <div className="col-span-1 md:col-span-2 space-y-2 pt-2">
