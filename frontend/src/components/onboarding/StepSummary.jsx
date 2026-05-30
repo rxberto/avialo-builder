@@ -139,16 +139,16 @@ export default function StepSummary({ datos }) {
                 </div>
               </div>
 
-              {datos.enabledFeatures?.length > 0 && (
+              {(datos.enabledFeatures || []).length > 0 && (
                 <div className="bg-zinc-800/50 dark:bg-zinc-200/50 rounded-xl p-3.5 min-w-[140px] border border-white/5 dark:border-black/5 backdrop-blur-sm w-full md:w-auto">
                   <div className="text-[10px] font-bold text-zinc-500 dark:text-zinc-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <Box size={11} /> Componentes
                   </div>
                   <div className="space-y-1.5 max-h-24 overflow-y-auto scrollbar-hide">
-                    {datos.enabledFeatures.map(f => (
+                    {(datos.enabledFeatures || []).map(f => (
                       <div key={f} className="flex items-center gap-2 text-[10px] font-medium text-zinc-300 dark:text-zinc-700">
                         <CheckCircle2 size={10} className="text-zinc-400 dark:text-zinc-500" />
-                        <span className="capitalize truncate">{f.replace('_', ' ')}</span>
+                        <span className="capitalize truncate">{f?.replace('_', ' ') || ''}</span>
                       </div>
                     ))}
                   </div>
@@ -169,7 +169,7 @@ export default function StepSummary({ datos }) {
                 <div className="space-y-3">
                   <Label className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider">Secciones Menú</Label>
                   <ul className="space-y-2">
-                    {datos.pages.map((p, i) => (
+                    {(datos.pages || []).map((p, i) => (
                       <li key={i} className="text-xs font-medium text-zinc-800 dark:text-zinc-300 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-zinc-300 dark:bg-zinc-700" />
                         {p}
@@ -181,7 +181,7 @@ export default function StepSummary({ datos }) {
                 <div className="space-y-3 border-l border-zinc-100 dark:border-zinc-800 pl-6">
                   <Label className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider">Diseño Portada</Label>
                   <ul className="space-y-2">
-                    {datos.homeSections.map((s, i) => (
+                    {(datos.homeSections || []).map((s, i) => (
                       <li key={i} className="text-xs font-medium text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
                         <div className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800" />
                         {s}
