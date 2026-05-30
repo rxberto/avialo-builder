@@ -45,7 +45,7 @@ services:
       - DEFAULT_POOL_SIZE=50
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
     ports:
-      - "6432:6432"
+      - "6432:5432"
     depends_on:
       - postgres
     networks:
@@ -69,7 +69,7 @@ services:
     container_name: avialo-orchestrator
     restart: always
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:6432/${DB_NAME:-postgres}?schema=public&pgbouncer=true
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-postgres}?schema=public&pgbouncer=true
       - REDIS_URL=redis://redis:6379
       - DOCKER_SOCKET=/var/run/docker.sock
       - PORT=3000
