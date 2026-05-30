@@ -17,10 +17,6 @@ RUN npm ci
 # Copiar el resto del código fuente del backend
 COPY src ./src/
 
-# Copiar entrypoint (ejecuta migraciones antes de arrancar)
-COPY entrypoint.sh ./entrypoint.sh
-RUN chmod +x ./entrypoint.sh
-
 # Generar el cliente de Prisma ORM
 RUN npx prisma generate
 
@@ -33,4 +29,4 @@ RUN npm prune --production
 EXPOSE 3000
 
 # Aplica migraciones y luego arranca el servidor
-CMD ["sh", "./entrypoint.sh"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
