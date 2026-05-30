@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import LandingPage from './components/LandingPage';
 import LoginPage from './components/LoginPage';
@@ -88,11 +88,12 @@ function App() {
   const [isNotificationsModalOpen, setIsNotificationsModalOpen] = useState(false);
 
   // Sincronizar el perfil del usuario en tiempo real con PostgreSQL
-  const syncProfile = async (currentUser = user) => {
-    if (currentUser && currentUser.token) {
+  const syncProfile = useCallback(async (currentUser) => {
+    const activeUser = currentUser || JSON.parse(localStorage.getItem('avialo_user') || 'null');
+    if (activeUser && activeUser.token) {
       try {
         const profile = await getProfile();
-        const syncedUser = { ...currentUser, ...profile };
+        const syncedUser = { ...activeUser, ...profile };
         setUser(syncedUser);
         localStorage.setItem('avialo_user', JSON.stringify(syncedUser));
         localStorage.setItem('avialo_plan', profile.plan || 'none');
@@ -101,8 +102,8 @@ function App() {
         console.warn('⚠️ No se pudo sincronizar el perfil con el backend:', err);
       }
     }
-    return currentUser;
-  };
+    return activeUser;
+  }, []);
 
   useEffect(() => {
     syncProfile();
