@@ -114,7 +114,7 @@ export function InteractiveParticles({ className, color = 'rgba(255, 255, 255, 0
     };
 
     const handleMouseMove = (e) => {
-      const rect = canvas.getBoundingClientRect();
+      const rect = canvas.parentElement.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
     };
@@ -125,16 +125,16 @@ export function InteractiveParticles({ className, color = 'rgba(255, 255, 255, 0
     };
 
     window.addEventListener('resize', initCanvas);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mouseleave', handleMouseOut);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseOut);
 
     initCanvas();
     animate();
 
     return () => {
       window.removeEventListener('resize', initCanvas);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mouseleave', handleMouseOut);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseOut);
       cancelAnimationFrame(animationFrameId);
     };
   }, [color]);
@@ -142,7 +142,7 @@ export function InteractiveParticles({ className, color = 'rgba(255, 255, 255, 0
   return (
     <canvas
       ref={canvasRef}
-      className={cn("absolute inset-0 z-0 pointer-events-auto", className)}
+      className={cn("absolute inset-0 z-0 pointer-events-none", className)}
     />
   );
 }

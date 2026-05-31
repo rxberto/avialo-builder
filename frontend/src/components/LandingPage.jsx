@@ -393,7 +393,7 @@ export default function LandingPage({ onNavigate }) {
         <HeroWave style={{ y: waveY }} />
         <InteractiveParticles color="rgba(59, 130, 246, 0.25)" />
 
-        <div className="mx-auto max-w-7xl">
+        <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
 
             {/* Columna izquierda — texto con parallax */}
