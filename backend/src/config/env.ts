@@ -43,6 +43,9 @@ export interface AppConfig {
   openrouter: {
     apiKey?: string;
   };
+  deepseek: {
+    apiKey?: string;
+  };
   redis: {
     url: string;
   };
@@ -71,6 +74,9 @@ export const config: AppConfig = {
   },
   openrouter: {
     apiKey: process.env.OPENROUTER_API_KEY,
+  },
+  deepseek: {
+    apiKey: process.env.DEEPSEEK_API_KEY,
   },
   redis: {
     url: process.env.REDIS_URL || "redis://localhost:6379",
