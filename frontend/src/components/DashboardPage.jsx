@@ -4,14 +4,15 @@ import {
   Globe, Eye, Zap, Shield, CreditCard, Terminal,
   Calendar, CheckCircle2, Plus, ExternalLink, Sparkles,
   ArrowRight, Clock, Database, Gauge, BarChart3, Users2,
-  FileCode2, Play, Check, AlertTriangle, ArrowUpRight, HelpCircle, ShieldCheck, Loader2
+  FileCode2, Play, Check, AlertTriangle, ArrowUpRight, HelpCircle, ShieldCheck, Loader2,
+  ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { updateProfile } from '@/lib/api';
+import { updateProfile, getRealInvoices, createBillingPortalSession } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG = {
@@ -65,6 +66,53 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
       }
     } finally {
       setIsUpdatingPlan(false);
+    }
+  };
+
+  const [invoices, setInvoices] = useState([]);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+
+  // Cargar facturas reales de Stripe
+  const loadInvoices = async () => {
+    setIsLoadingInvoices(true);
+    try {
+      const data = await getRealInvoices();
+      setInvoices(data.invoices || []);
+    } catch (err) {
+      console.error("Error al cargar facturas reales:", err);
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+  };
+
+  // Cargar facturas cuando el modal se abre
+  useEffect(() => {
+    if (showManageModal) {
+      loadInvoices();
+    }
+  }, [showManageModal]);
+
+  // Redirigir de forma segura al portal de facturación real de Stripe
+  const handleOpenBillingPortal = async () => {
+    setIsOpeningPortal(true);
+    if (onAddNotification) {
+      onAddNotification('info', 'Acceso Seguro', 'Generando enlace cifrado al portal de Stripe...');
+    }
+    try {
+      const { url } = await createBillingPortalSession();
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        throw new Error("No se pudo obtener el enlace de Stripe.");
+      }
+    } catch (err) {
+      console.error("Error al abrir portal de facturación:", err);
+      if (onAddNotification) {
+        onAddNotification('error', 'Error del Portal', err.message || 'No se pudo abrir el portal de facturas.');
+      }
+    } finally {
+      setIsOpeningPortal(false);
     }
   };
 
@@ -189,7 +237,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex-1 flex flex-col justify-start w-full relative overflow-hidden select-none">
+    <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10 flex-1 flex flex-col justify-start w-full relative overflow-hidden">
       
       {/* Premium background blobs */}
       <div className="absolute top-0 left-1/4 -translate-x-1/2 w-[600px] h-[300px] bg-brand-glow rounded-full blur-3xl pointer-events-none opacity-50" />
@@ -317,34 +365,50 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
         
         {/* ── QUICK STATS ROW (4 Cards) ── */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { 
-              title: "Sitios Web Activos", 
-              value: site ? "1 / 1" : "0 / 1", 
-              desc: site ? "Contenedor online" : "Disponible para generar",
-              icon: <Globe className="w-5 h-5 text-brand" /> 
-            },
-            { 
-              title: "Créditos IA Utilizados", 
-              value: site ? "14 / ∞" : "0 / 100", 
-              desc: "Renovación automática",
-              icon: <Zap className="w-5 h-5 text-brand-accent" />,
-              progress: 14 
-            },
-            { 
-              title: "Disponibilidad Preview", 
-              value: site ? "99.98%" : "N/A", 
-              desc: "Monitorizado via Traefik",
-              icon: <CheckCircle2 className="w-5 h-5 text-brand-success" />,
-              statusDot: site ? "bg-emerald-500" : "bg-muted"
-            },
-            { 
-              title: "Próxima Renovación", 
-              value: "25 Jun 2026", 
-              desc: "Pago automático Stripe",
-              icon: <Calendar className="w-5 h-5 text-brand-info" /> 
-            }
-          ].map((stat, idx) => (
+          {(() => {
+            const maxCredits = {
+              none: 50,
+              basic: 50,
+              pro: 200,
+              ecommerce: 500
+            }[user.plan] || 50;
+
+            const usedCredits = Math.max(0, maxCredits - (user.aiCredits ?? 0));
+            const progressPercent = Math.min(100, Math.round((usedCredits / maxCredits) * 100));
+
+            const resetDateString = user.creditsResetDate
+              ? new Date(user.creditsResetDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+              : "Próximo mes";
+
+            return [
+              { 
+                title: "Sitios Web Activos", 
+                value: site ? "1 / 1" : "0 / 1", 
+                desc: site ? "Contenedor online" : "Disponible para generar",
+                icon: <Globe className="w-5 h-5 text-brand" /> 
+              },
+              { 
+                title: "Créditos IA Utilizados", 
+                value: `${usedCredits} / ${maxCredits}`, 
+                desc: `${user.aiCredits ?? 0} restantes`,
+                icon: <Zap className="w-5 h-5 text-brand-accent" />,
+                progress: progressPercent 
+              },
+              { 
+                title: "Disponibilidad Preview", 
+                value: site ? "99.98%" : "N/A", 
+                desc: "Monitorizado via Traefik",
+                icon: <CheckCircle2 className="w-5 h-5 text-brand-success" />,
+                statusDot: site ? "bg-emerald-500" : "bg-muted"
+              },
+              { 
+                title: "Próxima Renovación", 
+                value: resetDateString, 
+                desc: "Renovación automática",
+                icon: <Calendar className="w-5 h-5 text-brand-info" /> 
+              }
+            ];
+          })().map((stat, idx) => (
             <Card key={idx} className="glass shadow-sm hover:border-border/80 transition-all duration-300 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-brand/5 to-transparent rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform duration-500" />
               <CardContent className="p-5 flex flex-col justify-between h-full min-h-[110px]">
@@ -363,7 +427,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                     <div className="mt-2 space-y-1">
                       <Progress value={stat.progress} className="h-1.5 bg-muted" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>Consumo de IA</span>
+                        <span>{stat.desc}</span>
                         <span>{stat.progress}%</span>
                       </div>
                     </div>
@@ -400,7 +464,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                     
                     <h3 className="text-xl font-bold tracking-tight mb-2">Diseña y despliega tu app web con IA</h3>
                     <p className="text-muted-foreground text-sm max-w-md mb-8 leading-relaxed">
-                      Tu plan corporativo incluye **1 sitio web activo full-stack** (Next.js, PostgreSQL y Panel privado). Completa el formulario de negocio y nuestro Agente IA lo creará de inmediato.
+                      Tu plan corporativo incluye <strong className="font-bold text-foreground">1 sitio web activo full-stack</strong> (Next.js, PostgreSQL y Panel privado). Completa el formulario de negocio y nuestro Agente IA lo creará de inmediato.
                     </p>
                     
                     <Button
@@ -797,25 +861,74 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                     badge: 'ENTERPRISE'
                   }
                 ].map((p) => {
+                  const planLevels = {
+                    'none': 0,
+                    'basic': 1,
+                    'pro': 2,
+                    'ecommerce': 3
+                  };
+                  const currentLevel = planLevels[user.plan || 'none'] || 0;
+                  const targetLevel = planLevels[p.id] || 0;
                   const isActive = user.plan === p.id;
+                  const isUpgrade = targetLevel > currentLevel;
+                  const isDowngrade = targetLevel < currentLevel;
+
                   return (
                     <div
                       key={p.id}
                       className={cn(
-                        "relative bg-white/40 dark:bg-zinc-950/40 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-5 flex flex-col justify-between overflow-hidden group transition-all duration-300",
-                        p.border
+                        "relative bg-white/40 dark:bg-zinc-950/40 rounded-2xl border p-5 flex flex-col justify-between overflow-hidden group transition-all duration-300",
+                        isActive
+                          ? "border-emerald-500 dark:border-emerald-400 shadow-[0_0_25px_-5px_rgba(16,185,129,0.25)] bg-emerald-500/[0.02] dark:bg-emerald-500/[0.01]"
+                          : isDowngrade
+                            ? "border-zinc-200 dark:border-zinc-800 opacity-60 hover:opacity-100 hover:border-zinc-300 dark:hover:border-zinc-700"
+                            : p.id === 'pro'
+                              ? "border-brand/40 shadow-[0_0_20px_-5px_rgba(139,92,246,0.15)] hover:border-brand"
+                              : "border-zinc-200 dark:border-zinc-800 hover:border-blue-500/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.05)]"
                       )}
                     >
                       {/* Gradient glow top */}
-                      <div className={cn("absolute inset-x-0 top-0 h-24 bg-gradient-to-b pointer-events-none opacity-50 group-hover:opacity-80 transition-opacity", p.color)} />
+                      <div
+                        className={cn(
+                          "absolute inset-x-0 top-0 h-24 bg-gradient-to-b pointer-events-none transition-opacity duration-300",
+                          p.color,
+                          isActive
+                            ? "opacity-60"
+                            : isDowngrade
+                              ? "opacity-20 group-hover:opacity-40"
+                              : "opacity-50 group-hover:opacity-80"
+                        )}
+                      />
                       
-                      {p.badge && (
-                        <div className="absolute top-3 right-3">
-                          <Badge className="bg-brand text-white font-extrabold text-[8px] tracking-wide border-none px-2 py-0.5 shadow-md animate-pulse-glow">
+                      {/* Context-aware badges */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-1 items-end z-20">
+                        {isActive && (
+                          <Badge className="bg-emerald-500 hover:bg-emerald-550 text-white font-extrabold text-[8px] tracking-wide border-none px-2 py-0.5 shadow-md flex items-center gap-1 select-none">
+                            <Check className="w-2.5 h-2.5" /> PLAN ACTUAL
+                          </Badge>
+                        )}
+                        {!isActive && user.plan && user.plan !== 'none' && isUpgrade && (
+                          <Badge className="bg-blue-500 hover:bg-blue-550 text-white font-extrabold text-[8px] tracking-wide border-none px-2 py-0.5 shadow-md flex items-center gap-1 select-none animate-pulse-glow">
+                            <ArrowUp className="w-2.5 h-2.5" /> MEJORAR
+                          </Badge>
+                        )}
+                        {!isActive && user.plan && user.plan !== 'none' && isDowngrade && (
+                          <Badge className="bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-extrabold text-[8px] tracking-wide border border-zinc-300 dark:border-zinc-700 px-2 py-0.5 shadow-sm flex items-center gap-1 select-none">
+                            <ArrowDown className="w-2.5 h-2.5" /> PLAN INFERIOR
+                          </Badge>
+                        )}
+                        {/* Original Badge (Marketing Category like 'MÁS POPULAR' or 'ENTERPRISE') if not active/downgrade */}
+                        {!isActive && !isDowngrade && p.badge && (
+                          <Badge className={cn(
+                            "font-extrabold text-[8px] tracking-wide px-2 py-0.5 shadow-sm select-none border-none",
+                            p.id === 'pro'
+                              ? "bg-brand text-white shadow-brand/10"
+                              : "bg-emerald-600 text-white shadow-emerald-600/10"
+                          )}>
                             {p.badge}
                           </Badge>
-                        </div>
-                      )}
+                        )}
+                      </div>
 
                       <div className="relative z-10 space-y-4">
                         <div>
@@ -842,23 +955,36 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                         {isActive ? (
                           <Button
                             disabled
-                            className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl py-5 text-xs"
+                            className="w-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold rounded-xl py-5 text-xs flex items-center justify-center gap-1.5"
                           >
-                            ✓ Plan Activo
+                            <Check className="w-3.5 h-3.5" /> Tu Plan Actual
                           </Button>
                         ) : (
                           <Button
                             onClick={() => handleUpdatePlan(p.id)}
                             disabled={isUpdatingPlan}
                             className={cn(
-                              "w-full font-bold rounded-xl py-5 text-xs cursor-pointer shadow-md transition-all",
-                              p.id === 'pro'
-                                ? "bg-brand hover:bg-brand/90 text-white shadow-brand/10 hover:shadow-brand/20"
-                                : "bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 dark:bg-zinc-850 dark:hover:bg-zinc-800 dark:text-white dark:border-zinc-750"
+                              "w-full font-bold rounded-xl py-5 text-xs cursor-pointer shadow-md transition-all flex items-center justify-center gap-1.5",
+                              isDowngrade
+                                ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-300 dark:bg-zinc-900 dark:hover:bg-zinc-850 dark:text-zinc-350 dark:border-zinc-750 shadow-none hover:shadow-sm"
+                                : "bg-brand hover:bg-brand/90 text-white shadow-brand/10 hover:shadow-brand/20"
                             )}
                           >
-                            {isUpdatingPlan ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
-                            Seleccionar {p.id === 'ecommerce' ? 'Ecommerce' : p.id.toUpperCase()}
+                            {isUpdatingPlan ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : isDowngrade ? (
+                              <ArrowDown className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-y-0.5" />
+                            ) : (
+                              <ArrowUp className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
+                            )}
+                            
+                            {(!user.plan || user.plan === 'none') ? (
+                              `Adquirir ${p.id === 'ecommerce' ? 'Ecommerce' : p.id.toUpperCase()}`
+                            ) : isUpgrade ? (
+                              `Subir a ${p.id === 'ecommerce' ? 'Ecommerce' : p.id.toUpperCase()}`
+                            ) : (
+                              `Bajar a ${p.id === 'ecommerce' ? 'Ecommerce' : p.id.toUpperCase()}`
+                            )}
                           </Button>
                         )}
                       </div>
@@ -963,14 +1089,16 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                     </div>
 
                     <Button
-                      onClick={() => {
-                        if (onAddNotification) onAddNotification('info', 'Abriendo portal', 'Redirigiendo de forma segura al portal Stripe...');
-                        window.open('https://billing.stripe.com', '_blank');
-                      }}
-                      className="w-full text-xs font-semibold rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-white dark:border-zinc-750 py-4 h-9 cursor-pointer"
+                      onClick={handleOpenBillingPortal}
+                      disabled={isOpeningPortal}
+                      className="w-full text-xs font-semibold rounded-xl bg-zinc-100 hover:bg-zinc-200 text-zinc-900 border border-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-white dark:border-zinc-750 py-4 h-9 cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      Descargar Facturas Oficiales
-                      <ArrowUpRight size={12} className="ml-1" />
+                      {isOpeningPortal ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <ArrowUpRight size={12} />
+                      )}
+                      Abrir Portal de Facturación
                     </Button>
                   </div>
 
@@ -978,37 +1106,58 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
 
                 <Separator className="bg-zinc-200 dark:bg-zinc-800" />
 
-                {/* Simulated Invoice Downloads */}
+                {/* Real Invoice Downloads */}
                 <div className="space-y-2.5">
-                  <span className="text-[9px] text-zinc-550 dark:text-zinc-450 uppercase font-black tracking-wider">Últimos Recibos / Historial de Pagos</span>
+                  <span className="text-[9px] text-zinc-555 dark:text-zinc-450 uppercase font-black tracking-wider">Últimos Recibos / Historial de Pagos</span>
                   <div className="border border-zinc-200 dark:border-zinc-850 rounded-xl divide-y divide-zinc-200 dark:divide-zinc-800 overflow-hidden bg-zinc-50/50 dark:bg-black/25">
-                    {[
-                      { date: '30 May 2026', id: 'INV-2026-004', amount: user.plan === 'basic' ? '29,00 €' : user.plan === 'ecommerce' ? '119,00 €' : '59,00 €', status: 'Pagada' },
-                      { date: '30 Abr 2026', id: 'INV-2026-003', amount: user.plan === 'basic' ? '29,00 €' : user.plan === 'ecommerce' ? '119,00 €' : '59,00 €', status: 'Pagada' }
-                    ].map((inv, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3 text-[11px] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-semibold text-zinc-900 dark:text-zinc-200">{inv.id}</span>
-                          <span className="text-[9px] text-zinc-500 dark:text-zinc-555">{inv.date}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-zinc-800 dark:text-white">{inv.amount}</span>
-                          <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold px-2 py-0.5 rounded text-[8px]">
-                            {inv.status}
-                          </span>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 text-zinc-500 hover:text-brand cursor-pointer" 
-                            onClick={() => {
-                              if (onAddNotification) onAddNotification('success', 'Descarga completada', `Factura ${inv.id} en formato PDF guardada en descargas.`);
-                            }}
-                          >
-                            <ArrowUpRight size={12} />
-                          </Button>
+                    {isLoadingInvoices ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-zinc-500 gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin text-brand" />
+                        <p className="text-[10px] font-medium">Cargando facturas reales de Stripe...</p>
+                      </div>
+                    ) : invoices.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 text-zinc-500 text-center gap-2 p-4 select-none">
+                        <HelpCircle size={18} className="text-zinc-400" />
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-bold text-zinc-800 dark:text-zinc-200">Sin facturas registradas en Stripe</p>
+                          <p className="text-[9px] text-zinc-400 max-w-[270px] mx-auto leading-normal">
+                            Tu historial real de pagos aparecerá automáticamente aquí al cobrarse mensualmente tu suscripción activa.
+                          </p>
                         </div>
                       </div>
-                    ))}
+                    ) : (
+                      invoices.map((inv, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-3 text-[11px] text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-white/5 transition-colors">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-zinc-900 dark:text-zinc-200">{inv.id}</span>
+                            <span className="text-[9px] text-zinc-500 dark:text-zinc-555">{inv.date}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-zinc-800 dark:text-white">{inv.amount}</span>
+                            <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold px-2 py-0.5 rounded text-[8px]">
+                              {inv.status}
+                            </span>
+                            {inv.pdf ? (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6 text-zinc-500 hover:text-brand cursor-pointer flex items-center justify-center" 
+                                onClick={() => {
+                                  if (onAddNotification) {
+                                    onAddNotification('success', 'Descargando factura', `Abriendo PDF oficial de la factura ${inv.id}...`);
+                                  }
+                                  window.open(inv.pdf, '_blank');
+                                }}
+                              >
+                                <ExternalLink size={12} />
+                              </Button>
+                            ) : (
+                              <div className="w-6 h-6" />
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
 

@@ -470,6 +470,50 @@ app.post("/api/billing/portal", authenticateToken as any, async (req: AuthReques
     return res.status(500).json({ error: "Error al abrir el portal de facturación.", details: error.message });
   }
 });
+
+/**
+ * GET /api/billing/invoices
+ * Recupera el historial real de facturas del usuario directamente desde Stripe.
+ * Protegido con JWT.
+ */
+app.get("/api/billing/invoices", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: "No autorizado." });
+  }
+  if (!stripe) {
+    return res.status(503).json({ error: "El sistema de pago no está disponible." });
+  }
+
+  try {
+    const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!dbUser?.stripeCustomerId) {
+      return res.json({ invoices: [] });
+    }
+
+    const stripeInvoices = await stripe.invoices.list({
+      customer: dbUser.stripeCustomerId,
+      limit: 10,
+    });
+
+    const formattedInvoices = stripeInvoices.data.map((inv) => ({
+      id: inv.number || inv.id,
+      date: new Date(inv.created * 1000).toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+      amount: `${(inv.amount_paid / 100).toFixed(2).replace(".", ",")} €`,
+      status: inv.status === "paid" ? "Pagada" : inv.status === "open" ? "Pendiente" : "Cancelada",
+      pdf: inv.invoice_pdf || null,
+    }));
+
+    return res.json({ invoices: formattedInvoices });
+  } catch (error: any) {
+    console.error("❌ Error recuperando facturas reales de Stripe:", error);
+    return res.status(500).json({ error: "Error al recuperar facturas.", details: error.message });
+  }
+});
+
 // ENDPOINTS DE TRABAJOS (JOBS) — FASE 2 + 4
 // ============================================
 

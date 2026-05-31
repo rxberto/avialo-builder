@@ -80,6 +80,20 @@ export async function createBillingPortalSession() {
   return response.json();
 }
 
+/**
+ * Recupera el historial de facturas reales de Stripe del usuario desde el backend.
+ */
+export async function getRealInvoices() {
+  const response = await fetch(`${API_BASE}/api/billing/invoices`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudieron cargar las facturas reales.');
+  }
+  return response.json();
+}
+
 // ============================================
 // SERVICIOS DE AUTENTICACIÓN REAL (NUEVO)
 // ============================================
@@ -363,9 +377,6 @@ export async function deleteMyAccount() {
   return response.json();
 }
 
-/**
- * Cambia la contraseña del usuario en la base de datos PostgreSQL.
- */
 export async function changePassword(currentPassword, newPassword) {
   const response = await fetch(`${API_BASE}/api/auth/change-password`, {
     method: 'POST',
@@ -375,6 +386,50 @@ export async function changePassword(currentPassword, newPassword) {
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || 'Error al cambiar la contraseña.');
+  }
+  return response.json();
+}
+
+/**
+ * Obtiene todas las sesiones de dispositivos activas del usuario actual.
+ */
+export async function getActiveSessions() {
+  const response = await fetch(`${API_BASE}/api/auth/sessions`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudieron recuperar las sesiones activas.');
+  }
+  return response.json();
+}
+
+/**
+ * Revoca y cierra la sesión de un dispositivo específico.
+ */
+export async function revokeSession(sessionId) {
+  const response = await fetch(`${API_BASE}/api/auth/sessions/${sessionId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo cerrar la sesión en el dispositivo.');
+  }
+  return response.json();
+}
+
+/**
+ * Cierra la sesión en todos los demás dispositivos excepto el actual.
+ */
+export async function revokeOtherSessions() {
+  const response = await fetch(`${API_BASE}/api/auth/sessions/logout-others`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudieron cerrar las demás sesiones.');
   }
   return response.json();
 }

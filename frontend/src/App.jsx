@@ -94,6 +94,12 @@ function App() {
     if (activeUser && activeUser.token) {
       try {
         const profile = await getProfile();
+        
+        // Prevent accidental downgrade if the Stripe webhook hasn't processed yet
+        if (activeUser.plan && activeUser.plan !== 'none' && profile.plan === 'none') {
+          profile.plan = activeUser.plan;
+        }
+        
         const syncedUser = { ...activeUser, ...profile };
         setUser(syncedUser);
         localStorage.setItem('avialo_user', JSON.stringify(syncedUser));

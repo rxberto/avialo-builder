@@ -4,7 +4,7 @@ import {
   User, Globe, Database, CreditCard, ShieldCheck, 
   Key, RefreshCw, Server, ArrowUpRight, Copy, CheckCircle, 
   Trash2, ShieldAlert, Sparkles, Terminal, Activity, Eye, EyeOff,
-  Mail, Plus
+  Mail, Plus, Loader2, HelpCircle, ExternalLink, Smartphone, Laptop
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,13 +12,123 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { updateProfile, verifyDns, changePassword } from '@/lib/api';
+import { updateProfile, verifyDns, changePassword, getRealInvoices, createBillingPortalSession, getActiveSessions, revokeSession, revokeOtherSessions } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import DomainSetup from './DomainSetup';
 import EmailAccounts from './EmailAccounts';
 
 export default function SettingsPage({ user, onUpdateUser, onAddNotification }) {
   const [activeTab, setActiveTab] = useState('perfil');
+
+  // Invoices & Billing states
+  const [invoices, setInvoices] = useState([]);
+  const [isLoadingInvoices, setIsLoadingInvoices] = useState(false);
+  const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+
+  // Cargar facturas reales de Stripe
+  const loadInvoices = async () => {
+    setIsLoadingInvoices(true);
+    try {
+      const data = await getRealInvoices();
+      setInvoices(data.invoices || []);
+    } catch (err) {
+      console.error("Error al cargar facturas reales en configuración:", err);
+    } finally {
+      setIsLoadingInvoices(false);
+    }
+  };
+
+  // Volver a cargar facturas si el tab activo cambia a 'plan'
+  useEffect(() => {
+    if (activeTab === 'plan') {
+      loadInvoices();
+    }
+  }, [activeTab]);
+
+  // Redirigir de forma segura al portal de facturación real de Stripe
+  const handleOpenBillingPortal = async () => {
+    setIsOpeningPortal(true);
+    if (onAddNotification) {
+      onAddNotification('info', 'Acceso Seguro', 'Generando enlace cifrado al portal de Stripe...');
+    }
+    try {
+      const { url } = await createBillingPortalSession();
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        throw new Error("No se pudo obtener el enlace de Stripe.");
+      }
+    } catch (err) {
+      console.error("Error al abrir portal de facturación en configuración:", err);
+      if (onAddNotification) {
+        onAddNotification('error', 'Error del Portal', err.message || 'No se pudo abrir el portal de facturas.');
+      }
+    } finally {
+      setIsOpeningPortal(false);
+    }
+  };
+
+  // Device Sessions states
+  const [sessions, setSessions] = useState([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+
+  // Cargar sesiones reales de dispositivos
+  const loadSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const data = await getActiveSessions();
+      setSessions(data.sessions || []);
+    } catch (err) {
+      console.error("Error al cargar sesiones reales:", err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  // Cargar sesiones al cambiar al tab de seguridad
+  useEffect(() => {
+    if (activeTab === 'seguridad') {
+      loadSessions();
+    }
+  }, [activeTab]);
+
+  // Cerrar la sesión de un dispositivo específico
+  const handleRevokeSession = async (sessionId) => {
+    const confirmRevoke = window.confirm("¿Seguro que deseas desconectar este dispositivo de forma segura? Se le cerrará la sesión de inmediato.");
+    if (!confirmRevoke) return;
+
+    try {
+      await revokeSession(sessionId);
+      if (onAddNotification) {
+        onAddNotification('success', 'Sesión Revocada', 'El dispositivo ha sido desconectado de forma segura.');
+      }
+      loadSessions(); // Recargar lista
+    } catch (err) {
+      console.error("Error al revocar sesión:", err);
+      if (onAddNotification) {
+        onAddNotification('error', 'Error al cerrar sesión', err.message || 'No se pudo revocar la sesión.');
+      }
+    }
+  };
+
+  // Cerrar sesión en todos los demás dispositivos
+  const handleRevokeOtherSessions = async () => {
+    const confirmRevokeAll = window.confirm("¿Seguro que deseas desconectar todos los demás dispositivos activos? Deberás iniciar sesión de nuevo en ellos.");
+    if (!confirmRevokeAll) return;
+
+    try {
+      await revokeOtherSessions();
+      if (onAddNotification) {
+        onAddNotification('success', 'Sesiones Cerradas', 'Se han desconectado todos los demás dispositivos con éxito.');
+      }
+      loadSessions(); // Recargar lista
+    } catch (err) {
+      console.error("Error al revocar otras sesiones:", err);
+      if (onAddNotification) {
+        onAddNotification('error', 'Error al cerrar sesiones', err.message || 'No se pudieron cerrar las demás sesiones.');
+      }
+    }
+  };
   
   // Perfil state
   const [profileName, setProfileName] = useState(user?.name || '');
@@ -821,19 +931,24 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
                             <Sparkles size={11} className="text-brand" /> Créditos de Edición por IA
                           </div>
                           <div className="text-xl font-bold text-foreground">
-                            {user?.aiCredits ?? 0} / {
-                              {
-                                none: 50,
-                                basic: 50,
-                                corporativa: 50,
-                                pro: 200,
-                                dinamica: 200,
-                                ecommerce: 500
-                              }[user?.plan] || 50
-                            } créditos
+                            {user?.aiCredits ?? 0} <span className="text-xs font-normal text-muted-foreground">disponibles</span>
                           </div>
+                          <p className="text-[10px] text-muted-foreground mt-1 select-none">
+                            Límite de tu plan: <span className="font-bold text-foreground">
+                              {
+                                {
+                                  none: 50,
+                                  basic: 50,
+                                  corporativa: 50,
+                                  pro: 200,
+                                  dinamica: 200,
+                                  ecommerce: 500
+                                }[user?.plan] || 50
+                              } créditos
+                            </span>
+                          </p>
                         </div>
-                        <div className="mt-4 text-[10px] text-muted-foreground">
+                        <div className="mt-4 text-[10px] text-muted-foreground select-none">
                           {user?.creditsResetDate 
                             ? `Próximo reinicio: ${new Date(user.creditsResetDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}`
                             : 'Se renueva automáticamente el próximo mes.'}
@@ -875,54 +990,76 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
                             <CreditCard size={18} className="text-indigo-650 dark:text-indigo-400" />
                           </div>
                           <div>
-                            <p className="text-xs font-bold text-foreground">Mastercard terminada en •••• 4242</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">Vence en 12 / 2029</p>
+                            <p className="text-xs font-bold text-foreground">Tarjeta de Facturación (Stripe)</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">Método de facturación recurrente mensual seguro</p>
                           </div>
                         </div>
                         
                         <Button 
-                          onClick={() => {
-                            if (onAddNotification) onAddNotification('info', 'Abriendo pasarela', 'Redirigiendo al panel de cliente de Stripe...');
-                            window.open('https://billing.stripe.com', '_blank');
-                          }}
+                          onClick={handleOpenBillingPortal}
+                          disabled={isOpeningPortal}
                           variant="outline" 
                           size="sm" 
-                          className="h-9 rounded-xl font-semibold text-xs border-border hover:bg-muted/80 w-full sm:w-auto cursor-pointer"
+                          className="h-9 rounded-xl font-semibold text-xs border-border hover:bg-muted/80 w-full sm:w-auto cursor-pointer flex items-center justify-center gap-1.5"
                         >
+                          {isOpeningPortal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpRight size={13} />}
                           Gestionar Facturación
-                          <ArrowUpRight size={13} className="ml-1" />
                         </Button>
                       </Card>
                     </div>
 
                     <Separator className="bg-border/40" />
 
-                    {/* Invoice logs list */}
+                    {/* Real Invoices list */}
                     <div className="space-y-3">
                       <Label className="text-[10px] uppercase font-bold text-muted-foreground">Historial de Facturas (PDF)</Label>
                       <div className="border border-border/50 rounded-xl overflow-hidden divide-y divide-border/30 bg-white/30 dark:bg-zinc-950/30">
-                        {[
-                          { date: '30 May 2026', id: 'INV-2026-004', amount: user?.plan === 'basic' ? '29,00 €' : '59,00 €', status: 'Pagada' },
-                          { date: '30 Abr 2026', id: 'INV-2026-003', amount: user?.plan === 'basic' ? '29,00 €' : '59,00 €', status: 'Pagada' }
-                        ].map((inv, idx) => (
-                          <div key={idx} className="flex justify-between items-center p-3.5 text-xs text-muted-foreground hover:bg-muted/10 transition-colors">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-semibold text-foreground">{inv.id}</span>
-                              <span className="text-[10px] text-muted-foreground/60">{inv.date}</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="font-bold text-foreground">{inv.amount}</span>
-                              <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 font-bold py-0.5 px-2 text-[9px]">
-                                {inv.status}
-                              </Badge>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-zinc-550 hover:text-brand" onClick={() => {
-                                if (onAddNotification) onAddNotification('success', 'Descarga iniciada', `Descargando factura ${inv.id} en PDF...`);
-                              }}>
-                                <ArrowUpRight size={14} />
-                              </Button>
-                            </div>
+                        {isLoadingInvoices ? (
+                          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin text-brand" />
+                            <p className="text-[10px] font-medium">Cargando facturas reales de Stripe...</p>
                           </div>
-                        ))}
+                        ) : invoices.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-6 text-muted-foreground text-center gap-1.5 p-4 select-none">
+                            <HelpCircle size={16} className="text-zinc-400" />
+                            <p className="text-[10px] font-bold text-foreground">Sin facturas registradas en Stripe</p>
+                            <p className="text-[9px] text-zinc-500 dark:text-zinc-400 max-w-[250px] leading-normal">
+                              Tu historial real de cobros aparecerá de forma automática conforme se procesen los cargos mensuales en Stripe.
+                            </p>
+                          </div>
+                        ) : (
+                          invoices.map((inv, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-3.5 text-xs text-muted-foreground hover:bg-muted/10 transition-colors">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-semibold text-foreground">{inv.id}</span>
+                                <span className="text-[10px] text-muted-foreground/60">{inv.date}</span>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="font-bold text-foreground">{inv.amount}</span>
+                                <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 font-bold py-0.5 px-2 text-[9px]">
+                                  {inv.status}
+                                </Badge>
+                                {inv.pdf ? (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-7 w-7 text-zinc-550 hover:text-brand cursor-pointer flex items-center justify-center" 
+                                    onClick={() => {
+                                      if (onAddNotification) {
+                                        onAddNotification('success', 'Descargando factura', `Abriendo PDF oficial de la factura ${inv.id}...`);
+                                      }
+                                      window.open(inv.pdf, '_blank');
+                                    }}
+                                  >
+                                    <ExternalLink size={13} />
+                                  </Button>
+                                ) : (
+                                  <div className="w-7 h-7" />
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -1006,49 +1143,75 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
 
                     {/* Active Sessions List */}
                     <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-bold text-foreground">Sesiones Activas de Dispositivos</h3>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">
-                          Dispositivos que han iniciado sesión recientemente en tu cuenta B2B.
-                        </p>
+                      <div className="flex justify-between items-center sm:items-start flex-col sm:flex-row gap-2">
+                        <div>
+                          <h3 className="text-sm font-bold text-foreground">Sesiones Activas de Dispositivos</h3>
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            Dispositivos que han iniciado sesión recientemente en tu cuenta B2B.
+                          </p>
+                        </div>
+                        {sessions.filter(s => !s.isCurrent).length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-[9px] font-bold rounded-lg border-red-500/20 text-red-500 hover:bg-red-500/10 cursor-pointer h-7 px-2.5 py-0 flex items-center gap-1"
+                            onClick={handleRevokeOtherSessions}
+                          >
+                            Cerrar las demás sesiones
+                          </Button>
+                        )}
                       </div>
 
                       <div className="border border-border/50 rounded-xl divide-y divide-border/30 overflow-hidden bg-white/30 dark:bg-zinc-950/30 text-xs">
-                        {[
-                          { device: 'Brave Browser en Windows 11', location: 'Madrid (España)', ip: '84.120.45.109', current: true },
-                          { device: 'Safari en iPhone 15 Pro', location: 'Madrid (España)', ip: '172.56.29.112', current: false }
-                        ].map((sess, idx) => (
-                          <div key={idx} className="flex justify-between items-center p-3.5 text-muted-foreground hover:bg-muted/10 transition-colors">
-                            <div className="flex gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-muted border border-border/40 flex items-center justify-center text-muted-foreground">
-                                <Terminal size={15} />
-                              </div>
-                              <div className="flex flex-col gap-0.5">
-                                <span className="font-semibold text-foreground flex items-center gap-1.5">
-                                  {sess.device}
-                                  {sess.current && (
-                                    <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 font-bold text-[8px] py-0 px-1.5 select-none">
-                                      Actual
-                                    </Badge>
-                                  )}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground/60">{sess.location} · IP: {sess.ip}</span>
-                              </div>
-                            </div>
-                            {!sess.current && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 text-zinc-550 hover:text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer"
-                                onClick={() => {
-                                  if (onAddNotification) onAddNotification('warning', 'Sesión cerrada', `Sesión revocada de forma remota en ${sess.device}.`);
-                                }}
-                              >
-                                <Trash2 size={13} />
-                              </Button>
-                            )}
+                        {isLoadingSessions ? (
+                          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin text-brand" />
+                            <p className="text-[10px] font-medium">Cargando sesiones de dispositivos reales...</p>
                           </div>
-                        ))}
+                        ) : sessions.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground text-center gap-1.5 p-4">
+                            <HelpCircle size={18} className="text-zinc-400" />
+                            <p className="text-[10px] font-bold text-foreground">Sin sesiones registradas</p>
+                            <p className="text-[9px] text-zinc-550 dark:text-zinc-400">Inicia sesión de nuevo para registrar tu dispositivo.</p>
+                          </div>
+                        ) : (
+                          sessions.map((sess, idx) => (
+                            <div key={idx} className="flex justify-between items-center p-3.5 text-muted-foreground hover:bg-muted/10 transition-colors">
+                              <div className="flex gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-muted border border-border/40 flex items-center justify-center text-muted-foreground shrink-0">
+                                  {sess.deviceType === 'Mobile' ? (
+                                    <Smartphone size={15} className="text-brand-accent" />
+                                  ) : (
+                                    <Laptop size={15} className="text-brand" />
+                                  )}
+                                </div>
+                                <div className="flex flex-col gap-0.5 text-left">
+                                  <span className="font-semibold text-foreground flex items-center gap-1.5">
+                                    {sess.browser} en {sess.os}
+                                    {sess.isCurrent && (
+                                      <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/25 font-bold text-[8px] py-0 px-1.5 select-none shrink-0">
+                                        Actual
+                                      </Badge>
+                                    )}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground/60">
+                                    {sess.location} · IP: {sess.ipAddress}
+                                  </span>
+                                </div>
+                              </div>
+                              {!sess.isCurrent && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-zinc-550 hover:text-red-500 hover:bg-red-500/10 rounded-lg cursor-pointer flex items-center justify-center animate-pulse-slow"
+                                  onClick={() => handleRevokeSession(sess.id)}
+                                >
+                                  <Trash2 size={13} />
+                                </Button>
+                              )}
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
 

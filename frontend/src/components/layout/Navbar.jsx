@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNavigate, notifications = [], onMarkRead, onMarkAllRead }) {
+export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNavigate, notifications = [], onMarkRead, onMarkAllRead, onOpenNotifications }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -254,7 +254,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
 
                   {/* Dropdown Menu for Notifications */}
                   {notifDropdownOpen && (
-                    <div className="absolute right-0 mt-3 w-80 rounded-2xl glass border border-border/50 shadow-xl py-2 z-50 animate-scale-in text-sm overflow-hidden bg-background">
+                    <div className="absolute right-0 mt-3 w-80 rounded-2xl border border-border/50 shadow-xl py-2 z-50 animate-scale-in text-sm overflow-hidden bg-background">
                       <div className="px-4 py-2 border-b border-border/40 flex justify-between items-center bg-muted/10">
                         <span className="font-semibold text-foreground">Notificaciones</span>
                         {unreadCount > 0 ? (
@@ -282,6 +282,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                             <div 
                               key={notif.id} 
                               onClick={() => {
+                                setNotifDropdownOpen(false);
                                 if (onMarkRead) onMarkRead(notif.id);
                               }}
                               className={cn(
@@ -308,7 +309,11 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                       </div>
 
                       <div 
-                        onClick={(e) => handleNavClick(e, 'dashboard')}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setNotifDropdownOpen(false);
+                          if (onOpenNotifications) onOpenNotifications();
+                        }}
                         className="px-4 py-2 border-t border-border/40 text-center text-xs text-brand hover:text-brand-2 font-medium cursor-pointer bg-muted/10 hover:bg-muted/20 transition-colors"
                       >
                         Ver todas en el panel

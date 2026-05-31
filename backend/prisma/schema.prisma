@@ -74,3 +74,20 @@ model JobUsage {
   @@index([userId])
 }
 
+// Control de Sesiones de Dispositivos Activas (Enterprise Level)
+model Session {
+  id         String   @id @default(uuid())
+  userId     Int
+  token      String   @unique
+  userAgent  String?
+  ipAddress  String?
+  location   String?
+  deviceType String?  // "Desktop" | "Mobile" | "Tablet"
+  browser    String?  // "Chrome" | "Safari" | "Firefox" | "Edge" | etc.
+  os         String?  // "Windows" | "macOS" | "Linux" | "iOS" | "Android" | etc.
+  lastActive DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+

@@ -98,7 +98,7 @@ export default function UserOnboarding({ onComplete }) {
           plan: 'none' // 'none' hasta que se concrete el pago en Stripe
         });
 
-        onComplete({ profession, role, plan: selectedPlan, ...updatedProfile });
+        onComplete({ ...updatedProfile, profession, role, plan: selectedPlan });
       } catch (err) {
         setError(err.message || 'Error al guardar el perfil en el servidor.');
       } finally {
