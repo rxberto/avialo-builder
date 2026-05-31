@@ -737,7 +737,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                   <div className="text-[12.5px] font-bold text-foreground leading-none">Avialo AI</div>
                   <div className="flex items-center gap-1 mt-0.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    <span className="text-[9px] text-muted-foreground">Claude · Diseñador de webs</span>
+                    <span className="text-[9px] text-muted-foreground">Diseñador de webs</span>
                   </div>
                 </div>
               </div>

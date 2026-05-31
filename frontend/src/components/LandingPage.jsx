@@ -236,7 +236,7 @@ function MotionTrailsHero() {
       <motion.img
         src="/light-motion-trails.jpg"
         alt=""
-        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-55 dark:opacity-45"
+        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-65 dark:opacity-55"
         style={{ x: tx, y: ty, filter: 'blur(2px) saturate(1.3)' }}
         animate={{ scale: [1.04, 1.10, 1.04] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
@@ -1148,18 +1148,7 @@ export default function LandingPage({ onNavigate }) {
           BAJO EL CAPÓ — infraestructura real
           ============================================================ */}
       <section className="relative overflow-hidden border-y border-zinc-800 bg-zinc-950 py-24 text-white">
-        {/* Galaxy — visible pero al fondo, con parallax de ratón */}
-        <img
-          src="/light-galaxy.jpg"
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-50 dark:opacity-60"
-          style={{ filter: 'blur(1px) saturate(1.4)', zIndex: 0 }}
-        />
-        {/* Gradientes de borde para fundir sin corte brusco */}
-        <div aria-hidden className="pointer-events-none absolute inset-0" style={{ zIndex: 1, background: 'linear-gradient(to right, #09090b 0%, transparent 25%, transparent 75%, #09090b 100%)' }} />
-        <div aria-hidden className="pointer-events-none absolute inset-0" style={{ zIndex: 1, background: 'linear-gradient(to bottom, #09090b 0%, transparent 20%, transparent 80%, #09090b 100%)' }} />
-        {/* Red neuronal encima */}
+        {/* Red neuronal — única animación de fondo en esta sección oscura */}
         <div className="absolute inset-0 opacity-30" aria-hidden="true" style={{ zIndex: 2 }}><NeuralNet /></div>
         <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 lg:grid-cols-2">
           <Reveal>
@@ -1329,8 +1318,8 @@ export default function LandingPage({ onNavigate }) {
           <img
             src="/light-galaxy.jpg"
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-[0.06] dark:opacity-[0.10]"
-            style={{ filter: 'blur(4px) saturate(1.6)' }}
+            className="absolute inset-0 h-full w-full object-cover opacity-[0.14] dark:opacity-[0.22]"
+            style={{ filter: 'blur(3px) saturate(1.5)' }}
           />
           {/* Gradientes que funden la galaxy con el fondo sin borde visible */}
           <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
