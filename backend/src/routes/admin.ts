@@ -141,7 +141,7 @@ adminRouter.patch('/users/:id/credits', authenticateToken, requireAdmin, async (
           userId: id,
           amount: diff,
           reason: "Admin Adjustment",
-          metadata: JSON.stringify({ adminId: req.user?.id, previousCredits: user.aiCredits, newCredits: credits })
+          metadata: JSON.stringify({ adminId: (req as any).user?.id, previousCredits: user.aiCredits, newCredits: credits })
         }
       })
     ]);
