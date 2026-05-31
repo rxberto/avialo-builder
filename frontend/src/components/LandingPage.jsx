@@ -611,7 +611,7 @@ export default function LandingPage({ onNavigate }) {
 
                   {/* Prompt del usuario */}
                   <div className="rounded-2xl border border-border/70 bg-muted/30 p-5">
-                    <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                    <span className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                       Tu idea, en español
                     </span>
                     <p className="text-sm italic leading-relaxed text-zinc-600 dark:text-zinc-300">
@@ -627,7 +627,7 @@ export default function LandingPage({ onNavigate }) {
                         <Minus className="h-3 w-3" />
                       </span>
                       <div>
-                        <span className="block text-xs font-semibold text-zinc-500">Antes</span>
+                        <span className="block text-xs font-semibold text-zinc-500 dark:text-zinc-400">Antes</span>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400">{active.before}</p>
                       </div>
                     </div>
@@ -673,7 +673,7 @@ export default function LandingPage({ onNavigate }) {
                     className="flex h-80 flex-col items-center justify-center gap-3"
                   >
                     <div className="h-7 w-7 animate-spin rounded-full border-2 border-brand/30 border-t-brand" />
-                    <span className="text-xs font-medium text-zinc-400">Generando web…</span>
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Generando web…</span>
                   </motion.div>
                 ) : (
                   <motion.div
@@ -747,7 +747,7 @@ export default function LandingPage({ onNavigate }) {
                         <SectorWidget icon={<CreditCard className="h-3.5 w-3.5" />} label="Zapato clásico · 89€">
                           {!purchaseSuccess ? (
                             <div className="space-y-2.5">
-                              <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-[11px] font-medium text-zinc-400">
+                              <div className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                                 <Lock className="h-3 w-3 text-brand-success" /> Pago seguro con Stripe
                               </div>
                               <PrimaryWidgetButton onClick={() => setPurchaseSuccess(true)}>
@@ -954,7 +954,7 @@ export default function LandingPage({ onNavigate }) {
                   </span>
                   <div>
                     <span className="block text-sm font-semibold text-zinc-900 dark:text-white">{rev.author}</span>
-                    <span className="block text-xs text-zinc-400">{rev.business} · {rev.sector}</span>
+                    <span className="block text-xs text-zinc-500 dark:text-zinc-400">{rev.business} · {rev.sector}</span>
                   </div>
                 </figcaption>
               </figure>
@@ -1127,7 +1127,7 @@ export default function LandingPage({ onNavigate }) {
             <p className="max-w-xs text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
               Transformación digital autónoma para los pequeños y medianos negocios tradicionales españoles.
             </p>
-            <div className="flex flex-wrap gap-3 pt-2 text-xs font-medium text-zinc-400">
+            <div className="flex flex-wrap gap-3 pt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">
               <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-brand-success" /> SSL gratis</span>
               <span className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5 text-brand" /> PostgreSQL</span>
               <span className="flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5 text-brand-accent" /> Medusa.js v2</span>
@@ -1152,7 +1152,7 @@ export default function LandingPage({ onNavigate }) {
           ))}
         </div>
 
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 border-t border-border/60 pt-8 text-xs text-zinc-400 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 border-t border-border/60 pt-8 text-xs text-zinc-500 dark:text-zinc-400 sm:flex-row">
           <p>© {new Date().getFullYear()} Avialo Soluciones S.L. Todos los derechos reservados.</p>
           <p>Socio tecnológico de la PYME española</p>
         </div>
