@@ -168,11 +168,11 @@ function PricingGridGlow({ children }) {
   );
 }
 
-function Hero3DBackground() {
+function LiveSVGBackground({ src }) {
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
-  const rotateX = useTransform(mouseY, [0, 1], [10, -10]);
-  const rotateY = useTransform(mouseX, [0, 1], [-10, 10]);
+  const springX = useSpring(mouseX, { stiffness: 20, damping: 30 });
+  const springY = useSpring(mouseY, { stiffness: 20, damping: 30 });
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -183,66 +183,29 @@ function Hero3DBackground() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [mouseX, mouseY]);
 
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden flex items-center justify-center [perspective:1200px]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.08),transparent_70%)]" />
-      <motion.div
-        className="relative w-[120vw] h-[120vh]"
-        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      >
-        {/* Animated SVG Motion Trails */}
-        <svg className="absolute inset-0 w-full h-full opacity-60 dark:opacity-40" viewBox="0 0 100 100" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="trail-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="rgba(59, 130, 246, 0)" />
-              <stop offset="50%" stopColor="rgba(56, 189, 248, 0.8)" />
-              <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
-            </linearGradient>
-          </defs>
-          {[...Array(12)].map((_, i) => (
-            <motion.path
-              key={i}
-              d={`M ${-10 + i * 10} 110 Q ${40 + i * 5} ${50 + i * 2} ${110 + i * 8} -10`}
-              stroke="url(#trail-grad)"
-              strokeWidth={Math.random() * 0.3 + 0.1}
-              fill="none"
-              vectorEffect="non-scaling-stroke"
-              initial={{ pathLength: 0, pathOffset: 1 }}
-              animate={{ pathLength: 1, pathOffset: 0 }}
-              transition={{ duration: Math.random() * 4 + 3, repeat: Infinity, ease: "linear" }}
-              style={{ translateZ: Math.random() * 200 - 100 + "px" }}
-            />
-          ))}
-        </svg>
+  const translateX = useTransform(springX, [0, 1], ['-3%', '3%']);
+  const translateY = useTransform(springY, [0, 1], ['-3%', '3%']);
 
-        {/* Floating Particles in 3D */}
-        {[...Array(30)].map((_, i) => (
-          <motion.div
-            key={`p-${i}`}
-            className="absolute rounded-full bg-blue-500/40 dark:bg-sky-400/50 blur-[1px]"
-            style={{
-              width: Math.random() * 6 + 2 + "px",
-              height: Math.random() * 6 + 2 + "px",
-              left: Math.random() * 100 + "%",
-              top: Math.random() * 100 + "%",
-              transform: `translateZ(${Math.random() * 400 - 200}px)`,
-            }}
-            animate={{
-              y: [0, -40, 0],
-              x: [0, Math.random() * 20 - 10, 0],
-              opacity: [0.1, 0.6, 0.1]
-            }}
-            transition={{
-              duration: Math.random() * 4 + 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: Math.random() * 2
-            }}
-          />
-        ))}
-      </motion.div>
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden flex items-center justify-center">
+      {/* Pulsing glow behind the SVG */}
+      <motion.div 
+        animate={{ opacity: [0.3, 0.6, 0.3] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[800px] w-[800px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.3),transparent_60%)] blur-3xl"
+      />
+      
+      <motion.img
+        src={src}
+        className="absolute -inset-[10%] h-[120%] w-[120%] max-w-none object-cover opacity-70 dark:opacity-40"
+        style={{ x: translateX, y: translateY, scale: 1.05 }}
+        alt=""
+      />
+      
+      {/* Blend edges into the background */}
+      <div className="absolute inset-0 bg-background/60 [mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_100%)]" />
       <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-50" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-60" />
     </div>
   );
 }
@@ -707,7 +670,7 @@ export default function LandingPage({ onNavigate }) {
           HÉROE — texto izquierda, capturas ciclando derecha
           ============================================================ */}
       <section className="relative isolate overflow-hidden bg-background px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
-        <Hero3DBackground />
+        <LiveSVGBackground src="/light-galaxy.svg" />
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
