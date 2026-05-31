@@ -168,7 +168,7 @@ function PricingGridGlow({ children }) {
   );
 }
 
-function LiveParallaxImage({ src, opacity = "opacity-30 dark:opacity-40", blendMode = "mix-blend-normal" }) {
+function LiveParallaxImage({ src, opacity = "opacity-30 dark:opacity-40", blendMode = "" }) {
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
   const springX = useSpring(mouseX, { stiffness: 20, damping: 30 });
@@ -198,7 +198,7 @@ function LiveParallaxImage({ src, opacity = "opacity-30 dark:opacity-40", blendM
         style={{ x: translateX, y: translateY, scale: 1.05 }}
         alt=""
       />
-      <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_100%)]" />
+      <div className="absolute inset-0 bg-background/50 backdrop-blur-[2px] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_100%)]" />
       <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
       <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background" />
     </div>
@@ -602,8 +602,8 @@ export default function LandingPage({ onNavigate }) {
       <section className="relative isolate overflow-hidden bg-background px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
         <LiveParallaxImage 
           src="/light-motion-trails.jpg" 
-          opacity="opacity-50 dark:opacity-40" 
-          blendMode="mix-blend-luminosity dark:mix-blend-screen" 
+          opacity="opacity-40 dark:opacity-30" 
+          blendMode="" 
         />
 
         <div className="relative z-10 mx-auto max-w-7xl">
@@ -660,9 +660,9 @@ export default function LandingPage({ onNavigate }) {
               <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
                 {[
                   { src: '/ide-avialo.png', alt: 'Editor Visual IDE' },
-                  { src: '/placeholder-1.png', alt: 'Panel Avialo Builder' },
-                  { src: '/placeholder-2.png', alt: 'Reservas en tiempo real' },
-                  { src: '/placeholder-3.png', alt: 'Web generada' },
+                  { src: '/panel-avialo.png', alt: 'Panel Avialo Builder' },
+                  { src: '/reservas-tiempo-real.png', alt: 'Reservas en tiempo real' },
+                  { src: '/web-generada.png', alt: 'Web generada' },
                 ].map((shot, index) => {
                   const pos = (index - activeShot + 4) % 4;
                   const posMap = [
@@ -1186,11 +1186,11 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           PRECIOS
           ============================================================ */}
-      <section id="pricing" className="relative scroll-mt-24 border-t border-border/50 py-24">
+      <section id="pricing" className="relative scroll-mt-24 border-t border-border/50 py-24 bg-background">
         <LiveParallaxImage 
           src="/light-galaxy.jpg" 
           opacity="opacity-40 dark:opacity-30" 
-          blendMode="mix-blend-luminosity dark:mix-blend-screen" 
+          blendMode="" 
         />
         <div className="relative z-10 mx-auto max-w-6xl px-6">
           <Reveal className="mx-auto mb-16 max-w-2xl text-center">
