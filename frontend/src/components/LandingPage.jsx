@@ -215,8 +215,9 @@ function LiveSVGBackground({ src }) {
 function MotionTrailsHero() {
   const mouseX = useMotionValue(0.5);
   const mouseY = useMotionValue(0.5);
-  const springX = useSpring(mouseX, { stiffness: 12, damping: 28 });
-  const springY = useSpring(mouseY, { stiffness: 12, damping: 28 });
+  // Spring más fluido — stiffness baja para arrastre físico suave
+  const springX = useSpring(mouseX, { stiffness: 8, damping: 22 });
+  const springY = useSpring(mouseY, { stiffness: 8, damping: 22 });
 
   useEffect(() => {
     const onMove = (e) => {
@@ -227,19 +228,32 @@ function MotionTrailsHero() {
     return () => window.removeEventListener('mousemove', onMove);
   }, [mouseX, mouseY]);
 
-  const tx = useTransform(springX, [0, 1], ['-5%', '5%']);
-  const ty = useTransform(springY, [0, 1], ['-5%', '5%']);
+  // Rango ampliado para que el movimiento sea perceptible
+  const tx = useTransform(springX, [0, 1], ['-10%', '10%']);
+  const ty = useTransform(springY, [0, 1], ['-8%', '8%']);
+  // Segunda capa en contrafase — crea ilusión de profundidad/partículas
+  const tx2 = useTransform(springX, [0, 1], ['6%', '-6%']);
+  const ty2 = useTransform(springY, [0, 1], ['5%', '-5%']);
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      {/* Imagen muy al fondo — baja opacidad + blur para que sea textura, no protagonista */}
+      {/* Capa principal — sigue el ratón con arrastre suave */}
       <motion.img
         src="/light-motion-trails.jpg"
         alt=""
-        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-[0.88] dark:opacity-[0.78]"
+        className="absolute -inset-[14%] h-[128%] w-[128%] max-w-none object-cover opacity-[0.88] dark:opacity-[0.78]"
         style={{ x: tx, y: ty, filter: 'blur(2px) saturate(1.3)' }}
         animate={{ scale: [1.04, 1.10, 1.04] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Segunda capa en contrafase — profundidad y partículas en movimiento */}
+      <motion.img
+        src="/light-motion-trails.jpg"
+        alt=""
+        className="absolute -inset-[14%] h-[128%] w-[128%] max-w-none object-cover opacity-[0.22] dark:opacity-[0.18]"
+        style={{ x: tx2, y: ty2, filter: 'blur(8px) saturate(1.8)', mixBlendMode: 'screen' }}
+        animate={{ scale: [1.08, 1.03, 1.08] }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
       />
       {/* Capa base — blanca/oscura para enterrar la imagen bien atrás */}
       <div className="absolute inset-0 bg-background/55 dark:bg-background/65" />
@@ -328,6 +342,63 @@ function Galaxy3DBackground() {
       </motion.div>
       <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
       <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-50" />
+    </div>
+  );
+}
+
+// Galaxy animada con parallax de ratón — fondo de la sección Pricing
+function GalaxyParallax() {
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+  // Springs muy lentos para sensación ambiental, no inmediata
+  const springX = useSpring(mouseX, { stiffness: 4, damping: 26 });
+  const springY = useSpring(mouseY, { stiffness: 4, damping: 26 });
+
+  useEffect(() => {
+    const onMove = (e) => {
+      mouseX.set(e.clientX / window.innerWidth);
+      mouseY.set(e.clientY / window.innerHeight);
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [mouseX, mouseY]);
+
+  const tx  = useTransform(springX, [0, 1], ['-5%',  '5%']);
+  const ty  = useTransform(springY, [0, 1], ['-4%',  '4%']);
+  // Contrafase — segunda capa en dirección opuesta para profundidad
+  const tx2 = useTransform(springX, [0, 1], [ '4%', '-4%']);
+  const ty2 = useTransform(springY, [0, 1], [ '3%', '-3%']);
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Capa base — sigue el ratón suavemente */}
+      <motion.img
+        src="/light-galaxy.jpg"
+        alt=""
+        className="absolute -inset-[8%] h-[116%] w-[116%] max-w-none object-cover opacity-[0.65] dark:opacity-[0.75]"
+        style={{ x: tx, y: ty, filter: 'blur(1px) saturate(1.6)' }}
+        animate={{ scale: [1.02, 1.06, 1.02] }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Capa de profundidad — contrafase, más blur, blend screen */}
+      <motion.img
+        src="/light-galaxy.jpg"
+        alt=""
+        className="absolute -inset-[8%] h-[116%] w-[116%] max-w-none object-cover opacity-[0.28] dark:opacity-[0.35]"
+        style={{ x: tx2, y: ty2, filter: 'blur(12px) saturate(2)', mixBlendMode: 'screen' }}
+        animate={{ scale: [1.06, 1.02, 1.06] }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Gradientes en bordes para fundir */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background/80" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40" />
+      {/* Glow pulsante central */}
+      <motion.div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[1100px] rounded-full blur-[80px]"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.10) 0%, transparent 65%)' }}
+        animate={{ opacity: [0.5, 1, 0.5], scale: [0.95, 1.05, 0.95] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
     </div>
   );
 }
@@ -1313,20 +1384,7 @@ export default function LandingPage({ onNavigate }) {
           PRECIOS
           ============================================================ */}
       <section id="pricing" className="relative scroll-mt-24 py-28 overflow-hidden">
-        {/* Fondo full-bleed con light-galaxy — muy sutil, solo textura */}
-        <div aria-hidden className="pointer-events-none absolute inset-0">
-          <img
-            src="/light-galaxy.jpg"
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-[0.65] dark:opacity-[0.75]"
-            style={{ filter: 'blur(1px) saturate(1.6)' }}
-          />
-          {/* Gradientes suaves solo en bordes para fundir sin corte */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background/80" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40" />
-          {/* Glow central muy suave */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[1100px] bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.06),transparent_65%)] blur-[60px]" />
-        </div>
+        <GalaxyParallax />
         <div className="relative z-10 mx-auto max-w-6xl px-6">
           <Reveal className="mx-auto mb-16 max-w-2xl text-center">
           <Eyebrow className="mb-4 justify-center">Precios transparentes</Eyebrow>
