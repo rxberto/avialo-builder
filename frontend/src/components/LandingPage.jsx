@@ -153,6 +153,18 @@ export default function LandingPage({ onNavigate }) {
     { value: 24, suffix: '/7', label: 'Tu negocio siempre abierto' }
   ];
 
+  /* Logos placeholder — sustituir src:null por ruta real cuando haya assets */
+  const socialLogos = [
+    { name: 'MESÓN EL ASTURIANO', src: null },
+    { name: 'DENTALIA CLÍNICA',   src: null },
+    { name: 'SORIA CUERO',        src: null },
+    { name: 'FISIO SALUD',        src: null },
+    { name: 'CAFÉ CENTRAL',       src: null },
+    { name: 'TALLER RUIZ',        src: null },
+    { name: 'FLORES BLANCO',      src: null },
+    { name: 'PELUQUERÍA SOL',     src: null },
+  ];
+
   const reviews = [
     {
       text: 'Teníamos pánico a la informática. Avialo nos hizo la web de reservas en un minuto y las mesas de los domingos se llenan solas.',
@@ -361,23 +373,57 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* ============================================================
-          TIRA DE SECTORES — marquee infinito
+          PRUEBA SOCIAL — estadísticas + barra de logos
           ============================================================ */}
-      <section className="border-y border-border/60 bg-muted/20 py-8">
-        <p className="mb-5 text-center text-xs font-medium uppercase tracking-[0.18em] text-zinc-400 dark:text-zinc-500">
-          Pensado para los negocios de toda la vida
-        </p>
-        <div className="group/marquee mask-fade-x relative flex overflow-hidden">
-          <div className="animate-marquee flex shrink-0 items-center gap-4 pr-4" style={{ '--marquee-duration': '42s' }}>
-            {[...sectors, ...sectors].map((s, i) => (
-              <span
-                key={i}
-                className="flex items-center gap-2 whitespace-nowrap rounded-full border border-border/60 bg-card/60 px-4 py-2 text-sm font-medium text-zinc-500 dark:text-zinc-400"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-brand/50" /> {s}
-              </span>
+      <section className="border-y border-border/50 py-16">
+        <div className="mx-auto max-w-7xl px-6">
+
+          <Reveal>
+            <p className="mb-10 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Ya confían en Avialo
+            </p>
+          </Reveal>
+
+          {/* Contadores animados */}
+          <div className="mb-14 grid grid-cols-2 gap-y-8 sm:grid-cols-4">
+            {[
+              { value: 847,   suffix: '+',   label: 'PYMEs activas' },
+              { value: 12400, suffix: '+',   label: 'Reservas gestionadas' },
+              { value: 2,     suffix: ' min', label: 'Tiempo de deploy' },
+              { value: 98,    suffix: '%',   label: 'Satisfacción cliente' },
+            ].map((stat, i) => (
+              <Reveal key={stat.label} delay={i * 0.07} className="text-center">
+                <div className="font-display text-[2.5rem] font-semibold leading-none text-foreground sm:text-5xl">
+                  <NumberTicker value={stat.value} />{stat.suffix}
+                </div>
+                <p className="mt-2.5 text-sm text-muted-foreground">{stat.label}</p>
+              </Reveal>
             ))}
           </div>
+
+          {/* Barra de logos — sustituir span por <img> cuando haya assets reales */}
+          <Reveal delay={0.14}>
+            <div className="group/marquee mask-fade-x relative flex overflow-hidden">
+              <div
+                className="animate-marquee flex shrink-0 items-center gap-5 pr-5"
+                style={{ '--marquee-duration': '40s' }}
+              >
+                {[...socialLogos, ...socialLogos].map((logo, i) => (
+                  <div
+                    key={i}
+                    className="flex h-11 w-36 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/40 bg-card/50 px-4 opacity-40 transition-opacity duration-300 hover:opacity-80"
+                    title={logo.name}
+                  >
+                    {logo.src
+                      ? <img src={logo.src} alt={logo.name} className="h-5 w-auto max-w-full object-contain" />
+                      : <span className="truncate text-[10px] font-bold tracking-widest text-muted-foreground">{logo.name}</span>
+                    }
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+
         </div>
       </section>
 
