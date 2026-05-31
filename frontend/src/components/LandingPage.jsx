@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
   ArrowRight, Check, Sparkles, Globe, Calendar, Database, Terminal,
@@ -128,6 +128,43 @@ function GrainOverlay() {
         opacity: 0.03,
       }}
     />
+  );
+}
+
+// Contenedor interactivo de tarjetas de precio (explosión de luz al paso del ratón)
+function PricingGridGlow({ children }) {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const containerRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setMousePosition({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  };
+
+  return (
+    <div 
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative group w-full"
+    >
+      <div
+        className="pointer-events-none absolute -inset-8 z-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+        style={{
+          background: `radial-gradient(600px circle at ${mousePosition.x}px ${mousePosition.y}px, rgba(59, 130, 246, 0.15), transparent 40%)`,
+        }}
+      />
+      <div className="relative z-10 grid items-stretch gap-6 lg:grid-cols-3">
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -940,10 +977,10 @@ export default function LandingPage({ onNavigate }) {
           </p>
         </Reveal>
 
-        <div className="grid items-stretch gap-6 lg:grid-cols-3">
+        <PricingGridGlow>
           {plans.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 0.08}>
-              <div className="relative flex h-full flex-col rounded-3xl border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/6 hover:border-brand/20">
+              <div className="relative flex h-full flex-col rounded-3xl border border-border bg-card/70 backdrop-blur-md dark:bg-card/40 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/6 hover:border-brand/30">
                 <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
                 <p className="mt-2 h-10 text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
 
@@ -972,7 +1009,7 @@ export default function LandingPage({ onNavigate }) {
               </div>
             </Reveal>
           ))}
-        </div>
+        </PricingGridGlow>
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-zinc-500 dark:text-zinc-400">
           ¿Cómo se consumen los créditos de IA?{' '}
