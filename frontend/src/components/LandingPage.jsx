@@ -9,6 +9,7 @@ import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
 import { DotPattern } from './ui/dot-pattern';
 import { NumberTicker } from './ui/number-ticker';
+import { InteractiveParticles } from './ui/interactive-particles';
 import { cn } from '@/lib/utils';
 
 /* ============================================================
@@ -353,6 +354,7 @@ export default function LandingPage({ onNavigate }) {
           ============================================================ */}
       <section className="relative isolate overflow-hidden bg-gradient-to-br from-blue-50 via-white to-sky-50 px-6 pb-20 pt-24 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 sm:pt-28 lg:pt-32">
         <HeroWave style={{ y: waveY }} />
+        <InteractiveParticles color="rgba(59, 130, 246, 0.25)" />
 
         <div className="mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
@@ -407,9 +409,9 @@ export default function LandingPage({ onNavigate }) {
             <Reveal delay={0.1} y={30}>
               <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
                 {[
-                  { src: '/placeholder-1.webp', alt: 'Panel Avialo Builder' },
-                  { src: '/placeholder-2.webp', alt: 'Reservas en tiempo real' },
-                  { src: '/placeholder-3.webp', alt: 'Web generada' },
+                  { src: '/placeholder-1.png', alt: 'Panel Avialo Builder' },
+                  { src: '/placeholder-2.png', alt: 'Reservas en tiempo real' },
+                  { src: '/placeholder-3.png', alt: 'Web generada' },
                 ].map((shot, index) => {
                   const pos = (index - activeShot + 3) % 3;
                   const posMap = [
