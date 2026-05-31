@@ -80,7 +80,8 @@ export default function IAInfoPage({ onNavigate }) {
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden divide-y divide-zinc-200 dark:divide-zinc-800 bg-zinc-50/50 dark:bg-black/10 text-xs">
               {[
                 { action: "Generación Completa de Sitio Web", cost: "10 Créditos", details: "Aprovisionamiento de base de datos PostgreSQL, contenedor Docker, enrutamiento SSL y scaffolding inicial de Next.js.", highlight: true },
-                { action: "Modificación de Sección o Texto con IA", cost: "1 Crédito", details: "Actualizaciones semánticas rápidas, cambios de imágenes, corrección de copies o reajustes estéticos puntuales en vivo.", highlight: false },
+                { action: "Edición Simple (Motor DeepSeek)", cost: "1 Crédito", details: "Actualizaciones semánticas rápidas, cambios de imágenes, corrección de copies o reajustes estéticos puntuales en vivo (costo bajo y ultra veloz).", highlight: false },
+                { action: "Reestructuración Lógica (Motor Pro)", cost: "3 Créditos", details: "Modificaciones complejas de arquitectura, lógica de negocio, o rediseños profundos que requieren el razonamiento denso de modelos Pro (ej. Claude/Gemini).", highlight: false },
                 { action: "Soporte de Consultas e IDE Sandbox", cost: "0 Créditos", details: "Las interacciones y chat de ayuda con el Agente de IA dentro de tu editor de código privado son ilimitadas y gratuitas.", highlight: false }
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 gap-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/10 transition-colors">

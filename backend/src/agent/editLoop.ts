@@ -52,7 +52,8 @@ export async function runEditAutocorrectionLoop(
   jobId: string,
   clientId: string,
   userPrompt: string,
-  userId?: number
+  userId?: number,
+  forcedModel?: "claude" | "gemini" | "deepseek"
 ): Promise<{ success: boolean; error?: string }> {
   let attempts = 0;
   const maxAttempts = 5;
@@ -76,14 +77,18 @@ export async function runEditAutocorrectionLoop(
   await updateProgress("generating", 20);
 
   // Clasificar la tarea para usar el modelo más económico y adecuado
-  let preferredModel: "claude" | "gemini" = "claude";
-  try {
-    const routing = await routeUnknownTask(userPrompt);
-    preferredModel = (routing.model === "gemini" || routing.model === "gpt") ? "gemini" : "claude";
-    addJobLog(jobId, `🔀 Tarea de edición clasificada: Usando modelo preferido ${preferredModel.toUpperCase()} para optimizar costes.`);
-  } catch (err) {
-    console.warn("⚠️ No se pudo clasificar el prompt de edición, usando Claude por defecto:", err);
+  let preferredModel: "claude" | "gemini" | "deepseek" = forcedModel || "deepseek";
+  if (!forcedModel) {
+    try {
+      const routing = await routeUnknownTask(userPrompt);
+      preferredModel = (routing.model === "gemini" || routing.model === "gpt") ? "gemini" : "claude";
+    } catch (err) {
+      console.warn("⚠️ No se pudo clasificar el prompt de edición, usando Claude por defecto:", err);
+      preferredModel = "claude";
+    }
   }
+  
+  addJobLog(jobId, `🔀 Tarea de edición clasificada: Usando modelo preferido ${preferredModel.toUpperCase()} para optimizar costes.`);
 
   // 1. Escanear todos los archivos del sandbox para dar contexto completo
   addJobLog(jobId, `🔍 Escaneando archivos en el sandbox del proyecto...`);

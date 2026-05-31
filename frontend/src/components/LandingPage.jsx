@@ -247,7 +247,7 @@ export default function LandingPage({ onNavigate }) {
       features: [
         'Web Profesional Completa',
         '50 Créditos de IA mensuales',
-        'Crear sitio: 10 cr | Editar: 1 cr',
+        'Crear sitio: 10 cr | Editar: 1 a 3 cr',
         'Dominio propio incluido (.es, .com)',
         'Formulario de contacto básico',
         'Soporte por email en español'
@@ -263,7 +263,7 @@ export default function LandingPage({ onNavigate }) {
       features: [
         'Web con Reservas en Vivo',
         '200 Créditos de IA mensuales',
-        'Crear sitio: 10 cr | Editar: 1 cr',
+        'Crear sitio: 10 cr | Editar: 1 a 3 cr',
         'Calendario de Cita Previa integrado',
         'Panel de control de reservas',
         'Soporte prioritario por teléfono'
@@ -279,7 +279,7 @@ export default function LandingPage({ onNavigate }) {
       features: [
         'Tienda Online Completa',
         '500 Créditos de IA mensuales',
-        'Crear sitio: 10 cr | Editar: 1 cr',
+        'Crear sitio: 10 cr | Editar: 1 a 3 cr',
         'Catálogo de productos interactivo',
         'Pasarela de cobros con Tarjeta / Stripe',
         'Soporte VIP inmediato'

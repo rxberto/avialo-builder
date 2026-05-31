@@ -28,18 +28,25 @@ const openRouterClient = config.openrouter.apiKey
     })
   : null;
 
+const deepseekClient = config.deepseek.apiKey
+  ? new OpenAI({
+      apiKey: config.deepseek.apiKey,
+      baseURL: "https://api.deepseek.com",
+    })
+  : null;
+
 /**
  * Genera contenido de código llamando principalmente a Claude Sonnet,
  * y en caso de error o cuota excedida, realiza un fallback automático a Gemini Flash.
  * 
  * @param prompt Instrucción o contexto del cliente
  * @param systemPrompt Rol e identidad fija del sistema
- * @param preferredModel Modelo preferido ('claude' | 'gemini')
+ * @param preferredModel Modelo preferido ('claude' | 'gemini' | 'deepseek')
  */
 export async function generateCode(
   prompt: string,
   systemPrompt: string,
-  preferredModel: "claude" | "gemini" = "claude",
+  preferredModel: "claude" | "gemini" | "deepseek" = "claude",
   modelId?: string,
   maxTokens: number = DEFAULT_MAX_TOKENS,
   onUsage?: OnUsage
@@ -110,7 +117,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   }
 
   // Intentar primero con las APIs oficiales directas de pago (alta calidad)
-  if (preferredModel === "claude") {
+  if (preferredModel === "deepseek") {
+    try {
+      console.log("🚀 Usando DeepSeek para edición económica y ultra-rápida.");
+      return await callDeepSeek(prompt, systemPrompt, maxTokens, onUsage);
+    } catch (err: any) {
+      console.warn(`⚠️ DeepSeek falló: ${err.message}. Fallback a Claude...`);
+      return await callClaude(prompt, systemPrompt, MODELS.CLAUDE, maxTokens, onUsage);
+    }
+  } else if (preferredModel === "claude") {
     try {
       // 1. Intentar Claude Directo (Máxima calidad)
       return await callClaude(prompt, systemPrompt, claudeModelId, maxTokens, onUsage);
@@ -294,4 +309,37 @@ async function callOpenRouter(prompt: string, systemPrompt: string, modelId: str
   }
   
   throw new Error("OpenRouter devolvió un contenido de respuesta vacío.");
+}
+
+/**
+ * Llama al API de DeepSeek directamente
+ */
+async function callDeepSeek(prompt: string, systemPrompt: string, maxTokens: number = DEFAULT_MAX_TOKENS, onUsage?: OnUsage): Promise<string> {
+  if (!deepseekClient) {
+    throw new Error("Cliente de DeepSeek no inicializado (falta DEEPSEEK_API_KEY).");
+  }
+
+  const response = await deepseekClient.chat.completions.create({
+    model: "deepseek-chat", // Podríamos usar deepseek-coder si es necesario
+    max_tokens: maxTokens,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  if (onUsage && response.usage) {
+    onUsage({
+      model: "deepseek-chat",
+      inputTokens: response.usage.prompt_tokens ?? 0,
+      outputTokens: response.usage.completion_tokens ?? 0,
+    });
+  }
+
+  const text = response.choices[0]?.message?.content;
+  if (text) {
+    return text;
+  }
+  
+  throw new Error("DeepSeek devolvió un contenido de respuesta vacío.");
 }

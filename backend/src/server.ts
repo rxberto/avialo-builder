@@ -899,14 +899,19 @@ app.post("/api/jobs/:id/edit", authenticateToken as any, async (req: AuthRequest
       return res.status(400).json({ error: "El trabajo no posee un identificador de cliente válido." });
     }
 
-    // Descuento ATÓMICO de 1 crédito con guarda (race-safe).
+    // Identificar si el cambio es complejo o simple para deducción de créditos dinámica y enrutamiento LLM.
+    const isComplexEdit = prompt.length > 80 || /crea|añad|nuev|reestructur|base de datos|complej|página/i.test(prompt);
+    const cost = isComplexEdit ? 3 : 1;
+    const preferredModel = isComplexEdit ? "claude" : "deepseek";
+
+    // Descuento ATÓMICO de los créditos requeridos con guarda (race-safe).
     const charge = await prisma.user.updateMany({
-      where: { id: req.user.id, plan: { not: "none" }, aiCredits: { gte: 1 } },
-      data: { aiCredits: { decrement: 1 } },
+      where: { id: req.user.id, plan: { not: "none" }, aiCredits: { gte: cost } },
+      data: { aiCredits: { decrement: cost } },
     });
     if (charge.count === 0) {
       return res.status(402).json({
-        error: "No se pudo descontar el crédito (saldo insuficiente o sin plan activo).",
+        error: `No se pudo descontar ${cost} crédito(s) (saldo insuficiente o sin plan activo).`,
         code: "INSUFFICIENT_CREDITS",
       });
     }
@@ -928,7 +933,7 @@ app.post("/api/jobs/:id/edit", authenticateToken as any, async (req: AuthRequest
     });
 
     // Iniciar el bucle de edición en segundo plano (asíncrono)
-    runEditAutocorrectionLoop(jobId, clientId, prompt, req.user.id).catch((err) => {
+    runEditAutocorrectionLoop(jobId, clientId, prompt, req.user.id, preferredModel).catch((err) => {
       console.error("❌ Fallo crítico en el bucle de edición de fondo:", err);
     });
 
