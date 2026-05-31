@@ -29,7 +29,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
       POSTGRES_DB: ${DB_NAME:-postgres}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -47,7 +47,7 @@ services:
       - DEFAULT_POOL_SIZE=50
       - IGNORE_STARTUP_PARAMETERS=extra_float_digits
     ports:
-      - "6432:5432"
+      - "127.0.0.1:6432:5432"
     depends_on:
       - postgres
     networks:
@@ -58,7 +58,7 @@ services:
     container_name: avialo-redis-prod
     restart: always
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -86,7 +86,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - pgbouncer
       - redis
