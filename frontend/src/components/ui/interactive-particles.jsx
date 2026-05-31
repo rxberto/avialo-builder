@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { cn } from '../../lib/utils';
 
-export function InteractiveParticles({ className, color = 'rgba(255, 255, 255, 0.15)', mouseHoverColor = 'rgba(255, 255, 255, 0.3)' }) {
+export function InteractiveParticles({ className, color = 'rgba(255, 255, 255, 0.15)' }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -105,7 +105,7 @@ export function InteractiveParticles({ className, color = 'rgba(255, 255, 255, 0
     };
 
     const animate = () => {
-      requestAnimationFrame(animate);
+      animationFrameId = requestAnimationFrame(animate);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       for (let i = 0; i < particles.length; i++) {
         particles[i].update();

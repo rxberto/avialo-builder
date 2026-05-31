@@ -8,7 +8,7 @@ import {
 import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
 import { DotPattern } from './ui/dot-pattern';
-import { HeroWave } from './ui/hero-wave';
+
 import { StripeThreeJSGalaxy } from './ui/StripeThreeJSGalaxy';
 import NumberTicker from './ui/number-ticker';
 import { InteractiveParticles } from './ui/interactive-particles';
