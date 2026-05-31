@@ -18,6 +18,21 @@ export default function RegisterPage({ onRegister }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleGoogleCredentialResponse = async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const { loginWithGoogle } = await import('../lib/api');
+      const result = await loginWithGoogle(response.credential);
+      // Inicia sesión y valida si es usuario nuevo de Google para mandarlo a GoogleOnboarding
+      onRegister({ token: result.token, ...result.user }, result.isNewGoogleUser);
+    } catch (err) {
+      setError(err.message || 'Error al conectar tu cuenta de Google.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Cargar SDK de Google de forma asíncrona
     const script = document.createElement('script');
@@ -52,21 +67,6 @@ export default function RegisterPage({ onRegister }) {
       }
     };
   }, []);
-
-  const handleGoogleCredentialResponse = async (response) => {
-    setError('');
-    setLoading(true);
-    try {
-      const { loginWithGoogle } = await import('../lib/api');
-      const result = await loginWithGoogle(response.credential);
-      // Inicia sesión y valida si es usuario nuevo de Google para mandarlo a GoogleOnboarding
-      onRegister({ token: result.token, ...result.user }, result.isNewGoogleUser);
-    } catch (err) {
-      setError(err.message || 'Error al conectar tu cuenta de Google.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

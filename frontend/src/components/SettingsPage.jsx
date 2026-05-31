@@ -130,7 +130,7 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
   };
 
   // API Key state
-  const [apiKey, setApiKey] = useState('avialo_live_key_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+  const [apiKey, setApiKey] = useState(() => 'avialo_live_key_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
   const [showApiKey, setShowApiKey] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
 

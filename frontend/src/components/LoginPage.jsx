@@ -17,6 +17,20 @@ export default function LoginPage({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const handleGoogleCredentialResponse = async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const { loginWithGoogle } = await import('../lib/api');
+      const result = await loginWithGoogle(response.credential);
+      onLogin({ token: result.token, ...result.user }, result.isNewGoogleUser);
+    } catch (err) {
+      setError(err.message || 'Error al conectar con tu cuenta de Google.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Cargar SDK de Google de forma asíncrona
     const script = document.createElement('script');
@@ -51,20 +65,6 @@ export default function LoginPage({ onLogin }) {
       }
     };
   }, []);
-
-  const handleGoogleCredentialResponse = async (response) => {
-    setError('');
-    setLoading(true);
-    try {
-      const { loginWithGoogle } = await import('../lib/api');
-      const result = await loginWithGoogle(response.credential);
-      onLogin({ token: result.token, ...result.user }, result.isNewGoogleUser);
-    } catch (err) {
-      setError(err.message || 'Error al conectar con tu cuenta de Google.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
