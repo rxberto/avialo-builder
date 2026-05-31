@@ -236,13 +236,13 @@ function MotionTrailsHero() {
       <motion.img
         src="/light-motion-trails.jpg"
         alt=""
-        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-65 dark:opacity-55"
+        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-[0.88] dark:opacity-[0.78]"
         style={{ x: tx, y: ty, filter: 'blur(2px) saturate(1.3)' }}
         animate={{ scale: [1.04, 1.10, 1.04] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
       {/* Capa base — blanca/oscura para enterrar la imagen bien atrás */}
-      <div className="absolute inset-0 bg-background/80 dark:bg-background/88" />
+      <div className="absolute inset-0 bg-background/55 dark:bg-background/65" />
       {/* Nube superior — funde el borde de arriba */}
       <div className="absolute -top-20 left-0 right-0 h-64 bg-gradient-to-b from-background via-background/80 to-transparent" />
       {/* Nube inferior — funde con la sección siguiente */}
@@ -1318,12 +1318,12 @@ export default function LandingPage({ onNavigate }) {
           <img
             src="/light-galaxy.jpg"
             alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-[0.14] dark:opacity-[0.22]"
-            style={{ filter: 'blur(3px) saturate(1.5)' }}
+            className="absolute inset-0 h-full w-full object-cover opacity-[0.65] dark:opacity-[0.75]"
+            style={{ filter: 'blur(1px) saturate(1.6)' }}
           />
-          {/* Gradientes que funden la galaxy con el fondo sin borde visible */}
-          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/60" />
+          {/* Gradientes suaves solo en bordes para fundir sin corte */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/40" />
           {/* Glow central muy suave */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[1100px] bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.06),transparent_65%)] blur-[60px]" />
         </div>
