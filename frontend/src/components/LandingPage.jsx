@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } fr
 import {
   ArrowRight, Check, Sparkles, Globe, Calendar, Database, Terminal,
   ChevronDown, Star, Utensils, Stethoscope, Store, Shield, Cpu,
-  Zap, CreditCard, Folder, File, Minus, Plus, Lock, MousePointerClick, Headset
+  Zap, CreditCard, Folder, File, Minus, Plus, Lock, MousePointerClick, Headset, Layout
 } from 'lucide-react';
 import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
@@ -169,58 +169,171 @@ function PricingGridGlow({ children }) {
 }
 
 function WorkflowDiagramSection() {
-  const steps = [
-    { icon: <MousePointerClick className="h-6 w-6 text-blue-400" />, title: "1. Tu idea", desc: "Eliges tu sector y describes lo que necesitas en lenguaje natural." },
-    { icon: <Cpu className="h-6 w-6 text-sky-400" />, title: "2. Motor IA", desc: "El algoritmo analiza y diseña la estructura ideal para tu negocio." },
-    { icon: <Database className="h-6 w-6 text-indigo-400" />, title: "3. Generación", desc: "Se crea el frontend, el backend y una base de datos aislada." },
-    { icon: <Globe className="h-6 w-6 text-brand-success" />, title: "4. Despliegue", desc: "Publicación automática en alta disponibilidad en segundos." }
-  ];
-
   return (
     <section className="relative overflow-hidden border-y border-blue-900/30 bg-slate-950 py-24 text-white lg:py-32">
-      {/* Fondos y Blurs */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
-      <div className="absolute -top-24 left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-blue-600/20 blur-[120px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/10 via-slate-950 to-slate-950" />
       
       <div className="relative mx-auto max-w-7xl px-6">
-        <Reveal className="text-center">
-          <Eyebrow className="mb-4 justify-center text-sky-400">Flujo de trabajo</Eyebrow>
-          <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
-            Magia visual, ingeniería real
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-lg text-slate-400">
-            Así es como Avialo Builder transforma una simple idea en una plataforma completamente funcional en menos de 2 minutos.
-          </p>
-        </Reveal>
-
-        <div className="mt-20 relative">
-          {/* Línea conectora animada (Desktop) */}
-          <div className="absolute left-[12.5%] top-1/2 hidden h-1 w-[75%] -translate-y-1/2 overflow-hidden rounded-full bg-slate-800 lg:block">
-            <div className="h-full w-1/3 animate-marquee bg-gradient-to-r from-transparent via-blue-500 to-transparent blur-[1px]" />
+        <div className="grid items-center gap-16 lg:grid-cols-12">
+          
+          {/* Texto Descriptivo */}
+          <div className="lg:col-span-4">
+            <Reveal>
+              <Eyebrow className="mb-4 text-sky-400">Motor de Inteligencia</Eyebrow>
+              <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
+                Arquitectura de Generación
+              </h2>
+              <p className="mt-6 text-base leading-relaxed text-slate-400">
+                El núcleo de Avialo Builder utiliza una arquitectura distribuida. Tu idea pasa por nuestro motor NLP, que en paralelo orquesta la creación del frontend, el diseño de la base de datos y la lógica de backend.
+              </p>
+              <div className="mt-8 space-y-4">
+                {[
+                  { icon: <Cpu className="h-4 w-4 text-sky-400" />, text: "Análisis semántico en milisegundos" },
+                  { icon: <Database className="h-4 w-4 text-indigo-400" />, text: "Modelado relacional automatizado" },
+                  { icon: <Globe className="h-4 w-4 text-brand-success" />, text: "Despliegue global instantáneo" }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 px-4 py-3 backdrop-blur-sm">
+                    {item.icon}
+                    <span className="text-sm font-medium text-slate-300">{item.text}</span>
+                  </div>
+                ))}
+              </div>
+            </Reveal>
           </div>
 
-          <div className="grid gap-8 lg:grid-cols-4 relative z-10">
-            {steps.map((step, i) => (
-              <Reveal key={step.title} delay={i * 0.15}>
-                <div className="group relative flex h-full flex-col items-center rounded-3xl border border-blue-500/10 bg-slate-900/50 p-8 text-center backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:border-blue-400/30 hover:bg-slate-800/80 hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]">
-                  
-                  {/* Círculo del icono rotando suavemente */}
-                  <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950 shadow-inner">
-                    <div className="absolute inset-0 rounded-2xl border border-blue-500/20 transition-transform duration-700 group-hover:rotate-12" />
-                    <div className="absolute inset-0 rounded-2xl border border-sky-400/10 transition-transform duration-700 group-hover:-rotate-12" />
-                    <motion.div
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                    >
-                      {step.icon}
-                    </motion.div>
-                  </div>
+          {/* Diagrama Interactivo */}
+          <div className="lg:col-span-8">
+            <Reveal delay={0.2} className="relative h-[600px] w-full lg:h-[500px]">
+              <div className="absolute inset-0 rounded-3xl border border-blue-500/20 bg-slate-900/30 shadow-2xl backdrop-blur-md">
+                <svg className="h-full w-full opacity-60" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="pulse-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="transparent" />
+                      <stop offset="50%" stopColor="#38bdf8" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
 
-                  <h3 className="mb-3 text-xl font-bold text-slate-100">{step.title}</h3>
-                  <p className="text-sm leading-relaxed text-slate-400">{step.desc}</p>
+                  {/* 1 to 2 */}
+                  <g>
+                    <path d="M 15 50 L 35 50" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 15 50 L 35 50" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+
+                  {/* 2 to 3 (Frontend) */}
+                  <g>
+                    <path d="M 35 50 C 50 50, 50 20, 65 20" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 35 50 C 50 50, 50 20, 65 20" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 2, delay: 0.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+
+                  {/* 2 to 4 (DB) */}
+                  <g>
+                    <path d="M 35 50 L 65 50" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 35 50 L 65 50" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 2, delay: 0.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+
+                  {/* 2 to 5 (Backend) */}
+                  <g>
+                    <path d="M 35 50 C 50 50, 50 80, 65 80" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 35 50 C 50 50, 50 80, 65 80" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 2, delay: 0.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+
+                  {/* 3 to 6 (Deploy) */}
+                  <g>
+                    <path d="M 65 20 C 80 20, 80 50, 85 50" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 65 20 C 80 20, 80 50, 85 50" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 1.5, delay: 1.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+                  {/* 4 to 6 */}
+                  <g>
+                    <path d="M 65 50 L 85 50" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 65 50 L 85 50" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 1.5, delay: 1.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+                  {/* 5 to 6 */}
+                  <g>
+                    <path d="M 65 80 C 80 80, 80 50, 85 50" stroke="rgba(59, 130, 246, 0.2)" strokeWidth="2" vectorEffect="non-scaling-stroke" fill="none" />
+                    <motion.path d="M 65 80 C 80 80, 80 50, 85 50" stroke="url(#pulse-gradient)" strokeWidth="2.5" vectorEffect="non-scaling-stroke" fill="none"
+                      initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: [0, 1, 1, 0] }}
+                      transition={{ duration: 1.5, delay: 1.5, repeat: Infinity, ease: "linear" }} />
+                  </g>
+                </svg>
+              </div>
+
+              {/* Nodos HTML interactivos */}
+              {/* NODO 1: Input */}
+              <div className="absolute left-[15%] top-[50%] -translate-x-1/2 -translate-y-1/2">
+                <div className="group relative flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/40 bg-slate-900/90 shadow-[0_0_20px_-5px_rgba(59,130,246,0.6)] backdrop-blur-xl transition-all duration-300 hover:scale-110">
+                  <MousePointerClick className="h-6 w-6 text-sky-400" />
                 </div>
-              </Reveal>
-            ))}
+                <div className="absolute -bottom-8 left-1/2 w-max -translate-x-1/2 text-center">
+                  <span className="block text-[10px] font-bold tracking-widest text-slate-300 uppercase">Input</span>
+                </div>
+              </div>
+
+              {/* NODO 2: NLP */}
+              <div className="absolute left-[35%] top-[50%] -translate-x-1/2 -translate-y-1/2">
+                <div className="group relative flex h-16 w-16 items-center justify-center rounded-3xl border border-sky-400/40 bg-sky-950/80 shadow-[0_0_30px_-5px_rgba(56,189,248,0.4)] backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:border-sky-300/80">
+                  <div className="absolute inset-0 rounded-3xl border border-sky-400/20 transition-transform duration-1000 group-hover:rotate-45" />
+                  <Cpu className="h-7 w-7 text-sky-400" />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 w-max -translate-x-1/2 text-center">
+                  <span className="block text-[10px] font-bold tracking-widest text-sky-400 uppercase">Motor NLP</span>
+                </div>
+              </div>
+
+              {/* NODO 3: Frontend */}
+              <div className="absolute left-[65%] top-[20%] -translate-x-1/2 -translate-y-1/2">
+                <div className="group relative flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-500/40 bg-slate-900/90 shadow-[0_0_20px_-5px_rgba(139,92,246,0.4)] backdrop-blur-xl transition-all duration-300 hover:scale-110">
+                  <Layout className="h-6 w-6 text-violet-400" />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 w-max -translate-x-1/2 text-center">
+                  <span className="block text-[10px] font-bold tracking-widest text-slate-300 uppercase">UI / React</span>
+                </div>
+              </div>
+
+              {/* NODO 4: DB */}
+              <div className="absolute left-[65%] top-[50%] -translate-x-1/2 -translate-y-1/2">
+                <div className="group relative flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/40 bg-slate-900/90 shadow-[0_0_20px_-5px_rgba(245,158,11,0.4)] backdrop-blur-xl transition-all duration-300 hover:scale-110">
+                  <Database className="h-6 w-6 text-amber-400" />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 w-max -translate-x-1/2 text-center">
+                  <span className="block text-[10px] font-bold tracking-widest text-slate-300 uppercase">Schema</span>
+                </div>
+              </div>
+
+              {/* NODO 5: Backend */}
+              <div className="absolute left-[65%] top-[80%] -translate-x-1/2 -translate-y-1/2">
+                <div className="group relative flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/40 bg-slate-900/90 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] backdrop-blur-xl transition-all duration-300 hover:scale-110">
+                  <Terminal className="h-6 w-6 text-emerald-400" />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 w-max -translate-x-1/2 text-center">
+                  <span className="block text-[10px] font-bold tracking-widest text-slate-300 uppercase">Lógica</span>
+                </div>
+              </div>
+
+              {/* NODO 6: Deploy */}
+              <div className="absolute left-[85%] top-[50%] -translate-x-1/2 -translate-y-1/2">
+                <div className="group relative flex h-16 w-16 items-center justify-center rounded-full border border-brand-success/50 bg-slate-900/90 shadow-[0_0_30px_-5px_rgba(34,197,94,0.5)] backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:border-brand-success">
+                  <div className="absolute inset-0 rounded-full border border-brand-success/30 animate-[spin_4s_linear_infinite]" />
+                  <Globe className="h-7 w-7 text-brand-success" />
+                </div>
+                <div className="absolute -bottom-8 left-1/2 w-max -translate-x-1/2 text-center">
+                  <span className="block text-[10px] font-bold tracking-widest text-brand-success uppercase">Despliegue</span>
+                </div>
+              </div>
+
+            </Reveal>
           </div>
         </div>
       </div>
