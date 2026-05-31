@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import {
   ArrowRight, Check, Sparkles, Globe, Calendar, Database, Terminal,
   ChevronDown, Star, Utensils, Stethoscope, Store, Shield, Cpu,
@@ -164,6 +164,43 @@ function PricingGridGlow({ children }) {
       <div className="relative z-10 grid items-stretch gap-6 lg:grid-cols-3">
         {children}
       </div>
+    </div>
+  );
+}
+
+function LiveParallaxImage({ src, opacity = "opacity-30 dark:opacity-40", blendMode = "mix-blend-normal" }) {
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+  const springX = useSpring(mouseX, { stiffness: 20, damping: 30 });
+  const springY = useSpring(mouseY, { stiffness: 20, damping: 30 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      mouseX.set(e.clientX / window.innerWidth);
+      mouseY.set(e.clientY / window.innerHeight);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseX, mouseY]);
+
+  const translateX = useTransform(springX, [0, 1], ['-3%', '3%']);
+  const translateY = useTransform(springY, [0, 1], ['-3%', '3%']);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <motion.img
+        src={src}
+        className={cn(
+          "absolute -inset-[10%] h-[120%] w-[120%] max-w-none object-cover transition-opacity duration-1000",
+          opacity,
+          blendMode
+        )}
+        style={{ x: translateX, y: translateY, scale: 1.05 }}
+        alt=""
+      />
+      <div className="absolute inset-0 bg-background/40 backdrop-blur-[2px] [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_100%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background" />
     </div>
   );
 }
@@ -562,9 +599,12 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           HÉROE — texto izquierda, capturas ciclando derecha
           ============================================================ */}
-      <section className="relative isolate overflow-hidden bg-gradient-to-br from-blue-50 via-white to-sky-50 px-6 pb-20 pt-24 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 sm:pt-28 lg:pt-32">
-        <HeroWave style={{ y: waveY }} />
-        <InteractiveParticles color="rgba(59, 130, 246, 0.25)" />
+      <section className="relative isolate overflow-hidden bg-background px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
+        <LiveParallaxImage 
+          src="/light-motion-trails.jpg" 
+          opacity="opacity-50 dark:opacity-40" 
+          blendMode="mix-blend-luminosity dark:mix-blend-screen" 
+        />
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
@@ -1146,8 +1186,14 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           PRECIOS
           ============================================================ */}
-      <section id="pricing" className="mx-auto max-w-6xl scroll-mt-24 border-t border-border/50 px-6 py-24">
-        <Reveal className="mx-auto mb-16 max-w-2xl text-center">
+      <section id="pricing" className="relative scroll-mt-24 border-t border-border/50 py-24">
+        <LiveParallaxImage 
+          src="/light-galaxy.jpg" 
+          opacity="opacity-40 dark:opacity-30" 
+          blendMode="mix-blend-luminosity dark:mix-blend-screen" 
+        />
+        <div className="relative z-10 mx-auto max-w-6xl px-6">
+          <Reveal className="mx-auto mb-16 max-w-2xl text-center">
           <Eyebrow className="mb-4 justify-center">Precios transparentes</Eyebrow>
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-white">
             Elige el plan ideal para tu negocio
@@ -1198,6 +1244,7 @@ export default function LandingPage({ onNavigate }) {
           </button>
           .
         </p>
+        </div>
       </section>
 
       {/* ============================================================
