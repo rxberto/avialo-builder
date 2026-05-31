@@ -12,7 +12,7 @@ COPY prisma ./prisma/
 COPY prisma.config.ts ./
 
 # Instalar todas las dependencias
-RUN npm ci
+RUN npm install
 
 # Copiar el resto del código fuente del backend
 COPY src ./src/
