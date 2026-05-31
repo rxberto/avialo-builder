@@ -232,33 +232,36 @@ function MotionTrailsHero() {
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      {/* Imagen base con drift automático + parallax de ratón */}
+      {/* Imagen muy al fondo — baja opacidad + blur para que sea textura, no protagonista */}
       <motion.img
         src="/light-motion-trails.jpg"
         alt=""
-        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover"
-        style={{ x: tx, y: ty }}
+        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-30 dark:opacity-20"
+        style={{ x: tx, y: ty, filter: 'blur(3px) saturate(1.3)' }}
         animate={{ scale: [1.04, 1.10, 1.04] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
-      {/* Capa de color semitransparente para mantener legibilidad del texto */}
-      <div className="absolute inset-0 bg-background/72 dark:bg-background/82" />
-      {/* Degradados de borde para fundir suavemente con el fondo */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-55" />
-      {/* Glow azul pulsante centrado — "la luz" de Stripe */}
+      {/* Capa base — blanca/oscura para enterrar la imagen bien atrás */}
+      <div className="absolute inset-0 bg-background/80 dark:bg-background/88" />
+      {/* Nube superior — funde el borde de arriba */}
+      <div className="absolute -top-20 left-0 right-0 h-64 bg-gradient-to-b from-background via-background/80 to-transparent" />
+      {/* Nube inferior — funde con la sección siguiente */}
+      <div className="absolute -bottom-4 left-0 right-0 h-48 bg-gradient-to-t from-background to-transparent" />
+      {/* Velos laterales */}
+      <div className="absolute inset-0 bg-gradient-to-r from-background/70 via-transparent to-background/70" />
+      {/* Glow azul pulsante centrado */}
       <motion.div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[520px] w-[900px] rounded-full blur-[100px]"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.22) 0%, rgba(14,165,233,0.10) 50%, transparent 75%)' }}
-        animate={{ opacity: [0.5, 0.9, 0.5], scale: [0.88, 1.08, 0.88] }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[480px] w-[860px] rounded-full blur-[110px]"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.18) 0%, rgba(14,165,233,0.08) 55%, transparent 80%)' }}
+        animate={{ opacity: [0.4, 0.8, 0.4], scale: [0.9, 1.07, 0.9] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
       />
-      {/* Segundo glow desplazado para efecto aurora */}
+      {/* Aurora secundaria derecha */}
       <motion.div
-        className="absolute right-[15%] top-[30%] h-[320px] w-[500px] rounded-full blur-[90px]"
-        style={{ background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.15) 0%, transparent 70%)' }}
-        animate={{ opacity: [0.3, 0.65, 0.3], x: [0, 40, 0], y: [0, -30, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        className="absolute right-[12%] top-[25%] h-[280px] w-[420px] rounded-full blur-[80px]"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.12) 0%, transparent 70%)' }}
+        animate={{ opacity: [0.2, 0.5, 0.2], x: [0, 35, 0], y: [0, -25, 0] }}
+        transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
       />
     </div>
   );
@@ -1311,8 +1314,21 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           PRECIOS
           ============================================================ */}
-      <section id="pricing" className="relative scroll-mt-24 border-t border-border/50 py-24 bg-background">
-        <Galaxy3DBackground />
+      <section id="pricing" className="relative scroll-mt-24 py-28 overflow-hidden">
+        {/* Fondo full-bleed con light-galaxy — muy sutil, solo textura */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <img
+            src="/light-galaxy.jpg"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-[0.06] dark:opacity-[0.10]"
+            style={{ filter: 'blur(4px) saturate(1.6)' }}
+          />
+          {/* Gradientes que funden la galaxy con el fondo sin borde visible */}
+          <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/60 via-transparent to-background/60" />
+          {/* Glow central muy suave */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[1100px] bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.06),transparent_65%)] blur-[60px]" />
+        </div>
         <div className="relative z-10 mx-auto max-w-6xl px-6">
           <Reveal className="mx-auto mb-16 max-w-2xl text-center">
           <Eyebrow className="mb-4 justify-center">Precios transparentes</Eyebrow>
@@ -1327,7 +1343,7 @@ export default function LandingPage({ onNavigate }) {
         <PricingGridGlow>
           {plans.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 0.08}>
-              <div className="relative flex h-full flex-col rounded-3xl border border-border bg-card/70 backdrop-blur-md dark:bg-card/40 p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/6 hover:border-brand/30">
+              <div className="relative flex h-full flex-col rounded-3xl border border-border/60 bg-background/60 backdrop-blur-xl dark:bg-card/30 p-8 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-brand/8 hover:border-brand/25">
                 <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
                 <p className="mt-2 h-10 text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
 

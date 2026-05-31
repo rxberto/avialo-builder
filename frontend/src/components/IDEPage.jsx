@@ -657,9 +657,9 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                     <div className="space-y-2.5">
                       <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground">Infraestructura</span>
                       {[
-                        { Icon: Server, label: 'Servidor',    value: 'Hetzner CPX32'        },
-                        { Icon: Globe,  label: 'Región',      value: 'EU-Central · Alemania' },
-                        { Icon: Lock,   label: 'SSL',         value: 'Let\'s Encrypt'        },
+                        { Icon: Server, label: 'Servidor',    value: 'Nube privada segura'  },
+                        { Icon: Globe,  label: 'Región',      value: 'Europa (UE)'           },
+                        { Icon: Lock,   label: 'SSL',         value: 'Cifrado extremo a extremo' },
                         { Icon: Clock,  label: 'Último build', value: 'Hace 2 min'           },
                       ].map(({ Icon, label, value }) => (
                         <div key={label} className="flex items-center gap-2 text-[11px]">
@@ -706,9 +706,18 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
           {/* Handle 1: entre sidebar y chat */}
           {showSidebar && (
             <div
-              className="w-px cursor-col-resize hover:bg-violet-500/50 bg-border shrink-0 transition-colors hover:shadow-[0_0_8px_rgba(124,58,237,0.35)]"
+              className="relative w-4 shrink-0 cursor-col-resize group/handle z-50 flex items-center justify-center"
               onMouseDown={startSidebarResize}
-            />
+            >
+              {/* Línea central */}
+              <div className="absolute inset-y-0 left-1/2 -translate-x-px w-px bg-border transition-colors duration-150 group-hover/handle:bg-violet-500/60" />
+              {/* Grip dots — aparecen al hover */}
+              <div className="relative z-10 flex flex-col gap-[3.5px] opacity-0 group-hover/handle:opacity-100 transition-opacity duration-150 bg-card border border-border/80 rounded-full px-1 py-1.5 shadow-sm">
+                {[0,1,2,3,4].map(i => (
+                  <span key={i} className="block w-[3px] h-[3px] rounded-full bg-violet-400" />
+                ))}
+              </div>
+            </div>
           )}
 
           {/* ══════════════════════════════════════
@@ -945,9 +954,16 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
 
           {/* Handle 2: entre chat y preview */}
           <div
-            className="w-px cursor-col-resize hover:bg-violet-500/50 bg-border shrink-0 transition-colors hover:shadow-[0_0_8px_rgba(124,58,237,0.35)]"
+            className="relative w-4 shrink-0 cursor-col-resize group/handle z-50 flex items-center justify-center"
             onMouseDown={startChatResize}
-          />
+          >
+            <div className="absolute inset-y-0 left-1/2 -translate-x-px w-px bg-border transition-colors duration-150 group-hover/handle:bg-violet-500/60" />
+            <div className="relative z-10 flex flex-col gap-[3.5px] opacity-0 group-hover/handle:opacity-100 transition-opacity duration-150 bg-card border border-border/80 rounded-full px-1 py-1.5 shadow-sm">
+              {[0,1,2,3,4].map(i => (
+                <span key={i} className="block w-[3px] h-[3px] rounded-full bg-violet-400" />
+              ))}
+            </div>
+          </div>
 
           {/* ══════════════════════════════════════
               COLUMNA PREVIEW
