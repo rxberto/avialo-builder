@@ -1199,10 +1199,7 @@ export default function LandingPage({ onNavigate }) {
         </div>
       </section>
 
-      {/* ============================================================
-          FLUJO DE TRABAJO AVANZADO
-          ============================================================ */}
-      <WorkflowDiagramSection />
+
 
       {/* ============================================================
           MÉTRICAS — efecto cine: se destaca automáticamente cada dato
@@ -1285,6 +1282,11 @@ export default function LandingPage({ onNavigate }) {
           ))}
         </div>
       </section>
+
+      {/* ============================================================
+          FLUJO DE TRABAJO AVANZADO
+          ============================================================ */}
+      <WorkflowDiagramSection />
 
       {/* ============================================================
           PRECIOS
