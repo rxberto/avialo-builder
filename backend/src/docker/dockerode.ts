@@ -11,6 +11,112 @@ const socketPath = isWindows ? "//./pipe/docker_engine" : "/var/run/docker.sock"
 export const docker = new Docker({ socketPath });
 
 /**
+ * Asegura que una imagen Docker esté disponible localmente, descargándola si falta.
+ */
+async function ensureImage(image: string): Promise<void> {
+  try {
+    await docker.getImage(image).inspect();
+    return; // Ya existe
+  } catch {
+    // No existe localmente — hacemos pull
+  }
+  await new Promise<void>((resolve, reject) => {
+    docker.pull(image, {}, (err, stream) => {
+      if (err) return reject(err);
+      if (!stream) return reject(new Error("No se pudo iniciar el stream de pull."));
+      docker.modem.followProgress(stream, (e: any) => (e ? reject(e) : resolve()));
+    });
+  });
+}
+
+// Límites de memoria configurables (un droplet pequeño no soporta varios builds de 2GB).
+const BUILD_MEMORY_BYTES = parseInt(process.env.BUILD_MEMORY_BYTES || `${2 * 1024 * 1024 * 1024}`, 10); // 2GB
+const RUNTIME_MEMORY_BYTES = parseInt(process.env.RUNTIME_MEMORY_BYTES || `${256 * 1024 * 1024}`, 10); // 256MB
+
+/**
+ * Pre-descarga las imágenes base usadas por el pipeline para evitar el pull en caliente
+ * durante cada generación. Se llama al arrancar el worker.
+ */
+export async function prewarmImages(): Promise<void> {
+  for (const image of ["node:20-bookworm-slim", "nginx:alpine"]) {
+    try {
+      await ensureImage(image);
+      console.log(`✅ Imagen Docker lista (prewarm): ${image}`);
+    } catch (err: any) {
+      console.warn(`⚠️ No se pudo prewarmear ${image}: ${err.message}`);
+    }
+  }
+}
+
+/**
+ * Ejecuta un comando dentro de un contenedor Docker efímero y AISLADO, con el sandbox
+ * del cliente montado como único volumen.
+ *
+ * SEGURIDAD: el código generado por la IA (incluidos scripts de build/postinstall, next.config, etc.)
+ * NUNCA debe ejecutarse en el proceso del orquestador host. Este runner lo confina en un
+ * contenedor con CapDrop=ALL, límites de memoria/PIDs y sin acceso al filesystem del host
+ * más allá de la carpeta del proyecto.
+ *
+ * @param clientId  ID del cliente (carpeta del sandbox)
+ * @param command   Comando shell a ejecutar dentro de /usr/src/app
+ * @param timeoutMs Timeout duro; al excederse se detiene el contenedor
+ */
+export async function runCommandInContainer(
+  clientId: string,
+  command: string,
+  timeoutMs: number = 120000
+): Promise<{ success: boolean; stdout: string; stderr: string }> {
+  const absolutePath = path.resolve("./projects", clientId);
+  const Image = "node:20-bookworm-slim";
+
+  try {
+    await ensureImage(Image);
+  } catch (err: any) {
+    console.warn(`⚠️ No se pudo asegurar la imagen ${Image} (se intentará caché local): ${err.message}`);
+  }
+
+  const container = await docker.createContainer({
+    Image,
+    // Tty:true => salida de texto plano combinada (sin multiplexado de 8 bytes)
+    Tty: true,
+    Cmd: ["sh", "-lc", `cd /usr/src/app && ${command}`],
+    HostConfig: {
+      Binds: [`${absolutePath}:/usr/src/app`],
+      Memory: 2 * 1024 * 1024 * 1024, // 2GB
+      PidsLimit: 512,
+      CapDrop: ["ALL"],
+      AutoRemove: false,
+    },
+  });
+
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    container.stop({ t: 1 }).catch(() => {});
+  }, timeoutMs);
+
+  try {
+    await container.start();
+    const waitResult = await container.wait();
+
+    const logBuffer = (await container.logs({ stdout: true, stderr: true, follow: false })) as unknown as Buffer;
+    const output = logBuffer.toString("utf-8");
+
+    const success = !timedOut && waitResult.StatusCode === 0;
+    return {
+      success,
+      stdout: output,
+      stderr: success ? "" : (timedOut ? `Comando excedió el timeout de ${timeoutMs}ms.\n${output}` : output),
+    };
+  } catch (err: any) {
+    return { success: false, stdout: "", stderr: err.message || "Error ejecutando el contenedor de comando." };
+  } finally {
+    clearTimeout(timer);
+    await container.remove({ force: true }).catch(() => {});
+  }
+}
+
+/**
  * Arranca un contenedor Docker ligero para previsualizar el sitio web generado.
  * 
  * @param clientId ID del cliente
@@ -129,7 +235,7 @@ export async function startPreviewContainer(
     ],
     HostConfig: {
       Binds: [`${absolutePath}:/usr/src/app`],
-      Memory: 2147483648, // 2GB
+      Memory: BUILD_MEMORY_BYTES,
       AutoRemove: true,
     },
   });
@@ -164,13 +270,13 @@ export async function startPreviewContainer(
     ExposedPorts,
     Env: [
       `DATABASE_URL=${tenantDbUrl}`,
-      `NEXTAUTH_SECRET=${process.env.NEXTAUTH_SECRET || "avialo-nextauth-secret-key-32-chars"}`,
+      `NEXTAUTH_SECRET=${config.auth.nextauthSecret}`,
       `NEXTAUTH_URL=http://localhost:${port}`
     ],
     HostConfig: {
       Binds: [`${absolutePath}:/usr/src/app`],
       PortBindings,
-      Memory: 268435456, // 256MB RAM
+      Memory: RUNTIME_MEMORY_BYTES,
     },
   });
 

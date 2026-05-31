@@ -2,60 +2,15 @@ import { generateCode } from "./client.js";
 import { writeSandboxFile, runSandboxCommand } from "./executor.js";
 import { SYSTEM_PROMPT } from "../prompts/system-base.js";
 import { addJobLog } from "../queue/logs.js";
+import { MODELS } from "../models/router.js";
+import { JobCostTracker } from "./cost.js";
+import { recordJobUsage } from "./usageLog.js";
 
-export interface FileChange {
-  relativePath: string;
-  content: string;
-}
-
-/**
- * Parsea el output de texto del LLM para extraer los bloques de archivos estructurados.
- * Formato esperado del LLM: [ARCHIVO: ruta/al/archivo.ts] seguido del código completo.
- * 
- * @param llmOutput Texto sin procesar devuelto por el modelo
- */
-export function parseFileChanges(llmOutput: string): FileChange[] {
-  const changes: FileChange[] = [];
-  
-  // Expresión regular para capturar la cabecera del archivo de forma limpia
-  const fileRegex = /\[ARCHIVO:\s*([^\]\s]+)\]/g;
-  
-  const matches: { index: number; relativePath: string }[] = [];
-  let match;
-  
-  while ((match = fileRegex.exec(llmOutput)) !== null) {
-    matches.push({
-      index: match.index,
-      relativePath: match[1].trim(),
-    });
-  }
-
-  // Extraer el contenido de cada archivo entre cabeceras consecutivas
-  for (let i = 0; i < matches.length; i++) {
-    const current = matches[i];
-    const next = matches[i + 1];
-    
-    // El inicio del contenido del archivo es justo después de la cabecera actual
-    const headerOffset = `[ARCHIVO: ${current.relativePath}]`.length;
-    
-    const start = current.index + headerOffset;
-    const end = next ? next.index : llmOutput.length;
-    
-    let content = llmOutput.substring(start, end).trim();
-
-    // Limpieza de bloques de código de markdown opcionales que el LLM inyecte por error
-    if (content.startsWith("```")) {
-      content = content.replace(/^```[a-zA-Z0-9-]*\n/, "").replace(/\n```$/, "");
-    }
-
-    changes.push({
-      relativePath: current.relativePath,
-      content,
-    });
-  }
-
-  return changes;
-}
+// parseFileChanges vive en un módulo sin efectos secundarios (testeable). Se re-exporta
+// aquí para no romper los imports existentes (editLoop.ts).
+export { parseFileChanges, type FileChange } from "./parseFiles.js";
+import { parseFileChanges } from "./parseFiles.js";
+import type { FileChange } from "./parseFiles.js";
 
 /**
  * Orquesta el bucle de autocorrección autónomo de hasta 5 iteraciones.
@@ -72,6 +27,13 @@ export async function runAutocorrectionLoop(
   const maxAttempts = 5;
   let lastBuildError = "";
   let lastTouchedFiles: FileChange[] = [];
+
+  // Seguimiento de coste con techo por job (aborta runaways de IA) + persistencia contable.
+  const costTracker = new JobCostTracker();
+  const onUsage = (u: { model: string; inputTokens: number; outputTokens: number }) => {
+    costTracker.add(u);
+    recordJobUsage({ jobId, userId: clientData.userId, kind: "generation", ...u });
+  };
 
   addJobLog(jobId, `🧠 Iniciando bucle de generación de IA para pyme "${clientData.businessName}"`);
 
@@ -130,10 +92,19 @@ export async function runAutocorrectionLoop(
         ? "claude"
         : "gemini";
 
-      addJobLog(jobId, `🤖 Usando modelo preferido ${preferredModel.toUpperCase()} para generación de tipo ${clientData.webType}.`);
-      
-      const llmOutput = await generateCode(userPrompt, SYSTEM_PROMPT, preferredModel);
-      
+      // El modelId concreto procede del router (MODELS), fuente única de verdad.
+      const modelId = preferredModel === "claude" ? MODELS.CLAUDE : MODELS.GEMINI;
+      addJobLog(jobId, `🤖 Usando ${preferredModel.toUpperCase()} (${modelId}) para generación de tipo ${clientData.webType}.`);
+
+      const llmOutput = await generateCode(userPrompt, SYSTEM_PROMPT, preferredModel, modelId, undefined, onUsage);
+      addJobLog(jobId, `💰 Coste IA: ${costTracker.summary}`);
+
+      // Techo de coste: abortar antes de seguir gastando.
+      if (costTracker.exceeded()) {
+        addJobLog(jobId, `🛑 Techo de coste alcanzado (${costTracker.summary}). Abortando generación.`);
+        return { success: false, attempts, error: "Se alcanzó el límite de coste de IA para esta generación." };
+      }
+
       // Parsear bloques de archivos
       const fileChanges = parseFileChanges(llmOutput);
 
@@ -153,10 +124,11 @@ export async function runAutocorrectionLoop(
       // Guardar de forma persistente los últimos archivos modificados para retroalimentación
       lastTouchedFiles = fileChanges;
 
-      addJobLog(jobId, `🔧 Validando compilación mediante 'npm run build' en el sandbox...`);
-      
-      // Ejecutar build asíncrono
-      const buildResult = await runSandboxCommand(clientData.clientId, "npm run build");
+      addJobLog(jobId, `🔧 Validando compilación en contenedor aislado ('npm install && npm run build')...`);
+
+      // Ejecutar build en contenedor aislado. node_modules persiste en el bind mount,
+      // por lo que la instalación solo es lenta en el primer intento.
+      const buildResult = await runSandboxCommand(clientData.clientId, "npm install --no-audit --no-fund --prefer-offline && npm run build");
 
       if (buildResult.success) {
         addJobLog(jobId, `✅ Compilación completada con éxito en el intento ${attempts}!`);

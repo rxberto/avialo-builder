@@ -1,16 +1,13 @@
-import { EventEmitter } from "events";
+import { appendJobLog, getJobLogsFromStore, localJobEvents } from "./jobState.js";
 
-class JobLogEmitter extends EventEmitter {}
-
-// Emisor de eventos global para canalizar logs en tiempo real
-export const jobLogEmitter = new JobLogEmitter();
-
-// Almacenamiento opcional en memoria de logs por job para dar persistencia si el cliente conecta tarde
-const jobLogsStorage = new Map<string, string[]>();
+// Emisor de eventos para SSE. Ahora alimentado por Redis pub/sub (ver jobState.ts),
+// de modo que funciona entre procesos (API <-> worker).
+export const jobLogEmitter = localJobEvents;
 
 /**
- * Añade un log para un trabajo de generación específico y emite el evento para SSE
- * 
+ * Añade un log para un trabajo y lo publica para SSE (vía Redis).
+ * Mantiene firma síncrona (fire-and-forget) para no tocar los numerosos call sites.
+ *
  * @param jobId ID del trabajo
  * @param message Mensaje de log
  */
@@ -20,26 +17,14 @@ export function addJobLog(jobId: string, message: string) {
 
   console.log(`🤖 [Job: ${jobId}]: ${message}`);
 
-  // Almacenar en memoria
-  if (!jobLogsStorage.has(jobId)) {
-    jobLogsStorage.set(jobId, []);
-  }
-  jobLogsStorage.get(jobId)!.push(formattedMessage);
-
-  // Emitir el evento
-  jobLogEmitter.emit(`log:${jobId}`, formattedMessage);
+  appendJobLog(jobId, formattedMessage).catch((err) =>
+    console.error("⚠️ Error al persistir log del job en Redis:", err)
+  );
 }
 
 /**
- * Obtiene todos los logs acumulados para un jobId
+ * Obtiene todos los logs acumulados para un jobId (desde Redis).
  */
-export function getJobLogs(jobId: string): string[] {
-  return jobLogsStorage.get(jobId) || [];
-}
-
-/**
- * Borra los logs almacenados de un trabajo (limpieza)
- */
-export function clearJobLogs(jobId: string) {
-  jobLogsStorage.delete(jobId);
+export async function getJobLogs(jobId: string): Promise<string[]> {
+  return getJobLogsFromStore(jobId);
 }

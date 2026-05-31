@@ -2,13 +2,18 @@ import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../database/client.js';
+import { config } from '../config/env.js';
+import { stripe } from '../config/stripe.js';
+import { cleanupUserSite } from '../services/siteCleanup.js';
+import { openproviderConfig } from '../config/openprovider.js';
 import dns from 'dns';
 import { promisify } from 'util';
 
 const resolveA = promisify(dns.resolve4);
 
 export const authRouter = Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'avialo-super-secret-key-32-chars';
+// El secreto se valida en config/env.ts (aborta en producción si falta). Sin literal hardcodeado.
+const JWT_SECRET = config.auth.jwtSecret;
 
 // Interfaz extendida para guardar la sesión del usuario en Request
 export interface AuthRequest extends Request {
@@ -16,6 +21,17 @@ export interface AuthRequest extends Request {
     id: number;
     email: string;
   };
+}
+
+// Verifica un token JWT y devuelve el payload decodificado, o null si es inválido.
+// Útil para flujos donde no se pueden enviar cabeceras (p. ej. EventSource/SSE),
+// donde el token llega como query param.
+export function verifyJwt(token: string): { id: number; email: string } | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as { id: number; email: string };
+  } catch {
+    return null;
+  }
 }
 
 // Middleware de verificación de token JWT
@@ -211,8 +227,13 @@ authRouter.get('/me', authenticateToken as any, async (req: AuthRequest, res: Re
 });
 
 // 4. Actualizar Respuestas del Onboarding de Usuario
+// SEGURIDAD: este endpoint NUNCA modifica `plan` ni `aiCredits`. La activación de un
+// plan de pago se realiza EXCLUSIVAMENTE a través del webhook verificado de Stripe
+// (POST /api/stripe/webhook). Cualquier `plan`/`aiCredits` enviado por el cliente se ignora.
 authRouter.post('/update-profile', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
-  const { name, profession, role, plan, siteName, siteDomain } = req.body;
+  // NOTA: `role` NO es modificable por el cliente — es el campo de autorización que usa
+  // requireAdmin. Permitir que el usuario lo cambie sería una escalada de privilegios.
+  const { name, profession, siteName, siteDomain } = req.body;
 
   if (!req.user) {
     return res.status(401).json({ error: 'No autorizado.' });
@@ -224,33 +245,13 @@ authRouter.post('/update-profile', authenticateToken as any, async (req: AuthReq
       return res.status(404).json({ error: 'Usuario no encontrado.' });
     }
 
-    let extraData: any = {};
-    if (plan !== undefined && plan !== existingUser.plan) {
-      const PLAN_CREDITS: Record<string, number> = {
-        none: 50,
-        basic: 50,
-        corporativa: 50,
-        pro: 200,
-        dinamica: 200,
-        ecommerce: 500,
-      };
-      extraData.aiCredits = PLAN_CREDITS[plan] ?? 50;
-      const nextReset = new Date();
-      nextReset.setDate(nextReset.getDate() + 30);
-      extraData.creditsResetDate = nextReset;
-      console.log(`💳 [PLAN ADQUIRIDO] Usuario ${existingUser.email} actualiza plan de "${existingUser.plan}" a "${plan}". Asignados ${extraData.aiCredits} créditos y reset date al ${nextReset.toISOString()}`);
-    }
-
     const updatedUser = await prisma.user.update({
       where: { id: req.user.id },
       data: {
         name: name || undefined,
         profession: profession || undefined,
-        role: role || undefined,
-        plan: plan || undefined,
         siteName: siteName !== undefined ? siteName : undefined,
         siteDomain: siteDomain !== undefined ? siteDomain : undefined,
-        ...extraData
       }
     });
 
@@ -354,14 +355,15 @@ authRouter.post('/verify-dns', authenticateToken as any, async (req: AuthRequest
   }
 
   try {
+    const target = openproviderConfig.dnsTargetIp;
     const addresses = await resolveA(domain);
-    const pointsToAvialo = addresses.includes('159.69.110.22');
+    const pointsToAvialo = addresses.includes(target);
     res.json({
       ips: addresses,
       pointsToAvialo,
-      message: pointsToAvialo 
-        ? '¡Configuración DNS correcta! El dominio está apuntando a Avialo.' 
-        : `El dominio apunta a ${addresses.join(', ')} en lugar de la IP de Avialo 159.69.110.22.`
+      message: pointsToAvialo
+        ? '¡Configuración DNS correcta! El dominio está apuntando a Avialo.'
+        : `El dominio apunta a ${addresses.join(', ')} en lugar de la IP de Avialo ${target}.`
     });
   } catch (err: any) {
     res.json({
@@ -404,6 +406,62 @@ authRouter.post('/change-password', authenticateToken as any, async (req: AuthRe
     res.json({ message: 'Contraseña actualizada correctamente.' });
   } catch (error: any) {
     res.status(500).json({ error: 'Error al cambiar la contraseña: ' + error.message });
+  }
+});
+
+// 8. RGPD — Exportar todos los datos de la cuenta (portabilidad de datos)
+authRouter.get('/export-data', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    // Excluir el hash de la contraseña del export
+    const { passwordHash, ...safeUser } = user;
+
+    res.setHeader('Content-Disposition', 'attachment; filename="avialo-export.json"');
+    res.json({
+      exportedAt: new Date().toISOString(),
+      account: safeUser,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Error al exportar los datos: ' + error.message });
+  }
+});
+
+// 9. RGPD — Borrado de cuenta autoservicio (derecho al olvido)
+authRouter.delete('/account', authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'No autorizado.' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    // Cancelar la suscripción de Stripe para no seguir cobrando la tarjeta.
+    if (user.stripeSubscriptionId && stripe) {
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId).catch((err: any) =>
+        console.error(`⚠️ No se pudo cancelar la suscripción ${user.stripeSubscriptionId}:`, err.message)
+      );
+    }
+
+    // Limpiar recursos del sitio: contenedor, esquema multi-tenant y sandbox en disco.
+    await cleanupUserSite(user.siteJobId);
+
+    // Borrar el registro del usuario.
+    await prisma.user.delete({ where: { id: req.user.id } });
+
+    res.json({ success: true, message: 'Tu cuenta y todos tus datos han sido eliminados.' });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Error al eliminar la cuenta: ' + error.message });
   }
 });
 

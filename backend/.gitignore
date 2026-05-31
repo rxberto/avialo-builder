@@ -2,4 +2,10 @@ node_modules
 # Keep environment variables out of version control
 .env
 
+# Build output
+dist/
+
+# Sandboxes de proyectos generados por la IA (nunca deben versionarse)
+projects/
+
 /src/generated/prisma

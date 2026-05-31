@@ -32,5 +32,45 @@ model User {
   // AI Credits Limits
   aiCredits              Int      @default(50)
   creditsResetDate       DateTime?
+
+  @@index([siteJobId])
+  @@index([creditsResetDate])
+}
+
+// Registro de eventos de Stripe ya procesados para garantizar idempotencia
+// (Stripe puede reenviar el mismo evento varias veces — replay safety).
+model StripeEvent {
+  id          String   @id // event.id de Stripe (evt_...)
+  type        String
+  processedAt DateTime @default(now())
+}
+
+// Cuentas de correo corporativo asociadas al dominio del usuario.
+model EmailAccount {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  address      String   @unique // dirección completa local@dominio
+  localPart    String
+  domain       String
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Consumo de tokens/coste de IA por llamada, para contabilidad por job y por usuario.
+model JobUsage {
+  id           Int      @id @default(autoincrement())
+  jobId        String
+  userId       Int?
+  kind         String   // "generation" | "edit"
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  costUsd      Float
+  createdAt    DateTime @default(now())
+
+  @@index([jobId])
+  @@index([userId])
 }
 

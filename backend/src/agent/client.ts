@@ -2,6 +2,15 @@ import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { OpenAI } from "openai";
 import { config } from "../config/env.js";
+import { MODELS } from "../models/router.js";
+import type { UsageEvent } from "./cost.js";
+
+// Tope de tokens de salida por defecto para generación de código (multi-archivo).
+// 4096 truncaba salidas grandes -> parseo fallido -> reintento (doble coste).
+const DEFAULT_MAX_TOKENS = 8192;
+
+// Callback opcional para reportar el consumo de tokens (seguimiento de coste).
+export type OnUsage = (usage: UsageEvent) => void;
 
 // Inicialización segura de los SDKs oficiales
 const anthropicClient = config.anthropic.apiKey 
@@ -30,9 +39,17 @@ const openRouterClient = config.openrouter.apiKey
 export async function generateCode(
   prompt: string,
   systemPrompt: string,
-  preferredModel: "claude" | "gemini" = "claude"
+  preferredModel: "claude" | "gemini" = "claude",
+  modelId?: string,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
+  onUsage?: OnUsage
 ): Promise<string> {
-  console.log(`🤖 LLM Request: Iniciando generación con modelo preferido: ${preferredModel.toUpperCase()}`);
+  // El modelId procede del router (fuente única de verdad). Si no se pasa, usamos el
+  // modelo por defecto del tier elegido.
+  const claudeModelId = preferredModel === "claude" && modelId ? modelId : MODELS.CLAUDE;
+  const geminiModelId = preferredModel === "gemini" && modelId ? modelId : MODELS.GEMINI;
+
+  console.log(`🤖 LLM Request: modelo preferido ${preferredModel.toUpperCase()} (${preferredModel === "claude" ? claudeModelId : geminiModelId}), max_tokens=${maxTokens}`);
 
   if (process.env.MOCK_LLM === "true") {
     console.log("🤖 [MOCK LLM ACTIVE]: Simulando respuesta de la IA...");
@@ -96,20 +113,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   if (preferredModel === "claude") {
     try {
       // 1. Intentar Claude Directo (Máxima calidad)
-      return await callClaude(prompt, systemPrompt);
+      return await callClaude(prompt, systemPrompt, claudeModelId, maxTokens, onUsage);
     } catch (errorClaude: any) {
       console.warn(`⚠️ Claude Directo falló: ${errorClaude.message}. Probando Gemini Directo...`);
       try {
         // 2. Intentar Gemini Directo
-        return await callGemini(prompt, systemPrompt);
+        return await callGemini(prompt, systemPrompt, MODELS.GEMINI, maxTokens, onUsage);
       } catch (errorGemini: any) {
         console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}.`);
-        
+
         // 3. Fallback a OpenRouter con Modelos Gratuitos como salvavidas
         if (openRouterClient) {
           try {
             console.log(`🔌 Activando salvavidas de OpenRouter (Gemini Pro Free) para tarea compleja...`);
-            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-pro:free");
+            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-pro:free", onUsage);
           } catch (errorOR: any) {
             throw new Error(`❌ Todos los modelos fallaron. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message} | OpenRouter: ${errorOR.message}`);
           }
@@ -120,20 +137,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   } else {
     try {
       // 1. Intentar Gemini Directo (Rápido y económico)
-      return await callGemini(prompt, systemPrompt);
+      return await callGemini(prompt, systemPrompt, geminiModelId, maxTokens, onUsage);
     } catch (errorGemini: any) {
       console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}. Probando Claude Directo...`);
       try {
         // 2. Intentar Claude Directo
-        return await callClaude(prompt, systemPrompt);
+        return await callClaude(prompt, systemPrompt, MODELS.CLAUDE, maxTokens, onUsage);
       } catch (errorClaude: any) {
         console.warn(`⚠️ Claude Directo falló: ${errorClaude.message}.`);
-        
+
         // 3. Fallback a OpenRouter con Modelos Gratuitos como salvavidas
         if (openRouterClient) {
           try {
             console.log(`🔌 Activando salvavidas de OpenRouter (Gemini Flash Free) para tarea simple...`);
-            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-flash:free");
+            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-flash:free", onUsage);
           } catch (errorOR: any) {
             throw new Error(`❌ Todos los modelos fallaron. Gemini: ${errorGemini.message} | Claude: ${errorClaude.message} | OpenRouter: ${errorOR.message}`);
           }
@@ -145,17 +162,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 
 /**
- * Llama al API de Anthropic (Claude 3.5 Sonnet)
+ * Llama al API de Anthropic. El modelId procede del router (MODELS.CLAUDE).
  */
-async function callClaude(prompt: string, systemPrompt: string): Promise<string> {
+async function callClaude(
+  prompt: string,
+  systemPrompt: string,
+  modelId: string = MODELS.CLAUDE,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
+  onUsage?: OnUsage
+): Promise<string> {
   if (!anthropicClient) {
     throw new Error("Clave API de Anthropic no configurada en las variables de entorno.");
   }
 
-  // Claude 3.5 Sonnet v2 es ideal para programación compleja
   const response = await anthropicClient.messages.create({
-    model: "claude-3-5-sonnet-20241022",
-    max_tokens: 4096,
+    model: modelId,
+    max_tokens: maxTokens,
     system: [
       {
         type: "text",
@@ -171,35 +193,57 @@ async function callClaude(prompt: string, systemPrompt: string): Promise<string>
     ],
   });
 
+  if (onUsage && response.usage) {
+    onUsage({
+      model: modelId,
+      inputTokens: response.usage.input_tokens ?? 0,
+      outputTokens: response.usage.output_tokens ?? 0,
+    });
+  }
+
   const textContent = response.content[0];
   if (textContent.type === "text") {
     return textContent.text;
   }
-  
+
   throw new Error("Claude devolvió un formato de contenido inesperado.");
 }
 
 /**
  * Llama al API de Google Generative AI (Gemini 2.5 Flash / Pro)
  */
-async function callGemini(prompt: string, systemPrompt: string): Promise<string> {
+async function callGemini(
+  prompt: string,
+  systemPrompt: string,
+  modelId: string = MODELS.GEMINI,
+  maxTokens: number = DEFAULT_MAX_TOKENS,
+  onUsage?: OnUsage
+): Promise<string> {
   if (!googleClient) {
     throw new Error("Clave API de Google Gemini no configurada en las variables de entorno.");
   }
 
-  // Gemini 2.5 Flash ofrece velocidad y excelente razonamiento de código de respaldo
   const model = googleClient.getGenerativeModel({
-    model: "gemini-2.5-flash",
+    model: modelId,
     systemInstruction: systemPrompt,
   });
 
   const result = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: prompt }] }],
     generationConfig: {
-      maxOutputTokens: 4096,
+      maxOutputTokens: maxTokens,
       temperature: 0.2, // Temperatura baja para consistencia de sintaxis de código
     },
   });
+
+  if (onUsage) {
+    const usage = result.response.usageMetadata;
+    onUsage({
+      model: modelId,
+      inputTokens: usage?.promptTokenCount ?? 0,
+      outputTokens: usage?.candidatesTokenCount ?? 0,
+    });
+  }
 
   const text = result.response.text();
   if (text) {
@@ -212,13 +256,14 @@ async function callGemini(prompt: string, systemPrompt: string): Promise<string>
 /**
  * Llama al API de OpenRouter
  */
-async function callOpenRouter(prompt: string, systemPrompt: string, modelId: string): Promise<string> {
+async function callOpenRouter(prompt: string, systemPrompt: string, modelId: string, onUsage?: OnUsage): Promise<string> {
   if (!openRouterClient) {
     throw new Error("Cliente de OpenRouter no inicializado.");
   }
 
   const response = await openRouterClient.chat.completions.create({
     model: modelId,
+    max_tokens: DEFAULT_MAX_TOKENS,
     messages: [
       {
         role: "system",
@@ -234,6 +279,14 @@ async function callOpenRouter(prompt: string, systemPrompt: string, modelId: str
       "X-Title": "Avialo Builder",
     }
   } as any);
+
+  if (onUsage && response.usage) {
+    onUsage({
+      model: modelId,
+      inputTokens: response.usage.prompt_tokens ?? 0,
+      outputTokens: response.usage.completion_tokens ?? 0,
+    });
+  }
 
   const text = response.choices[0]?.message?.content;
   if (text) {

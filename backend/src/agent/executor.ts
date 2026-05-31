@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
-import { exec } from "child_process";
+import { runCommandInContainer } from "../docker/dockerode.js";
 
 const PROJECTS_DIR = "./projects";
 
@@ -36,8 +36,13 @@ export async function writeSandboxFile(clientId: string, relativePath: string, c
 }
 
 /**
- * Ejecuta un comando de forma segura dentro de la carpeta del sandbox del cliente
- * 
+ * Ejecuta un comando dentro del sandbox del cliente, SIEMPRE confinado en un contenedor
+ * Docker aislado (nunca en el proceso host).
+ *
+ * SEGURIDAD: el código generado por la IA puede contener scripts arbitrarios (build,
+ * postinstall, next.config). Ejecutarlos en el host sería una RCE directa sobre el
+ * orquestador (que además monta docker.sock). Por eso delegamos en runCommandInContainer.
+ *
  * @param clientId ID del cliente
  * @param command Comando a ejecutar (ej. 'npm run build')
  */
@@ -45,27 +50,7 @@ export async function runSandboxCommand(
   clientId: string,
   command: string
 ): Promise<{ success: boolean; stdout: string; stderr: string }> {
-  const sandboxDir = path.resolve(PROJECTS_DIR, clientId);
-
-  console.log(`🔨 [Sandbox: ${clientId}]: Ejecutando comando "${command}"`);
-
-  return new Promise((resolve) => {
-    // Especificamos cwd para restringir la ejecución exclusivamente a la carpeta del sandbox
-    exec(command, { cwd: sandboxDir, timeout: 60000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.warn(`⚠️  Comando falló en sandbox: ${command}`, error.message);
-        return resolve({
-          success: false,
-          stdout: stdout.toString(),
-          stderr: stderr.toString() || error.message,
-        });
-      }
-
-      resolve({
-        success: true,
-        stdout: stdout.toString(),
-        stderr: stderr.toString(),
-      });
-    });
-  });
+  console.log(`🔨 [Sandbox: ${clientId}]: Ejecutando comando en contenedor aislado: "${command}"`);
+  // El build de Next/instalación de dependencias puede tardar — timeout generoso de 5 min.
+  return runCommandInContainer(clientId, command, 5 * 60 * 1000);
 }

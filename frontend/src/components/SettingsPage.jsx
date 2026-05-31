@@ -14,6 +14,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { updateProfile, verifyDns, changePassword } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import DomainSetup from './DomainSetup';
+import EmailAccounts from './EmailAccounts';
 
 export default function SettingsPage({ user, onUpdateUser, onAddNotification }) {
   const [activeTab, setActiveTab] = useState('perfil');
@@ -396,8 +398,17 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
                     <CardDescription className="text-[11px]">Enlaza tu dominio personalizado y administra los ajustes de preview.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 md:p-8 space-y-6">
+                    {/* Registro automático de dominio (Openprovider): disponibilidad → compra → propagación */}
+                    <DomainSetup
+                      defaultBase={(user?.siteName || user?.name || '').toString()}
+                      onRegistered={(domain) => {
+                        setCustomDomain(domain);
+                        onAddNotification?.('success', 'Dominio registrado', `${domain} se ha registrado y está propagándose.`);
+                      }}
+                    />
+
                     <form onSubmit={handleSaveDomain} className="space-y-5">
-                      
+
                       {domainMessage && (
                         <div className={cn(
                           "p-3.5 rounded-xl border text-xs font-bold flex gap-2 items-center",
@@ -576,7 +587,10 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 md:p-8 space-y-8">
-                    
+
+                    {/* Gestión real de buzones (crear / listar / eliminar / cambiar contraseña) */}
+                    <EmailAccounts domain={(customDomain || user?.siteDomain || '').trim().toLowerCase().replace(/^https?:\/\//, '')} />
+
                     {/* Mailbox creator form */}
                     <div className="space-y-4">
                       <h3 className="text-xs font-bold text-foreground uppercase tracking-wide flex items-center gap-1.5">

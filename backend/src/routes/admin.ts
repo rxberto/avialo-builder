@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../database/client.js';
 import { authenticateToken, AuthRequest } from './auth.js';
-import { execSync } from 'child_process';
+import { stripe } from '../config/stripe.js';
+import { cleanupUserSite } from '../services/siteCleanup.js';
 
 export const adminRouter = Router();
 
@@ -18,6 +19,25 @@ async function requireAdmin(req: AuthRequest, res: Response, next: any) {
     res.status(500).json({ error: e.message });
   }
 }
+
+// GET /api/admin/usage — resumen de coste/tokens de IA (global y por usuario)
+adminRouter.get('/usage', authenticateToken, requireAdmin, async (_req: Request, res: Response): Promise<any> => {
+  try {
+    const totals = await prisma.jobUsage.aggregate({
+      _sum: { costUsd: true, inputTokens: true, outputTokens: true },
+      _count: true,
+    });
+    const byUser = await prisma.jobUsage.groupBy({
+      by: ['userId'],
+      _sum: { costUsd: true, inputTokens: true, outputTokens: true },
+      orderBy: { _sum: { costUsd: 'desc' } },
+      take: 50,
+    });
+    res.json({ totals, byUser });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // GET /api/admin/users — lista todos los usuarios
 adminRouter.get('/users', authenticateToken, requireAdmin, async (_req: Request, res: Response) => {
@@ -50,6 +70,17 @@ adminRouter.delete('/users/:id', authenticateToken, requireAdmin, async (req: Re
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
   try {
+    // Cancelar la suscripción de Stripe antes de borrar la cuenta (no seguir cobrando la tarjeta).
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (user?.stripeSubscriptionId && stripe) {
+      await stripe.subscriptions.cancel(user.stripeSubscriptionId).catch((err: any) =>
+        console.error(`⚠️ No se pudo cancelar la suscripción Stripe ${user.stripeSubscriptionId}:`, err.message)
+      );
+    }
+
+    // Limpiar recursos del sitio (contenedor, esquema multi-tenant, sandbox).
+    await cleanupUserSite(user?.siteJobId);
+
     await prisma.user.delete({ where: { id } });
     res.json({ success: true, message: `Usuario ${id} eliminado.` });
   } catch (e: any) {
@@ -62,6 +93,9 @@ adminRouter.delete('/users/:id/site', authenticateToken, requireAdmin, async (re
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
   try {
+    // Resolver el siteJobId antes de limpiar los campos, para poder limpiar recursos.
+    const existing = await prisma.user.findUnique({ where: { id } });
+
     const updated = await prisma.user.update({
       where: { id },
       data: {
@@ -73,13 +107,8 @@ adminRouter.delete('/users/:id/site', authenticateToken, requireAdmin, async (re
       },
     });
 
-    // Intentar eliminar el contenedor Docker del sandbox del usuario si existe
-    try {
-      const containerName = `avialo-sandbox-${id}`;
-      execSync(`docker rm -f ${containerName}`, { stdio: 'ignore' });
-    } catch (_) {
-      // Si no existe el contenedor, no pasa nada
-    }
+    // Limpiar recursos reales (contenedor avialo-preview-<clientId>, esquema y sandbox).
+    await cleanupUserSite(existing?.siteJobId);
 
     res.json({ success: true, message: `Web del usuario ${id} eliminada.`, user: updated });
   } catch (e: any) {

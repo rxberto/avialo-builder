@@ -3,3 +3,9 @@ node_modules/
 dist/
 .DS_Store
 .vercel
+
+# Secretos / certificados TLS de Traefik — nunca versionar
+infra/traefik/acme.json
+
+# Sandboxes generados por la IA
+backend/projects/

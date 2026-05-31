@@ -64,6 +64,22 @@ export async function createCheckoutSession(payload) {
   return response.json();
 }
 
+/**
+ * Abre el Customer Portal de Stripe para gestionar/cancelar la suscripción.
+ * Devuelve { url } a la que se debe redirigir al usuario.
+ */
+export async function createBillingPortalSession() {
+  const response = await fetch(`${API_BASE}/api/billing/portal`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo abrir el portal de facturación.');
+  }
+  return response.json();
+}
+
 // ============================================
 // SERVICIOS DE AUTENTICACIÓN REAL (NUEVO)
 // ============================================
@@ -131,9 +147,18 @@ export async function updateProfile(profileData) {
 
 /**
  * URL del endpoint SSE de logs de un trabajo.
+ * EventSource no permite cabeceras, así que el token JWT se pasa como query param.
  */
 export function getJobLogsSSEUrl(jobId) {
-  return `${API_BASE}/api/jobs/${jobId}/logs`;
+  let token = '';
+  const userStr = localStorage.getItem('avialo_user');
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user.token) token = user.token;
+    } catch (e) {}
+  }
+  return `${API_BASE}/api/jobs/${jobId}/logs?token=${encodeURIComponent(token)}`;
 }
 
 /**
@@ -197,6 +222,103 @@ export async function loginWithGoogle(credential) {
 }
 
 /**
+ * Comprueba disponibilidad de {baseName}.es (primario) y {baseName}.com (fallback).
+ */
+export async function checkDomainAvailability(baseName) {
+  const response = await fetch(`${API_BASE}/api/domains/check`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ baseName }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al comprobar disponibilidad del dominio.');
+  }
+  return response.json();
+}
+
+/**
+ * Registra el dominio (.es primario, .com fallback) y crea la zona DNS apuntando al droplet.
+ */
+export async function purchaseDomain(baseName) {
+  const response = await fetch(`${API_BASE}/api/domains/purchase`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ baseName }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al registrar el dominio.');
+  }
+  return response.json();
+}
+
+// ============================================
+// CORREOS CORPORATIVOS
+// ============================================
+
+export async function listEmailAccounts() {
+  const response = await fetch(`${API_BASE}/api/email/accounts`, { headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al cargar los correos.');
+  }
+  return response.json();
+}
+
+export async function createEmailAccount(localPart, password) {
+  const response = await fetch(`${API_BASE}/api/email/accounts`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ localPart, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al crear el correo.');
+  }
+  return response.json();
+}
+
+export async function deleteEmailAccount(id) {
+  const response = await fetch(`${API_BASE}/api/email/accounts/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al eliminar el correo.');
+  }
+  return response.json();
+}
+
+export async function resetEmailPassword(id, password) {
+  const response = await fetch(`${API_BASE}/api/email/accounts/${id}/reset-password`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al cambiar la contraseña del correo.');
+  }
+  return response.json();
+}
+
+/**
+ * Comprueba el estado de propagación DNS de un dominio (polling).
+ */
+export async function checkDomainPropagation(domain) {
+  const response = await fetch(`${API_BASE}/api/domains/propagation?domain=${encodeURIComponent(domain)}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Error al comprobar la propagación DNS.');
+  }
+  return response.json();
+}
+
+/**
  * Realiza una consulta DNS al backend para verificar si el dominio apunta a la IP de Avialo.
  */
 export async function verifyDns(domain) {
@@ -208,6 +330,35 @@ export async function verifyDns(domain) {
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || 'Error al verificar el dominio.');
+  }
+  return response.json();
+}
+
+/**
+ * RGPD — Descarga todos los datos de la cuenta como JSON (portabilidad de datos).
+ */
+export async function exportMyData() {
+  const response = await fetch(`${API_BASE}/api/auth/export-data`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudieron exportar los datos.');
+  }
+  return response.json();
+}
+
+/**
+ * RGPD — Elimina la cuenta del usuario y todos sus datos asociados (derecho al olvido).
+ */
+export async function deleteMyAccount() {
+  const response = await fetch(`${API_BASE}/api/auth/account`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo eliminar la cuenta.');
   }
   return response.json();
 }

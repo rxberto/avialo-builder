@@ -20,7 +20,10 @@ export const generationQueue = new Queue<GenerationJobData>("generation-queue", 
   connection: redisConnection,
   defaultJobOptions: {
     attempts: 1, // Intentos de cola (el loop de la IA maneja sus propias iteraciones)
-    removeOnComplete: true, // Limpiar en éxito
+    // Conservamos los jobs completados: son la fuente de verdad para la comprobación
+    // de propiedad (anti-IDOR) y para recuperar el clientId en edición/inspección
+    // posterior al despliegue. Retención de 30 días / máx 5000.
+    removeOnComplete: { age: 60 * 60 * 24 * 30, count: 5000 },
     removeOnFail: false,    // Conservar fallidos para auditoría
   },
 });

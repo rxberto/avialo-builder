@@ -1,11 +1,34 @@
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { randomBytes } from "crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Cargar variables de entorno desde la raíz del monorepo
 dotenv.config({ path: join(__dirname, "../../../.env") });
+
+/**
+ * Obtiene un secreto obligatorio. En producción ABORTA el arranque si falta o es débil.
+ * En desarrollo genera un secreto efímero (sin literales hardcodeados en el código).
+ */
+function requiredSecret(name: string, value: string | undefined): string {
+  if (value && value.length >= 16) return value;
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      `❌ Variable de entorno obligatoria ausente o demasiado corta: ${name}. ` +
+      `Debe tener al menos 16 caracteres. Genera una con: openssl rand -base64 32`
+    );
+  }
+
+  // Desarrollo: secreto efímero por arranque (los tokens no sobreviven a reinicios).
+  console.warn(
+    `⚠️  ${name} no definido — usando un secreto EFÍMERO de desarrollo. ` +
+    `Define ${name} en tu .env para tokens persistentes.`
+  );
+  return randomBytes(32).toString("base64");
+}
 
 export interface AppConfig {
   anthropic: {
@@ -29,6 +52,10 @@ export interface AppConfig {
   server: {
     port: number;
   };
+  auth: {
+    jwtSecret: string;
+    nextauthSecret: string;
+  };
 }
 
 export const config: AppConfig = {
@@ -36,7 +63,8 @@ export const config: AppConfig = {
     apiKey: process.env.ANTHROPIC_API_KEY,
   },
   gemini: {
-    apiKey: process.env.GEMINI_API_KEY,
+    // Aceptamos ambos nombres por compatibilidad (GEMINI_API_KEY canónico, GOOGLE_API_KEY legado).
+    apiKey: process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY,
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
@@ -52,5 +80,9 @@ export const config: AppConfig = {
   },
   server: {
     port: parseInt(process.env.PORT || "3000", 10),
+  },
+  auth: {
+    jwtSecret: requiredSecret("JWT_SECRET", process.env.JWT_SECRET),
+    nextauthSecret: requiredSecret("NEXTAUTH_SECRET", process.env.NEXTAUTH_SECRET),
   },
 };

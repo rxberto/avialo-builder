@@ -75,13 +75,25 @@ services:
       - REDIS_URL=redis://redis:6379
       - DOCKER_SOCKET=/var/run/docker.sock
       - PORT=3000
+      - FRONTEND_URL=${FRONTEND_URL}
+      - CORS_ORIGINS=${CORS_ORIGINS}
       - LITELLM_URL=${LITELLM_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NODE_ENV=production
+      - SENTRY_DSN=${SENTRY_DSN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - OPENPROVIDER_USERNAME=${OPENPROVIDER_USERNAME}
+      - OPENPROVIDER_PASSWORD=${OPENPROVIDER_PASSWORD}
+      - OPENPROVIDER_OWNER_HANDLE=${OPENPROVIDER_OWNER_HANDLE}
+      - OPENPROVIDER_NS=${OPENPROVIDER_NS}
+      - DNS_TARGET_IP=${DNS_TARGET_IP}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
@@ -101,6 +113,42 @@ services:
       - "traefik.http.routers.avialoapi.tls.certresolver=letsencrypt"
       - "traefik.http.services.avialoapi.loadbalancer.server.port=3000"
       - "traefik.docker.network=avialo-network"
+
+  worker:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: avialo-worker
+    restart: always
+    # Proceso worker independiente: consume la cola de generación de BullMQ.
+    # No expone HTTP ni rutas Traefik. Comparte estado con la API vía Redis.
+    command: ["npm", "run", "worker"]
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-postgres}?schema=public&pgbouncer=true
+      - REDIS_URL=redis://redis:6379
+      - DOCKER_SOCKET=/var/run/docker.sock
+      - LITELLM_URL=${LITELLM_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=production
+      - GENERATION_CONCURRENCY=${GENERATION_CONCURRENCY:-1}
+      - BUILD_MEMORY_BYTES=${BUILD_MEMORY_BYTES:-2147483648}
+      - RUNTIME_MEMORY_BYTES=${RUNTIME_MEMORY_BYTES:-268435456}
+      - MAX_JOB_COST_USD=${MAX_JOB_COST_USD:-2.0}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../sandbox:/app/sandbox
+    depends_on:
+      - pgbouncer
+      - redis
+    networks:
+      - avialo-network
 
 volumes:
   postgres_data:

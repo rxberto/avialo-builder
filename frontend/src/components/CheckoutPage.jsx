@@ -141,12 +141,18 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         cancelUrl: `${window.location.origin}?payment=cancel`,
       });
 
-      // Si es un entorno de desarrollo o Stripe no está configurado (dev: true o sin url/clientSecret)
+      // Flujo de simulación SOLO en desarrollo. En producción jamás se simula un pago:
+      // si no hay url ni clientSecret, es un error real y se muestra como tal.
       if (session.dev || (!session.url && !session.clientSecret)) {
+        if (!import.meta.env.DEV) {
+          setLoading(false);
+          setError('No se pudo iniciar el pago con Stripe. Vuelve a intentarlo más tarde.');
+          return;
+        }
         setShowSimulator(true);
         setSimulatorStep(0);
-        
-        // Simular flujo de seguridad de Stripe con una experiencia espectacular
+
+        // Simular flujo de seguridad de Stripe (solo desarrollo)
         setTimeout(() => setSimulatorStep(1), 1200);
         setTimeout(() => setSimulatorStep(2), 2600);
         setTimeout(() => {
@@ -166,7 +172,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         setTimeout(async () => {
           try {
             const stripe = await stripePromise;
-            const checkout = await stripe.createEmbeddedCheckoutPage({
+            const checkout = await stripe.initEmbeddedCheckout({
               clientSecret: session.clientSecret,
             });
             checkout.mount('#checkout-container');

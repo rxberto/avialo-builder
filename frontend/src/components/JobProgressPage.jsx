@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { useJobSSE } from '@/lib/useJobSSE';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,20 +89,24 @@ export default function JobProgressPage({ jobId, clientData, error, onReset, onS
       if (!hasSyncedRef.current) {
         hasSyncedRef.current = true;
         onSyncProfile();
-        if (onAddNotification) {
-          if (status === 'deployed') {
-            onAddNotification(
-              'success', 
-              '¡Web compilada y viva!', 
-              `Tu sitio "${clientData?.businessName || 'SaaS Avialo'}" ha sido desplegado con éxito en el subdominio.`
-            );
-          } else {
-            onAddNotification(
-              'warning', 
-              'Compilación fallida', 
-              `El Agente IA detectó un error al compilar el proyecto. Por favor, reintenta.`
-            );
-          }
+        if (status === 'deployed') {
+          toast.success('¡Web desplegada con éxito!', {
+            description: `Tu sitio "${clientData?.businessName || 'SaaS Avialo'}" ya está en línea.`,
+          });
+          onAddNotification?.(
+            'success',
+            '¡Web compilada y viva!',
+            `Tu sitio "${clientData?.businessName || 'SaaS Avialo'}" ha sido desplegado con éxito en el subdominio.`
+          );
+        } else {
+          toast.error('La generación falló', {
+            description: error || 'El Agente IA agotó los 5 intentos de compilación. Puedes reintentar.',
+          });
+          onAddNotification?.(
+            'warning',
+            'Compilación fallida',
+            `El Agente IA detectó un error al compilar el proyecto. Por favor, reintenta.`
+          );
         }
       }
     }

@@ -40,5 +40,31 @@ export async function createTenantSchema(clientId: string): Promise<{ success: b
   }
 }
 
+/**
+ * Elimina por completo el esquema de un tenant (RGPD: borrado de datos).
+ * Usa la misma sanitización estricta que la creación.
+ *
+ * @param clientId ID del cliente
+ */
+export async function dropTenantSchema(clientId: string): Promise<{ success: boolean; schemaName: string; error?: string }> {
+  const sanitizedId = clientId
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "");
+
+  const schemaName = `tenant_${sanitizedId}`;
+  const client = await pool.connect();
+
+  try {
+    console.log(`🗑️  Eliminando esquema multi-tenant: ${schemaName}`);
+    await client.query(`DROP SCHEMA IF EXISTS "${schemaName}" CASCADE`);
+    return { success: true, schemaName };
+  } catch (error: any) {
+    console.error(`❌ Error al eliminar el esquema "${schemaName}":`, error);
+    return { success: false, schemaName, error: error.message || "Error al eliminar el esquema SQL." };
+  } finally {
+    client.release();
+  }
+}
+
 // Exportar el pool por si se requiere realizar consultas globales
 export { pool };
