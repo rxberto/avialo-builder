@@ -30,7 +30,7 @@ model User {
   siteStatus             String   @default("none") // "none" | "pending" | "generating" | "deployed" | "failed"
 
   // AI Credits Limits
-  aiCredits              Int      @default(50)
+  aiCredits              Int      @default(0) // Credits are assigned on plan purchase or manually
   creditsResetDate       DateTime?
 
   @@index([siteJobId])
@@ -68,9 +68,22 @@ model JobUsage {
   inputTokens  Int
   outputTokens Int
   costUsd      Float
+  creditsUsed  Int      @default(0)
   createdAt    DateTime @default(now())
 
   @@index([jobId])
+  @@index([userId])
+}
+
+// Enterprise Credit Ledger para evitar pérdida de datos en el saldo
+model CreditTransaction {
+  id          String   @id @default(uuid())
+  userId      Int
+  amount      Int      // Positivo (añade créditos), Negativo (deduce)
+  reason      String   // e.g. "Monthly Plan Basic", "Admin Adjustment", "JobUsage: job_id"
+  metadata    String?  // JSON with extra details
+  createdAt   DateTime @default(now())
+
   @@index([userId])
 }
 

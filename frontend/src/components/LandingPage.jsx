@@ -246,8 +246,8 @@ export default function LandingPage({ onNavigate }) {
       description: 'Web corporativa sencilla. Ideal para dar a conocer tu negocio tradicional en internet.',
       features: [
         'Web Profesional Completa',
-        '50 Créditos de IA mensuales',
-        'Crear sitio: 10 cr | Editar: 1 a 3 cr',
+        '800 Créditos de IA mensuales ($8)',
+        'Crear sitio: ~500 cr | Editar: ~1 a 5 cr',
         'Dominio propio incluido (.es, .com)',
         'Formulario de contacto básico',
         'Soporte por email en español'
@@ -257,13 +257,13 @@ export default function LandingPage({ onNavigate }) {
     },
     {
       name: 'Plan Pro',
-      price: '59€',
+      price: '49€',
       period: '/mes',
       description: 'Web con reservas online automatizadas. Ideal para clínicas, restaurantes y servicios.',
       features: [
         'Web con Reservas en Vivo',
-        '200 Créditos de IA mensuales',
-        'Crear sitio: 10 cr | Editar: 1 a 3 cr',
+        '1,500 Créditos de IA mensuales ($15)',
+        'Crear sitio: ~500 cr | Editar: ~1 a 5 cr',
         'Calendario de Cita Previa integrado',
         'Panel de control de reservas',
         'Soporte prioritario por teléfono'
@@ -273,13 +273,13 @@ export default function LandingPage({ onNavigate }) {
     },
     {
       name: 'Plan Ecommerce',
-      price: '119€',
+      price: '75€',
       period: '/mes',
       description: 'Tienda online completa con pasarela de cobros. Ideal para vender en toda España.',
       features: [
         'Tienda Online Completa',
-        '500 Créditos de IA mensuales',
-        'Crear sitio: 10 cr | Editar: 1 a 3 cr',
+        '3,000 Créditos de IA mensuales ($30)',
+        'Crear sitio: ~500 cr | Editar: ~1 a 5 cr',
         'Catálogo de productos interactivo',
         'Pasarela de cobros con Tarjeta / Stripe',
         'Soporte VIP inmediato'

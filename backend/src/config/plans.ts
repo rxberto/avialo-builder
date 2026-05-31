@@ -5,12 +5,12 @@
 // Usado por el webhook de Stripe (activación) y por el reseteo mensual de créditos.
 
 export const PLAN_CREDITS: Record<string, number> = {
-  none: 50,
-  basic: 50,
-  corporativa: 50,
-  pro: 200,
-  dinamica: 200,
-  ecommerce: 500,
+  none: 50, // Pequeño bono inicial freemium si se desea
+  basic: 800,
+  corporativa: 800, // Alias legacy
+  pro: 1500,
+  dinamica: 1500, // Alias legacy
+  ecommerce: 3000,
 };
 
 export const DEFAULT_PLAN_CREDITS = 50;

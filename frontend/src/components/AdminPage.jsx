@@ -33,7 +33,7 @@ export default function AdminPage({ user, onLogout }) {
   const [confirmModal, setConfirmModal] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState({
-    name: '', email: '', password: '', plan: 'pro', aiCredits: 50, profession: ''
+    name: '', email: '', password: '', plan: 'pro', aiCredits: 1500, profession: ''
   });
   const [creating, setCreating] = useState(false);
 
@@ -109,13 +109,13 @@ export default function AdminPage({ user, onLogout }) {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({
           ...createForm,
-          aiCredits: parseInt(createForm.aiCredits) || 50,
+          aiCredits: parseInt(createForm.aiCredits) || 1500,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       showToast(`✅ Usuario "${createForm.email}" creado con plan "${createForm.plan}".`);
-      setCreateForm({ name: '', email: '', password: '', plan: 'pro', aiCredits: 50, profession: '' });
+      setCreateForm({ name: '', email: '', password: '', plan: 'pro', aiCredits: 1500, profession: '' });
       setShowCreateForm(false);
       fetchUsers();
     } catch (e) { showToast(`❌ ${e.message}`, 'error'); }
@@ -444,7 +444,7 @@ export default function AdminPage({ user, onLogout }) {
                   </div>
                   <div style={{ fontSize: '13px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
                   <div>{planBadge(u.plan)}</div>
-                  <div style={{ fontWeight: 700, fontSize: '16px', color: u.aiCredits <= 10 ? '#ef4444' : '#10b981' }}>{u.aiCredits}</div>
+                  <div style={{ fontWeight: 700, fontSize: '16px', color: u.aiCredits < 500 ? '#ef4444' : '#10b981' }}>{u.aiCredits}</div>
                   <div>{statusBadge(u.siteStatus)}</div>
 
                   {/* Credits editor */}

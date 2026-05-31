@@ -123,10 +123,29 @@ adminRouter.patch('/users/:id/credits', authenticateToken, requireAdmin, async (
   const { credits } = req.body;
   if (typeof credits !== 'number') return res.status(400).json({ error: 'El campo credits debe ser un número' });
   try {
-    const updated = await prisma.user.update({
-      where: { id },
-      data: { aiCredits: credits },
-    });
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const diff = credits - user.aiCredits;
+    if (diff === 0) {
+      return res.json({ success: true, message: `Los créditos ya son ${credits}.`, user });
+    }
+
+    const [updated] = await prisma.$transaction([
+      prisma.user.update({
+        where: { id },
+        data: { aiCredits: credits },
+      }),
+      prisma.creditTransaction.create({
+        data: {
+          userId: id,
+          amount: diff,
+          reason: "Admin Adjustment",
+          metadata: JSON.stringify({ adminId: req.user?.id, previousCredits: user.aiCredits, newCredits: credits })
+        }
+      })
+    ]);
+
     res.json({ success: true, message: `Créditos actualizados a ${credits}.`, user: updated });
   } catch (e: any) {
     res.status(500).json({ error: e.message });

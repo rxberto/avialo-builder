@@ -43,18 +43,18 @@ export default function IAInfoPage({ onNavigate }) {
           {[
             {
               icon: <Cpu className="w-5 h-5 text-indigo-500" />,
-              title: "Cómputo Dedicado",
-              desc: "Cada crédito activa LLMs avanzados de razonamiento estructurado para generar y modificar código Next.js y PostgreSQL aislado."
+              title: "Orquestación de Modelos",
+              desc: "Usamos el modelo adecuado para el trabajo: Claude para lógica compleja, y DeepSeek para escritura rápida y económica de código UI."
             },
             {
-              icon: <Zap className="w-5 h-5 text-amber-500" />,
-              title: "Consumo Justo",
-              desc: "Solo consumes energía cuando decides transformar tu web. Sin cuotas de mantenimiento de IA ocultas."
+              icon: <Activity className="w-5 h-5 text-amber-500" />,
+              title: "Consumo Dinámico",
+              desc: "No cobramos tarifas planas. El costo varía según la complejidad de tu petición y los tokens exactos consumidos por las IA."
             },
             {
               icon: <RefreshCw className="w-5 h-5 text-emerald-500" />,
-              title: "Reinicio Mensual",
-              desc: "Tus créditos se reabastecen automáticamente al 100% cada mes según tu plan de facturación activo."
+              title: "Créditos Abundantes",
+              desc: "Todos nuestros planes incluyen un saldo generoso renovado mensualmente que da para cientos de ediciones con DeepSeek."
             }
           ].map((item, idx) => (
             <Card key={idx} className="glass bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 p-5 rounded-2xl flex flex-col justify-between text-left shadow-sm">
@@ -73,26 +73,48 @@ export default function IAInfoPage({ onNavigate }) {
         <Card className="glass bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800/80 rounded-3xl overflow-hidden text-left shadow-sm">
           <CardContent className="p-6 md:p-8 space-y-6">
             <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white">Tabla de Equivalencias de Consumo</h2>
-              <p className="text-[11px] text-zinc-500 mt-1 leading-normal font-medium">Conoce exactamente cómo se aplican los créditos cuando actúas en tu panel.</p>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-white">Estimaciones de Consumo Dinámico</h2>
+              <p className="text-[11px] text-zinc-500 mt-1 leading-normal font-medium">
+                Un (1) Crédito equivale aproximadamente a un céntimo de dólar de poder de cómputo en crudo.
+              </p>
             </div>
             
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden divide-y divide-zinc-200 dark:divide-zinc-800 bg-zinc-50/50 dark:bg-black/10 text-xs">
               {[
-                { action: "Generación Completa de Sitio Web", cost: "10 Créditos", details: "Aprovisionamiento de base de datos PostgreSQL, contenedor Docker, enrutamiento SSL y scaffolding inicial de Next.js.", highlight: true },
-                { action: "Edición Simple (Motor DeepSeek)", cost: "1 Crédito", details: "Actualizaciones semánticas rápidas, cambios de imágenes, corrección de copies o reajustes estéticos puntuales en vivo (costo bajo y ultra veloz).", highlight: false },
-                { action: "Reestructuración Lógica (Motor Pro)", cost: "3 Créditos", details: "Modificaciones complejas de arquitectura, lógica de negocio, o rediseños profundos que requieren el razonamiento denso de modelos Pro (ej. Claude/Gemini).", highlight: false },
-                { action: "Soporte de Consultas e IDE Sandbox", cost: "0 Créditos", details: "Las interacciones y chat de ayuda con el Agente de IA dentro de tu editor de código privado son ilimitadas y gratuitas.", highlight: false }
+                { 
+                  action: "Generación Web Completa", 
+                  cost: "~500 a 1,000 Créditos", 
+                  details: "Utilizamos modo cascada para máxima fiabilidad: Claude Sonnet (Prioridad) -> Gemini -> OpenAI -> DeepSeek. Incluye BD, Docker y estructura Next.js.", 
+                  highlight: true 
+                },
+                { 
+                  action: "Desarrollo de Features Complejos", 
+                  cost: "~30 a 80 Créditos", 
+                  details: "Ej. 'Crear un sistema de login con panel'. Claude diseña la arquitectura, DeepSeek/Gemini generan el volumen de código y Claude audita la seguridad final.", 
+                  highlight: false 
+                },
+                { 
+                  action: "Ajustes y Ediciones Simples", 
+                  cost: "~1 a 5 Créditos", 
+                  details: "Priorizamos DeepSeek por su increíble velocidad y eficiencia de costo para cambios en UI, copies o ajustes visuales puntuales.", 
+                  highlight: false 
+                },
+                { 
+                  action: "Consultas en Chat (IDE)", 
+                  cost: "0 Créditos", 
+                  details: "Hablar con el agente de IA para planificar o resolver dudas sobre tu código es 100% gratuito.", 
+                  highlight: false 
+                }
               ].map((item, idx) => (
                 <div key={idx} className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 gap-3 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/10 transition-colors">
                   <div className="space-y-1">
                     <span className="font-bold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
                       {item.action}
-                      {item.highlight && <Badge className="bg-brand/10 text-brand border border-brand/20 text-[7px] font-bold py-0 px-1">INICIO</Badge>}
+                      {item.highlight && <Badge className="bg-brand/10 text-brand border border-brand/20 text-[7px] font-bold py-0 px-1">CASCADA</Badge>}
                     </span>
                     <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-normal max-w-lg font-medium">{item.details}</p>
                   </div>
-                  <Badge className="bg-indigo-500/10 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80 font-extrabold text-[10px] py-1 px-3 shrink-0">
+                  <Badge className="bg-indigo-500/10 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80 font-extrabold text-[10px] py-1 px-3 shrink-0 whitespace-nowrap">
                     {item.cost}
                   </Badge>
                 </div>

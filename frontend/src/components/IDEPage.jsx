@@ -147,14 +147,14 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     localStorage.setItem('avialo_hide_ide_tutorial', 'true');
   };
 
-  const userCredits = user?.aiCredits ?? 50;
+  const userCredits = user?.aiCredits ?? 0;
   const maxCredits = {
     none: 50,
-    basic: 50,
-    corporativa: 50,
-    pro: 200,
-    dinamica: 200,
-    ecommerce: 500
+    basic: 800,
+    corporativa: 800,
+    pro: 1500,
+    dinamica: 1500,
+    ecommerce: 3000
   }[user?.plan] || 50;
 
   /* ── Panel Resizing States & Handlers ── */
@@ -299,7 +299,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     if (onUpdateUser && user) {
       onUpdateUser({
         ...user,
-        aiCredits: Math.max(0, (user.aiCredits ?? 50) - 1)
+        aiCredits: Math.max(0, (user.aiCredits ?? 0) - 1)
       });
     }
 

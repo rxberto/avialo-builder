@@ -368,9 +368,11 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
           {(() => {
             const maxCredits = {
               none: 50,
-              basic: 50,
-              pro: 200,
-              ecommerce: 500
+              basic: 800,
+              corporativa: 800,
+              pro: 1500,
+              dinamica: 1500,
+              ecommerce: 3000
             }[user.plan] || 50;
 
             const usedCredits = Math.max(0, maxCredits - (user.aiCredits ?? 0));

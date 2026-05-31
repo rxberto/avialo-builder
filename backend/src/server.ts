@@ -578,9 +578,9 @@ app.post("/api/jobs", authenticateToken as any, async (req: AuthRequest, res: Re
     }
 
     // Control de Límite de Créditos IA
-    if (dbUser.aiCredits < 10) {
+    if (dbUser.aiCredits < 500) {
       return res.status(402).json({
-        error: "Créditos IA insuficientes. Necesitas al menos 10 créditos para generar una nueva web. Por favor, actualiza tu plan.",
+        error: "Créditos IA insuficientes. Necesitas al menos 500 créditos para generar una nueva web completa. Por favor, actualiza tu plan.",
         code: "INSUFFICIENT_CREDITS"
       });
     }
@@ -600,26 +600,25 @@ app.post("/api/jobs", authenticateToken as any, async (req: AuthRequest, res: Re
       }
     }
 
-    // Descuento ATÓMICO de créditos con guarda (race-safe): solo descuenta si el usuario
-    // sigue teniendo plan activo y >=10 créditos. Evita el doble gasto por peticiones
-    // concurrentes. Las comprobaciones anteriores son solo para mensajes de error claros.
-    const charge = await prisma.user.updateMany({
+    // Guarda atómica (race-safe): actualizamos el siteStatus a 'pending' para evitar doble encolado concurrente.
+    // Los créditos se descontarán de forma exacta al finalizar el job (vía recordJobUsage).
+    const guard = await prisma.user.updateMany({
       where: {
         id: req.user.id,
-        plan: { not: "none" },
-        aiCredits: { gte: 10 },
+        // Solo permite si no está ya generating o pending en este instante
+        siteStatus: { notIn: ["pending", "generating"] }
       },
-      data: { aiCredits: { decrement: 10 } },
+      data: { siteStatus: "pending" },
     });
 
-    if (charge.count === 0) {
-      return res.status(402).json({
-        error: "No se pudo descontar el crédito (saldo insuficiente o sin plan activo).",
-        code: "INSUFFICIENT_CREDITS",
+    if (guard.count === 0 && dbUser.siteStatus !== "none" && dbUser.siteStatus !== "failed" && dbUser.siteStatus !== "deployed") {
+      return res.status(409).json({
+        error: "Ya hay una petición de generación en curso.",
+        code: "CONCURRENT_REQUEST",
       });
     }
 
-    // Encolar el job. Si falla, REEMBOLSAR los créditos descontados.
+    // Encolar el job. Si falla, REVERTIMOS el estado.
     let job;
     try {
       job = await generationQueue.add(`generation-${clientId}`, {
@@ -636,8 +635,8 @@ app.post("/api/jobs", authenticateToken as any, async (req: AuthRequest, res: Re
     } catch (enqueueErr: any) {
       await prisma.user.update({
         where: { id: req.user.id },
-        data: { aiCredits: { increment: 10 } },
-      }).catch((err: any) => console.error("⚠️ Error al reembolsar créditos tras fallo de encolado:", err));
+        data: { siteStatus: dbUser.siteStatus }, // revertir al estado anterior
+      }).catch((err: any) => console.error("⚠️ Error al revertir estado tras fallo de encolado:", err));
       throw enqueueErr;
     }
 
@@ -901,26 +900,27 @@ app.post("/api/jobs/:id/edit", authenticateToken as any, async (req: AuthRequest
 
     // Identificar si el cambio es complejo o simple para deducción de créditos dinámica y enrutamiento LLM.
     const isComplexEdit = prompt.length > 80 || /crea|añad|nuev|reestructur|base de datos|complej|página/i.test(prompt);
-    const cost = isComplexEdit ? 3 : 1;
     const preferredModel = isComplexEdit ? "claude" : "deepseek";
-
-    // Descuento ATÓMICO de los créditos requeridos con guarda (race-safe).
-    const charge = await prisma.user.updateMany({
-      where: { id: req.user.id, plan: { not: "none" }, aiCredits: { gte: cost } },
-      data: { aiCredits: { decrement: cost } },
-    });
-    if (charge.count === 0) {
-      return res.status(402).json({
-        error: `No se pudo descontar ${cost} crédito(s) (saldo insuficiente o sin plan activo).`,
-        code: "INSUFFICIENT_CREDITS",
-      });
-    }
-
-    // Actualizar el estado a "generating".
-    await prisma.user.update({
-      where: { id: req.user.id },
+    
+    // Ya no hacemos descuento atómico previo aquí, el coste dinámico se calcula al finalizar
+    // el trabajo a través de recordJobUsage.
+    
+    // Verificamos de forma segura que el usuario no esté en otro proceso que chocaría
+    const guard = await prisma.user.updateMany({
+      where: { 
+        id: req.user.id, 
+        siteStatus: { notIn: ["generating", "pending"] },
+        aiCredits: { gte: 1 } // Requiere al menos 1 crédito para empezar
+      },
       data: { siteStatus: "generating" }
     });
+
+    if (guard.count === 0) {
+      return res.status(409).json({
+        error: "Hay una petición en curso o no tienes suficientes créditos.",
+        code: "CONCURRENT_REQUEST_OR_FUNDS"
+      });
+    }
 
     const currentStatus = await getJobStatus(jobId);
     await setJobStatus({
