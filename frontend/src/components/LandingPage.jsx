@@ -763,7 +763,7 @@ export default function LandingPage({ onNavigate }) {
               <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
                 {[
                   { src: '/ide-avialo.png', alt: 'Editor Visual IDE' },
-                  { src: '/panel-avialo.png', alt: 'Panel Avialo Builder' },
+                  { src: '/web-abogados.png', alt: 'Web Gestoría / Abogados' },
                   { src: '/reservas-tiempo-real.png', alt: 'Reservas en tiempo real' },
                   { src: '/web-generada.png', alt: 'Web generada' },
                 ].map((shot, index) => {
@@ -1369,8 +1369,8 @@ export default function LandingPage({ onNavigate }) {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">¿Aún tienes dudas?</h3>
-                    <a href="mailto:soporte@avialo.es" className="text-sm font-medium text-brand hover:underline dark:text-brand-accent">
-                      soporte@avialo.es
+                    <a href="mailto:hola@avialo.es" className="text-sm font-medium text-brand hover:underline dark:text-brand-accent">
+                      hola@avialo.es
                     </a>
                   </div>
                 </div>
