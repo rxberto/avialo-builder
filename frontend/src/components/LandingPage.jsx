@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } fr
 import {
   ArrowRight, Check, Sparkles, Globe, Calendar, Database, Terminal,
   ChevronDown, Star, Utensils, Stethoscope, Store, Shield, Cpu,
-  Zap, CreditCard, Folder, File, Minus, Plus, Lock, MousePointerClick
+  Zap, CreditCard, Folder, File, Minus, Plus, Lock, MousePointerClick, Headset
 } from 'lucide-react';
 import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
@@ -1023,58 +1023,87 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           FAQ
           ============================================================ */}
-      <section className="mx-auto max-w-5xl px-6 py-24">
-        <Reveal className="mb-12 text-center">
-          <Eyebrow className="mb-4 justify-center">Dudas frecuentes</Eyebrow>
-          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            ¿Tienes preguntas?
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">Aquí van las respuestas más directas.</p>
-        </Reveal>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {faqs.map((faq, index) => {
-            const isOpen = openFaq === index;
-            const badges = [
-              'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-              'bg-sky-500/10 text-sky-600 dark:text-sky-400',
-              'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
-              'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-            ];
-            return (
-              <Reveal key={faq.q} delay={index * 0.04}>
-                <div className={cn(
-                  'overflow-hidden rounded-2xl border transition-all duration-300',
-                  isOpen ? 'border-brand/20 bg-brand/3 shadow-sm' : 'border-border bg-card hover:border-border/80'
-                )}>
-                  <button
-                    onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="flex w-full items-start gap-3.5 p-5 text-left outline-none"
-                  >
-                    <span className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[11px] font-extrabold', badges[index])}>
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <span className="flex-1 text-[15px] font-semibold leading-snug text-foreground">{faq.q}</span>
-                    <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.28, ease: EASE }}>
-                      <ChevronDown className={cn('mt-0.5 h-4 w-4 shrink-0 transition-colors', isOpen ? 'text-brand' : 'text-muted-foreground')} />
-                    </motion.div>
-                  </button>
-                  <AnimatePresence initial={false}>
-                    {isOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.28, ease: EASE }}
-                      >
-                        <p className="px-5 pb-5 pl-[3.75rem] text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+      <section className="mx-auto max-w-6xl px-6 py-24 lg:py-32">
+        <div className="grid gap-16 lg:grid-cols-12">
+          {/* Header Izquierda */}
+          <div className="lg:col-span-5">
+            <Reveal>
+              <Eyebrow className="mb-4">Dudas frecuentes</Eyebrow>
+              <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+                Todo lo que necesitas saber
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                Respondemos a las preguntas más comunes sobre Avialo Builder. Si tienes alguna duda adicional, nuestro equipo de soporte está siempre disponible.
+              </p>
+              
+              <div className="mt-8 rounded-2xl bg-brand/5 p-6 border border-brand/10">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand/10">
+                    <Headset className="h-6 w-6 text-brand" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-foreground">¿Aún tienes dudas?</h3>
+                    <a href="mailto:soporte@avialo.es" className="text-sm font-medium text-brand hover:underline dark:text-brand-accent">
+                      soporte@avialo.es
+                    </a>
+                  </div>
                 </div>
-              </Reveal>
-            );
-          })}
+              </div>
+            </Reveal>
+          </div>
+
+          {/* Acordeón Derecha */}
+          <div className="lg:col-span-7">
+            <div className="space-y-4">
+              {faqs.map((faq, index) => {
+                const isOpen = openFaq === index;
+                return (
+                  <Reveal key={faq.q} delay={index * 0.05}>
+                    <div 
+                      className={cn(
+                        'group rounded-2xl border transition-all duration-300',
+                        isOpen 
+                          ? 'border-brand/20 bg-card shadow-lg shadow-brand/5' 
+                          : 'border-transparent bg-transparent hover:bg-muted/50'
+                      )}
+                    >
+                      <button
+                        onClick={() => setOpenFaq(isOpen ? null : index)}
+                        className="flex w-full items-center justify-between gap-4 p-5 text-left outline-none sm:p-6"
+                      >
+                        <span className={cn(
+                          "text-base font-semibold leading-snug transition-colors",
+                          isOpen ? "text-brand dark:text-brand-accent" : "text-foreground group-hover:text-brand dark:group-hover:text-brand-accent"
+                        )}>
+                          {faq.q}
+                        </span>
+                        <div className={cn(
+                          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-all duration-300",
+                          isOpen ? "border-brand bg-brand text-white" : "border-border bg-card text-muted-foreground group-hover:border-brand/30 group-hover:text-brand dark:group-hover:text-brand-accent"
+                        )}>
+                          <Plus className={cn("h-4 w-4 transition-transform duration-300", isOpen && "rotate-45")} />
+                        </div>
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {isOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                          >
+                            <div className="px-5 pb-6 sm:px-6 sm:pb-7 text-sm leading-relaxed text-muted-foreground">
+                              {faq.a}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </Reveal>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
