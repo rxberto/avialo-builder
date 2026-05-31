@@ -246,7 +246,8 @@ export default function LandingPage({ onNavigate }) {
       description: 'Web corporativa sencilla. Ideal para dar a conocer tu negocio tradicional en internet.',
       features: [
         'Web Profesional Completa',
-        'Hasta 20 cambios por IA al mes',
+        '50 Créditos de IA mensuales',
+        'Crear sitio: 10 cr | Editar: 1 cr',
         'Dominio propio incluido (.es, .com)',
         'Formulario de contacto básico',
         'Soporte por email en español'
@@ -261,10 +262,10 @@ export default function LandingPage({ onNavigate }) {
       description: 'Web con reservas online automatizadas. Ideal para clínicas, restaurantes y servicios.',
       features: [
         'Web con Reservas en Vivo',
-        'Cambios por IA ILIMITADOS',
+        '200 Créditos de IA mensuales',
+        'Crear sitio: 10 cr | Editar: 1 cr',
         'Calendario de Cita Previa integrado',
         'Panel de control de reservas',
-        'Dominio propio e email comercial',
         'Soporte prioritario por teléfono'
       ],
       cta: 'Empezar Plan Pro',
@@ -277,10 +278,10 @@ export default function LandingPage({ onNavigate }) {
       description: 'Tienda online completa con pasarela de cobros. Ideal para vender en toda España.',
       features: [
         'Tienda Online Completa',
-        'Cambios por IA ILIMITADOS',
+        '500 Créditos de IA mensuales',
+        'Crear sitio: 10 cr | Editar: 1 cr',
         'Catálogo de productos interactivo',
         'Pasarela de cobros con Tarjeta / Stripe',
-        'Gestión de stock automática',
         'Soporte VIP inmediato'
       ],
       cta: 'Empezar Plan Ecommerce',
@@ -339,7 +340,7 @@ export default function LandingPage({ onNavigate }) {
           </h1>
 
           {/* Sincere, simple and clear subtitle */}
-          <p className="text-sm sm:text-base md:text-lg text-zinc-550 dark:text-zinc-405 font-semibold leading-relaxed max-w-xl">
+          <p className="text-sm sm:text-base md:text-lg text-zinc-500 dark:text-zinc-400 font-semibold leading-relaxed max-w-xl">
             Escribe cómo es tu negocio tradicional en español. Nuestro algoritmo propio genera tu web profesional y activa tu sistema de reservas o cobros al instante.
           </p>
 
@@ -358,14 +359,14 @@ export default function LandingPage({ onNavigate }) {
 
             <a
               href="#pricing"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-white hover:bg-zinc-50 dark:bg-zinc-900/60 dark:hover:bg-zinc-850/80 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-350 font-bold transition-all duration-300 text-xs active:scale-[0.98] shadow-sm w-full sm:w-auto"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-2xl bg-white hover:bg-zinc-50 dark:bg-zinc-900/60 dark:hover:bg-zinc-800/80 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold transition-all duration-300 text-xs active:scale-[0.98] shadow-sm w-full sm:w-auto"
             >
               Ver Planes y Precios
             </a>
           </div>
 
           {/* Plain simple trust values list */}
-          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-black text-zinc-450 dark:text-zinc-400 uppercase tracking-wider pt-4 border-t border-zinc-200/50 dark:border-zinc-850/50 w-full">
+          <div className="flex flex-wrap gap-x-5 gap-y-2 text-[10px] font-black text-zinc-400 dark:text-zinc-400 uppercase tracking-wider pt-4 border-t border-zinc-200/50 dark:border-zinc-800/50 w-full">
             <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Web autogestionada</span>
             <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Sin comisiones por reservas</span>
             <span className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 text-emerald-500" /> Dominio propio incluido</span>
@@ -374,13 +375,13 @@ export default function LandingPage({ onNavigate }) {
         </div>
 
         {/* Right Column: Visual IDE Mockup (VS Code style but visual layout builder) with 3D Hover Tilt */}
-        <div className="w-full lg:w-[50%] flex justify-center items-center relative h-[560px] z-10 mt-6 lg:mt-0">
+        <div className="w-full lg:w-[50%] flex justify-center items-center relative h-[420px] sm:h-[560px] z-10 mt-6 lg:mt-0">
           
           {/* Overlapping Glassmorphic Card 1 (Hovering in front, z-index 30, casting high-fidelity shadow) */}
           <motion.div
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -top-6 -left-6 z-30 max-w-[200px] p-4 glass border border-zinc-200/40 dark:border-zinc-850/60 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] text-left flex items-start gap-3 pointer-events-none select-none"
+            className="hidden sm:flex absolute -top-6 -left-6 z-30 max-w-[200px] p-4 glass border border-zinc-200/40 dark:border-zinc-800/60 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] text-left flex items-start gap-3 pointer-events-none select-none"
           >
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
               <Check className="w-4 h-4" />
@@ -395,7 +396,7 @@ export default function LandingPage({ onNavigate }) {
           <motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute -bottom-4 -right-4 z-30 max-w-[200px] p-4 glass border border-zinc-200/40 dark:border-zinc-850/60 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] text-left flex items-start gap-3 pointer-events-none select-none"
+            className="hidden sm:flex absolute -bottom-4 -right-4 z-30 max-w-[200px] p-4 glass border border-zinc-200/40 dark:border-zinc-800/60 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] text-left flex items-start gap-3 pointer-events-none select-none"
           >
             <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
               <Sparkles className="w-4 h-4" />
@@ -411,7 +412,7 @@ export default function LandingPage({ onNavigate }) {
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             style={tiltStyle}
-            className="w-full max-w-md h-[480px] rounded-[2.5rem] border border-zinc-200 dark:border-zinc-900 overflow-hidden shadow-2xl bg-[#0b0c0f] dark:bg-[#050608] flex flex-col transition-shadow duration-300 relative pointer-events-auto z-10 text-left font-sans"
+            className="w-full max-w-md h-[380px] sm:h-[480px] rounded-[2.5rem] border border-zinc-200 dark:border-zinc-900 overflow-hidden shadow-2xl bg-[#0b0c0f] dark:bg-[#050608] flex flex-col transition-shadow duration-300 relative pointer-events-auto z-10 text-left font-sans"
           >
             <BorderBeam size={280} duration={12} borderWidth={1.5} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
 
@@ -432,7 +433,7 @@ export default function LandingPage({ onNavigate }) {
             <div className="flex-1 flex overflow-hidden">
               
               {/* Narrow visual sidebar */}
-              <div className="w-12 bg-[#07090b] border-r border-[#161a22] flex flex-col items-center py-4 gap-4 text-zinc-650 shrink-0">
+              <div className="w-12 bg-[#07090b] border-r border-[#161a22] flex flex-col items-center py-4 gap-4 text-zinc-500 shrink-0">
                 <LayoutGrid className="w-4 h-4 text-indigo-400" />
                 <Network className="w-4 h-4" />
                 <Database className="w-4 h-4" />
@@ -524,11 +525,11 @@ export default function LandingPage({ onNavigate }) {
                 </div>
 
                 {/* Visual Terminal compiler output */}
-                <div className="mt-3 p-2.5 rounded-xl border border-zinc-800/80 bg-[#07090b] text-[8.5px] text-zinc-450 leading-normal flex items-start gap-2 shadow-inner font-mono">
+                <div className="mt-3 p-2.5 rounded-xl border border-zinc-800/80 bg-[#07090b] text-[8.5px] text-zinc-400 leading-normal flex items-start gap-2 shadow-inner font-mono">
                   <Terminal size={12} className="shrink-0 mt-0.5 text-indigo-500" />
                   <div className="space-y-0.5 text-[8.5px]">
                     <span className="text-zinc-300 font-bold block uppercase tracking-wider">Deploy status: OK</span>
-                    <span className="text-zinc-550 block">Components synthesized, SSL deployed on Vercel.</span>
+                    <span className="text-zinc-500 block">Components synthesized, SSL deployed on Vercel.</span>
                   </div>
                 </div>
 
@@ -543,13 +544,13 @@ export default function LandingPage({ onNavigate }) {
       {/* Trust & Limits Info banner */}
       <section className="py-10 bg-zinc-50 dark:bg-zinc-900/60 border-t border-b border-zinc-200/60 dark:border-zinc-800/80 text-center px-6 relative z-10">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-455 font-bold flex items-center gap-2 mx-auto md:mx-0">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-bold flex items-center gap-2 mx-auto md:mx-0">
             <Info size={16} className="text-indigo-500 shrink-0" />
             <span>
-              Políticas de Aislamiento Estricto: Cada plan asigna exactamente <strong className="text-zinc-800 dark:text-zinc-250 underline decoration-indigo-500/40 font-black">1 Sitio Web activo</strong> completo.
+              Políticas de Aislamiento Estricto: Cada plan asigna exactamente <strong className="text-zinc-800 dark:text-zinc-200 underline decoration-indigo-500/40 font-black">1 Sitio Web activo</strong> completo.
             </span>
           </p>
-          <div className="flex gap-6 text-xs text-zinc-450 dark:text-zinc-505 font-bold uppercase tracking-wider mx-auto md:mx-0">
+          <div className="flex gap-6 text-xs text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider mx-auto md:mx-0">
             <span className="flex items-center gap-1.5"><Shield size={12} className="text-brand-success" /> SSL Gratis</span>
             <span className="flex items-center gap-1.5"><Database size={12} className="text-indigo-500" /> PostgreSQL</span>
             <span className="flex items-center gap-1.5"><Cpu size={12} className="text-purple-500" /> Medusa.js v2</span>
@@ -631,11 +632,11 @@ export default function LandingPage({ onNavigate }) {
                       <File className="w-3 h-3 text-purple-400 shrink-0" />
                       <span className="truncate">index.jsx</span>
                     </div>
-                    <div className="flex items-center gap-1.5 pl-3.5 text-zinc-350 bg-[#161a22]/80 p-1 rounded">
+                    <div className="flex items-center gap-1.5 pl-3.5 text-zinc-300 bg-[#161a22]/80 p-1 rounded">
                       <Database className="w-3 h-3 text-yellow-500 shrink-0" />
                       <span className="truncate text-white">schema.prisma</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-zinc-650">
+                    <div className="flex items-center gap-1.5 text-zinc-500">
                       <File className="w-3.5 h-3.5 text-zinc-700 shrink-0" />
                       <span className="truncate">config.json</span>
                     </div>
@@ -696,7 +697,7 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* Redesigned Showcase (Large size below the hero, NO 3D hover tilt effect) */}
-      <section className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      <section className="py-24 px-6 max-w-6xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-800/50 scroll-mt-20">
         <div className="text-center mb-12">
           <span className="text-[10px] bg-indigo-500/10 text-indigo-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             Algoritmo Avialo en Acción
@@ -704,7 +705,7 @@ export default function LandingPage({ onNavigate }) {
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-3 text-zinc-900 dark:text-white">
             Elige un tipo de negocio tradicional
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-405 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
             Haz clic en las pestañas para ver cómo nuestro algoritmo propio procesa las necesidades de una PYME local y las digitaliza de inmediato en una web premium con cita previa o cobros seguros.
           </p>
         </div>
@@ -714,7 +715,7 @@ export default function LandingPage({ onNavigate }) {
           <BorderBeam size={450} duration={16} borderWidth={1.5} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
 
           {/* Interactive tabs with sliding capsule layout */}
-          <div className="flex flex-wrap md:flex-nowrap border-b border-zinc-200 dark:border-zinc-850 bg-zinc-100/50 dark:bg-zinc-950 p-2 gap-2 relative z-20">
+          <div className="flex flex-wrap md:flex-nowrap border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-950 p-2 gap-2 relative z-20">
             {Object.keys(pymes).map((key) => (
               <button
                 key={key}
@@ -759,18 +760,18 @@ export default function LandingPage({ onNavigate }) {
                     <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-zinc-50 leading-tight">
                       Así digitalizamos tu negocio de toda la vida:
                     </h3>
-                    <p className="text-zinc-500 dark:text-zinc-405 text-xs sm:text-sm leading-relaxed font-medium">
+                    <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed font-medium">
                       {pymes[activePyme].algorithmDesc}
                     </p>
                   </div>
 
                   {/* Glassmorphic prompt simulation block */}
-                  <div className="p-5 glass rounded-[1.5rem] border border-zinc-200/40 dark:border-zinc-850/60 flex items-start gap-3">
+                  <div className="p-5 glass rounded-[1.5rem] border border-zinc-200/40 dark:border-zinc-800/60 flex items-start gap-3">
                     <div className="w-6 h-6 rounded-full bg-zinc-950 text-white dark:bg-zinc-100 dark:text-zinc-955 flex items-center justify-center font-bold text-[9px] uppercase shrink-0 mt-0.5 shadow">
                       PY
                     </div>
                     <div className="space-y-1">
-                      <span className="text-[9px] text-zinc-450 dark:text-zinc-505 font-black uppercase tracking-wider block">Tu idea simple en español:</span>
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-black uppercase tracking-wider block">Tu idea simple en español:</span>
                       <p className="text-xs text-zinc-700 dark:text-zinc-300 italic font-semibold">
                         "{pymes[activePyme].prompt}"
                       </p>
@@ -781,13 +782,13 @@ export default function LandingPage({ onNavigate }) {
                   <div className="grid grid-cols-2 gap-4 pt-2">
                     <div className="p-4 rounded-2xl border border-red-500/10 bg-red-500/5 text-left">
                       <span className="text-[10px] text-red-500 font-black uppercase tracking-wider block mb-1">❌ Antes (Tradicional):</span>
-                      <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                      <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
                         {pymes[activePyme].beforeText}
                       </p>
                     </div>
                     <div className="p-4 rounded-2xl border border-emerald-500/10 bg-emerald-500/5 text-left">
                       <span className="text-[10px] text-emerald-500 font-black uppercase tracking-wider block mb-1">🎉 Después (Con Avialo):</span>
-                      <p className="text-[11px] text-zinc-850 dark:text-zinc-300 leading-relaxed font-semibold">
+                      <p className="text-[11px] text-zinc-800 dark:text-zinc-300 leading-relaxed font-semibold">
                         {pymes[activePyme].afterText}
                       </p>
                     </div>
@@ -796,7 +797,7 @@ export default function LandingPage({ onNavigate }) {
               </AnimatePresence>
 
               {/* General pitch button to proceed */}
-              <div className="pt-6 border-t border-zinc-200/50 dark:border-zinc-850/50">
+              <div className="pt-6 border-t border-zinc-200/50 dark:border-zinc-800/50">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -811,14 +812,14 @@ export default function LandingPage({ onNavigate }) {
             </div>
 
             {/* Right Column: Visual Preview Canvas (With gorgeous free Unsplash images embedded) */}
-            <div className="flex-1 bg-zinc-100 dark:bg-zinc-900/40 rounded-3xl p-6 border border-zinc-200/50 dark:border-zinc-850/50 flex items-center justify-center min-h-[340px]">
-              <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-850 flex flex-col overflow-hidden max-w-md mx-auto">
+            <div className="flex-1 bg-zinc-100 dark:bg-zinc-900/40 rounded-3xl p-6 border border-zinc-200/50 dark:border-zinc-800/50 flex items-center justify-center min-h-[340px]">
+              <div className="w-full h-full bg-white dark:bg-zinc-950 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 flex flex-col overflow-hidden max-w-md mx-auto">
                 
                 {/* Visual Header */}
-                <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-850/50 px-4.5 py-3.5 bg-zinc-50/50 dark:bg-zinc-900">
+                <div className="flex justify-between items-center border-b border-zinc-100 dark:border-zinc-800/50 px-4.5 py-3.5 bg-zinc-50/50 dark:bg-zinc-900">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 block animate-pulse" />
-                    <span className="text-[10px] font-black text-zinc-550 dark:text-zinc-400 tracking-wider">
+                    <span className="text-[10px] font-black text-zinc-500 dark:text-zinc-400 tracking-wider">
                       {activePyme === 'hosteleria' && 'meson-asturiano.com'}
                       {activePyme === 'salud' && 'dentalia-consulta.es'}
                       {activePyme === 'comercio' && 'zapatos-artesanales.es'}
@@ -852,7 +853,7 @@ export default function LandingPage({ onNavigate }) {
                         className="flex-1 flex flex-col"
                       >
                         {/* Beautiful Unsplash Header image representing the active business */}
-                        <div className="w-full h-32 relative overflow-hidden shrink-0 border-b border-zinc-100 dark:border-zinc-850">
+                        <div className="w-full h-32 relative overflow-hidden shrink-0 border-b border-zinc-100 dark:border-zinc-800">
                           <img 
                             src={pymes[activePyme].image} 
                             alt={pymes[activePyme].label}
@@ -872,7 +873,7 @@ export default function LandingPage({ onNavigate }) {
                             <div className="space-y-4 flex-grow flex flex-col justify-between">
                               <div className="space-y-1.5">
                                 <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">🥘 Recetas Tradicionales de la Casa</span>
-                                <p className="text-[11px] text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
                                   Cocina gallega tradicional y carnes a la brasa. Selecciona tu hora los domingos y reserva mesa online en un clic.
                                 </p>
                               </div>
@@ -894,7 +895,7 @@ export default function LandingPage({ onNavigate }) {
                                             "py-2 rounded-xl text-[10px] font-bold border transition-all text-center duration-155 ease-out active:scale-[0.96]",
                                             selectedTime === time
                                               ? "bg-indigo-500 dark:bg-brand text-white border-transparent shadow animate-pulse-glow"
-                                              : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
+                                              : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800"
                                           )}
                                         >
                                           {time}
@@ -903,19 +904,19 @@ export default function LandingPage({ onNavigate }) {
                                     </div>
                                     
                                     {/* Guest selector */}
-                                    <div className="flex justify-between items-center bg-white dark:bg-zinc-900 border border-zinc-250 dark:border-zinc-800 rounded-xl p-2 text-[10px] font-bold">
+                                    <div className="flex justify-between items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-2 text-[10px] font-bold">
                                       <span className="text-zinc-555">Comensales:</span>
                                       <div className="flex items-center gap-2">
                                         <button 
                                           onClick={() => setTableCount(c => Math.max(1, c - 1))}
-                                          className="w-5 h-5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-650 dark:text-zinc-355"
+                                          className="w-5 h-5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-500 dark:text-zinc-300"
                                         >
                                           -
                                         </button>
                                         <span>{tableCount}</span>
                                         <button 
                                           onClick={() => setTableCount(c => c + 1)}
-                                          className="w-5 h-5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-650 dark:text-zinc-355"
+                                          className="w-5 h-5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center border text-zinc-500 dark:text-zinc-300"
                                         >
                                           +
                                         </button>
@@ -925,7 +926,7 @@ export default function LandingPage({ onNavigate }) {
                                     <button
                                       disabled={!selectedTime}
                                       onClick={() => setTableBooked(true)}
-                                      className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                                      className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-950 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
                                     >
                                       Confirmar Mesa ({tableCount} pers.)
                                     </button>
@@ -940,7 +941,7 @@ export default function LandingPage({ onNavigate }) {
                                       <Check size={16} />
                                     </div>
                                     <div>
-                                      <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Mesa Reservada!</span>
+                                      <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-800 dark:text-zinc-200">¡Mesa Reservada!</span>
                                       <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 block mt-1">
                                         Tu reserva para {tableCount} personas a las {selectedTime} se ha confirmado. ¡Te esperamos!
                                       </span>
@@ -962,7 +963,7 @@ export default function LandingPage({ onNavigate }) {
                             <div className="space-y-4 flex-grow flex flex-col justify-between">
                               <div className="space-y-1.5">
                                 <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">🩺 Cuidado de la Salud Dental</span>
-                                <p className="text-[11px] text-zinc-500 dark:text-zinc-455 leading-relaxed font-medium">
+                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
                                   Tratamientos dentales avanzados de barrio. Selecciona el servicio y reserva tu cita previa al instante.
                                 </p>
                               </div>
@@ -984,7 +985,7 @@ export default function LandingPage({ onNavigate }) {
                                             "w-full text-left p-2.5 rounded-xl border transition-all text-[9.5px] font-bold flex justify-between items-center duration-150 active:scale-[0.98]",
                                             selectedService === service
                                               ? "bg-purple-600 text-white border-transparent shadow"
-                                              : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-350 border-zinc-200 dark:border-zinc-800"
+                                              : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 border-zinc-200 dark:border-zinc-800"
                                           )}
                                         >
                                           <span className="truncate pr-3">{service}</span>
@@ -996,7 +997,7 @@ export default function LandingPage({ onNavigate }) {
                                     <button
                                       disabled={!selectedService}
                                       onClick={() => setClinicBooked(true)}
-                                      className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
+                                      className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:opacity-45"
                                     >
                                       Confirmar Hora de Cita
                                     </button>
@@ -1011,8 +1012,8 @@ export default function LandingPage({ onNavigate }) {
                                       <Check size={16} />
                                     </div>
                                     <div>
-                                      <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Cita Confirmada!</span>
-                                      <span className="text-[8.5px] text-zinc-400 dark:text-zinc-550 block mt-1 leading-normal">
+                                      <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-800 dark:text-zinc-200">¡Cita Confirmada!</span>
+                                      <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 block mt-1 leading-normal">
                                         Tu cita para <strong>{selectedService}</strong> se ha guardado correctamente.
                                       </span>
                                     </div>
@@ -1033,7 +1034,7 @@ export default function LandingPage({ onNavigate }) {
                             <div className="space-y-4 flex-grow flex flex-col justify-between">
                               <div className="space-y-1.5">
                                 <span className="text-sm font-black text-zinc-900 dark:text-zinc-100 block">👟 Zapatos Hechos a Mano</span>
-                                <p className="text-[11px] text-zinc-500 dark:text-zinc-455 leading-relaxed font-medium">
+                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
                                   Calzado artesanal premium elaborado con cueros españoles naturales. Directo a tu domicilio.
                                 </p>
                               </div>
@@ -1049,12 +1050,12 @@ export default function LandingPage({ onNavigate }) {
 
                                 {!purchaseSuccess ? (
                                   <div className="space-y-3">
-                                    <div className="p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[8.5px] text-zinc-450 font-bold uppercase tracking-wider text-center">
+                                    <div className="p-2 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl text-[8.5px] text-zinc-400 font-bold uppercase tracking-wider text-center">
                                       💳 Cobro con tarjeta seguro (Stripe)
                                     </div>
                                     <button
                                       onClick={() => setPurchaseSuccess(true)}
-                                      className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-150 active:scale-[0.97]"
+                                      className="w-full py-2.5 bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-200 text-zinc-50 dark:text-zinc-955 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all duration-150 active:scale-[0.97]"
                                     >
                                       Comprar Ahora
                                     </button>
@@ -1069,8 +1070,8 @@ export default function LandingPage({ onNavigate }) {
                                       <Check size={16} />
                                     </div>
                                     <div>
-                                      <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-850 dark:text-zinc-250">¡Pago Recibido!</span>
-                                      <span className="text-[8.5px] text-zinc-400 dark:text-zinc-550 block mt-0.5 leading-tight">
+                                      <span className="text-[10px] font-black uppercase tracking-wider block text-zinc-800 dark:text-zinc-200">¡Pago Recibido!</span>
+                                      <span className="text-[8.5px] text-zinc-400 dark:text-zinc-500 block mt-0.5 leading-tight">
                                         Tu pedido se ha procesado con éxito. Te llegará un aviso con el envío.
                                       </span>
                                     </div>
@@ -1100,7 +1101,7 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* Product Details Section (Cómo te podemos ayudar - detailed info for curious visitors) */}
-      <section id="como-ayudamos" className="py-24 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      <section id="como-ayudamos" className="py-24 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-800/50 scroll-mt-20">
         <div className="text-center mb-16">
           <span className="text-[10px] bg-indigo-500/10 text-indigo-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             ¿Cómo te ayudamos?
@@ -1108,7 +1109,7 @@ export default function LandingPage({ onNavigate }) {
           <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-4 text-zinc-900 dark:text-white">
             Digitalización sencilla paso a paso
           </h2>
-          <p className="text-zinc-505 dark:text-zinc-405 text-xs sm:text-sm max-w-xl mx-auto">
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-xl mx-auto">
             Hemos diseñado nuestro algoritmo propio para que no tengas que preocuparte de tecnicismos complejos. Vamos al grano.
           </p>
         </div>
@@ -1117,13 +1118,13 @@ export default function LandingPage({ onNavigate }) {
           <motion.div 
             whileHover={{ y: -6 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-850/60 rounded-[2rem] text-left"
+            className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-800/60 rounded-[2rem] text-left"
           >
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-660 dark:text-brand flex items-center justify-center font-bold text-sm mb-6 border border-indigo-500/10">
               1
             </div>
             <h3 className="text-base font-black uppercase tracking-wider mb-3 text-zinc-900 dark:text-white">Describes tu idea</h3>
-            <p className="text-zinc-500 dark:text-zinc-405 text-xs leading-relaxed font-medium">
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs leading-relaxed font-medium">
               Escribe cómo es tu negocio tradicional usando tus propias palabras (por ejemplo: "tengo un mesón y quiero reservas de mesa los domingos"). Sin saber programar y sin tecnicismos raros.
             </p>
           </motion.div>
@@ -1131,13 +1132,13 @@ export default function LandingPage({ onNavigate }) {
           <motion.div 
             whileHover={{ y: -6 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-850/60 rounded-[2rem] text-left"
+            className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-800/60 rounded-[2rem] text-left"
           >
             <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-650 dark:text-brand-accent flex items-center justify-center font-bold text-sm mb-6 border border-purple-500/10">
               2
             </div>
             <h3 className="text-base font-black uppercase tracking-wider mb-3 text-zinc-900 dark:text-white">El algoritmo actúa</h3>
-            <p className="text-zinc-500 dark:text-zinc-405 text-xs leading-relaxed font-medium">
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs leading-relaxed font-medium">
               Nuestro algoritmo propio procesa el requerimiento, genera el código limpio, activa un sistema de reservas o catálogo comercial en una base de datos segura y despliega tu página en internet.
             </p>
           </motion.div>
@@ -1145,13 +1146,13 @@ export default function LandingPage({ onNavigate }) {
           <motion.div 
             whileHover={{ y: -6 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-850/60 rounded-[2rem] text-left"
+            className="p-8 bg-zinc-50/50 dark:bg-zinc-950/20 border border-zinc-200/60 dark:border-zinc-800/60 rounded-[2rem] text-left"
           >
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-sm mb-6 border border-emerald-500/10">
               3
             </div>
             <h3 className="text-base font-black uppercase tracking-wider mb-3 text-zinc-900 dark:text-white">Listo en 2 minutos</h3>
-            <p className="text-zinc-500 dark:text-zinc-405 text-xs leading-relaxed font-medium">
+            <p className="text-zinc-500 dark:text-zinc-400 text-xs leading-relaxed font-medium">
               Tu web se publica automáticamente con dominio profesional incluido. Si necesitas cambiar algún plato, foto, horario o texto, solo tienes que pedírselo a la IA por el chat de tu panel.
             </p>
           </motion.div>
@@ -1159,7 +1160,7 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* Spectacular Real SME Owner Testimonials (Punchy, real-sounding reviews) */}
-      <section id="testimonios" className="py-20 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      <section id="testimonios" className="py-20 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-800/50 scroll-mt-20">
         <div className="text-center mb-16">
           <span className="text-[10px] bg-purple-500/10 text-purple-650 dark:bg-brand/10 dark:text-brand px-3.5 py-1.5 rounded-full font-black uppercase tracking-widest inline-block mb-3">
             Opiniones Reales
@@ -1167,7 +1168,7 @@ export default function LandingPage({ onNavigate }) {
           <h2 className="text-3xl sm:text-4xl font-black tracking-tight mb-3 text-zinc-900 dark:text-white">
             Negocios que ya se han digitalizado
           </h2>
-          <p className="text-zinc-500 dark:text-zinc-450 text-xs sm:text-sm max-w-lg mx-auto">
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm max-w-lg mx-auto">
             Hablamos con pequeños empresarios españoles de toda la vida que han dado el salto digital con Avialo.
           </p>
         </div>
@@ -1196,7 +1197,7 @@ export default function LandingPage({ onNavigate }) {
                 </div>
                 <div>
                   <span className="text-xs font-black text-zinc-900 dark:text-white block">{rev.author}</span>
-                  <span className="text-[10px] text-zinc-450 dark:text-zinc-505 font-bold uppercase tracking-wider block">{rev.business}</span>
+                  <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider block">{rev.business}</span>
                 </div>
               </div>
             </motion.div>
@@ -1205,15 +1206,15 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* Pricing Section (Clean balance. NO highlighted popular banner, all animate on hover) */}
-      <section id="pricing" className="py-24 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-850/50 scroll-mt-20">
+      <section id="pricing" className="py-24 px-6 max-w-7xl mx-auto relative z-10 border-t border-zinc-200/50 dark:border-zinc-800/50 scroll-mt-20">
         <div className="text-center mb-20">
-          <span className="text-[10px] bg-emerald-5/60 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/20 text-emerald-650 dark:text-brand-success px-3.5 py-1.5 rounded-full font-black uppercase tracking-wider mb-4 inline-block">
+          <span className="text-[10px] bg-emerald-5/60 dark:bg-emerald-950/20 border border-emerald-100/50 dark:border-emerald-900/20 text-emerald-600 dark:text-brand-success px-3.5 py-1.5 rounded-full font-black uppercase tracking-wider mb-4 inline-block">
             Precios Claros y Transparentes
           </span>
           <h2 className="text-3xl md:text-5xl font-black tracking-tight mb-4 max-w-2xl mx-auto">
             Elige el plan ideal para tu negocio
           </h2>
-          <p className="text-zinc-550 dark:text-zinc-400 max-w-xl mx-auto text-sm font-medium">
+          <p className="text-zinc-500 dark:text-zinc-400 max-w-xl mx-auto text-sm font-medium">
             Todos los planes incluyen el diseño de la web y el alojamiento en internet. Cancela cuando quieras sin cuotas ocultas.
           </p>
         </div>
@@ -1224,25 +1225,25 @@ export default function LandingPage({ onNavigate }) {
               key={plan.name}
               whileHover={{ y: -8, scale: 1.02 }}
               transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className="p-8.5 rounded-[2.2rem] border flex flex-col justify-between relative bg-card shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-zinc-200 dark:border-zinc-850 hover:border-zinc-350 dark:hover:border-zinc-700"
+              className="p-8.5 rounded-[2.2rem] border flex flex-col justify-between relative bg-card shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
             >
               <div>
-                <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-505 px-3 py-1 rounded-lg font-black uppercase tracking-widest mb-4 inline-block">
+                <span className="text-[10px] bg-zinc-100 dark:bg-zinc-800 text-zinc-500 px-3 py-1 rounded-lg font-black uppercase tracking-widest mb-4 inline-block">
                   {plan.tier}
                 </span>
                 <h3 className="text-2xl font-black mb-3">{plan.name}</h3>
-                <p className="text-zinc-550 dark:text-zinc-455 text-xs mb-6 h-10 leading-relaxed font-medium">
+                <p className="text-zinc-500 dark:text-zinc-400 text-xs mb-6 h-10 leading-relaxed font-medium">
                   {plan.description}
                 </p>
                 
                 <div className="flex items-baseline mb-8">
                   <span className="text-4xl md:text-5xl font-black tracking-tight text-zinc-900 dark:text-white">{plan.price}</span>
-                  <span className="text-zinc-450 dark:text-zinc-505 text-xs font-semibold ml-1.5">{plan.period}</span>
+                  <span className="text-zinc-400 dark:text-zinc-500 text-xs font-semibold ml-1.5">{plan.period}</span>
                 </div>
 
                 <ul className="space-y-4 mb-10">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="flex gap-3 items-start text-xs font-semibold text-zinc-650 dark:text-zinc-355">
+                    <li key={i} className="flex gap-3 items-start text-xs font-semibold text-zinc-500 dark:text-zinc-300">
                       <div className="w-4.5 h-4.5 rounded-full bg-indigo-500/10 text-indigo-500 dark:text-brand flex items-center justify-center shrink-0 border border-indigo-500/10 mt-0.5">
                         <Check className="w-3 h-3" />
                       </div>
@@ -1260,6 +1261,20 @@ export default function LandingPage({ onNavigate }) {
               </button>
             </motion.div>
           ))}
+        </div>
+
+        {/* Asterisk disclaimer about IA Credits */}
+        <div className="text-center mt-12 max-w-2xl mx-auto px-4 relative z-20">
+          <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 font-semibold leading-relaxed">
+            * ¿Quieres saber cómo funcionan y cómo se consumen los Créditos de IA?{' '}
+            <button 
+              onClick={() => onNavigate('creditos')} 
+              className="text-indigo-600 dark:text-brand hover:underline font-black cursor-pointer bg-transparent border-none p-0 inline"
+            >
+              Aquí se ve la info detallada sobre su uso y equivalencias
+            </button>
+            .
+          </p>
         </div>
       </section>
 
@@ -1294,7 +1309,7 @@ export default function LandingPage({ onNavigate }) {
                   onClick={() => setOpenFaq(isOpen ? null : index)}
                   className="w-full flex items-center justify-between p-6 text-left outline-none cursor-pointer"
                 >
-                  <span className="text-sm font-bold text-zinc-850 dark:text-zinc-205">{faq.q}</span>
+                  <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">{faq.q}</span>
                   <ChevronDown 
                     size={16} 
                     className={cn(
@@ -1328,7 +1343,7 @@ export default function LandingPage({ onNavigate }) {
       <section className="py-24 px-6 max-w-5xl mx-auto relative z-10 mb-8">
         <div className="relative rounded-[2.5rem] bg-gradient-to-br from-zinc-900 to-zinc-950 dark:from-zinc-900/80 dark:to-zinc-950/60 p-10 md:p-16 border border-zinc-800 overflow-hidden text-center shadow-2xl">
           <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none opacity-30">
-            <DotPattern width={12} height={12} className="fill-zinc-650" />
+            <DotPattern width={12} height={12} className="fill-zinc-500" />
           </div>
           <div className="absolute -top-32 -left-32 w-80 h-80 bg-indigo-500/10 dark:bg-brand/10 rounded-full blur-[80px] pointer-events-none" />
           <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-purple-500/10 dark:bg-brand-2/10 rounded-full blur-[80px] pointer-events-none" />
@@ -1364,7 +1379,7 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* Extensive Formal and Professional Footer (Strictly no icons, fully clean neutral typography) */}
-      <footer className="py-20 border-t border-zinc-200/50 dark:border-zinc-850/50 bg-zinc-50/40 dark:bg-zinc-950/95 px-8 relative z-10">
+      <footer className="py-20 border-t border-zinc-200/50 dark:border-zinc-800/50 bg-zinc-50/40 dark:bg-zinc-950/95 px-8 relative z-10">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12 text-left mb-16 text-xs font-semibold">
           
           {/* Main Info Column */}
@@ -1372,12 +1387,12 @@ export default function LandingPage({ onNavigate }) {
             <span className="font-black text-lg text-zinc-900 dark:text-white uppercase tracking-wider block">
               AVIALO BUILDER
             </span>
-            <p className="text-xs text-zinc-500 dark:text-zinc-450 leading-relaxed font-medium">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
               Transformación digital autónoma y de alto rendimiento para pequeños y medianos negocios tradicionales españoles de toda la vida.
             </p>
             
             {/* Direct legal ownership tags (no icons) */}
-            <div className="pt-3 space-y-2 text-[10.5px] text-zinc-450 dark:text-zinc-500 font-bold uppercase tracking-wider border-t border-zinc-200/40 dark:border-zinc-850/40">
+            <div className="pt-3 space-y-2 text-[10.5px] text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-wider border-t border-zinc-200/40 dark:border-zinc-800/40">
               <div>Creado por Avialo Soluciones S.L.</div>
               <div>Avialo Builder es un producto de avialo.app</div>
               <div>Este servicio está creado por Avialo.es</div>
@@ -1387,7 +1402,7 @@ export default function LandingPage({ onNavigate }) {
           {/* Product links */}
           <div className="space-y-4">
             <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest block">Producto</span>
-            <ul className="space-y-2.5 text-xs text-zinc-500 dark:text-zinc-450 font-medium">
+            <ul className="space-y-2.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
               <li><a href="#como-ayudamos" className="hover:text-foreground transition-colors">Algoritmo Autónomo</a></li>
               <li><a href="#como-ayudamos" className="hover:text-foreground transition-colors">Reservas de Mesa</a></li>
               <li><a href="#como-ayudamos" className="hover:text-foreground transition-colors">Citas de Clínica</a></li>
@@ -1398,7 +1413,7 @@ export default function LandingPage({ onNavigate }) {
           {/* Support & Contact (Formal Text based, no icons) */}
           <div className="space-y-4">
             <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest block">Contacto</span>
-            <ul className="space-y-2.5 text-xs text-zinc-500 dark:text-zinc-455 font-medium">
+            <ul className="space-y-2.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
               <li><a href="#faq" className="hover:text-foreground transition-colors">Centro de Ayuda</a></li>
               <li><span>Email corporativo: info@avialo.es</span></li>
               <li><span>Soporte Técnico: pymes@avialo.es</span></li>
@@ -1408,7 +1423,7 @@ export default function LandingPage({ onNavigate }) {
           {/* Legal links */}
           <div className="space-y-4">
             <span className="text-[10px] font-black text-zinc-900 dark:text-white uppercase tracking-widest block">Legal</span>
-            <ul className="space-y-2.5 text-xs text-zinc-500 dark:text-zinc-455 font-medium">
+            <ul className="space-y-2.5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
               <li><a href="#" className="hover:text-foreground transition-colors">Aviso Legal</a></li>
               <li><a href="#" className="hover:text-foreground transition-colors">Política de Privacidad</a></li>
               <li><a href="#" className="hover:text-foreground transition-colors">Términos de Uso</a></li>
@@ -1419,10 +1434,10 @@ export default function LandingPage({ onNavigate }) {
         </div>
 
         <div className="max-w-7xl mx-auto pt-8 border-t border-zinc-200/50 dark:border-zinc-800/80 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[10.5px] text-zinc-500 dark:text-zinc-505 font-bold uppercase tracking-wider">
+          <p className="text-[10.5px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">
             &copy; {new Date().getFullYear()} Avialo Soluciones S.L. Todos los derechos reservados.
           </p>
-          <div className="text-[10.5px] text-zinc-450 dark:text-zinc-505 font-bold flex gap-4 uppercase tracking-wider">
+          <div className="text-[10.5px] text-zinc-400 dark:text-zinc-500 font-bold flex gap-4 uppercase tracking-wider">
             <span>Socio tecnológico de la PYME española</span>
           </div>
         </div>

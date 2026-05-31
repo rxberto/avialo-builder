@@ -14,6 +14,7 @@ import GoogleOnboarding from './components/GoogleOnboarding';
 import SettingsPage from './components/SettingsPage';
 import NotificationsModal from './components/NotificationsModal';
 import AdminPage from './components/AdminPage';
+import IAInfoPage from './components/IAInfoPage';
 import { createJob, getProfile, updateProfile } from './lib/api';
 
 function App() {
@@ -334,7 +335,8 @@ function App() {
       <main className={`flex-1 flex flex-col relative z-0 ${isIDERoute ? '' : 'pt-16'}`}>
         <Routes>
           {/* Landing pública */}
-          <Route path="/" element={<LandingPage onNavigate={(path) => navigate(`/${path}`)} />} />
+          <Route path="/" element={<LandingPage onNavigate={(path) => navigate(path === '' ? '/' : `/${path}`)} />} />
+          <Route path="/creditos" element={<IAInfoPage onNavigate={(path) => navigate(path === '' ? '/' : `/${path}`)} />} />
 
           {/* Rutas sin sesión */}
           <Route path="/login" element={

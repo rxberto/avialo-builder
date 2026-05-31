@@ -124,20 +124,40 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                   <ChevronDown size={12} className="group-hover/nav:rotate-180 transition-transform duration-300" />
                 </button>
                 {/* Dropdown Menu */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl shadow-xl p-4 opacity-0 scale-95 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:scale-100 group-hover/nav:pointer-events-auto transition-all duration-300 origin-top z-50">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 opacity-0 scale-95 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:scale-100 group-hover/nav:pointer-events-auto transition-all duration-300 origin-top z-50">
                   <div className="space-y-3">
-                    <a href="#algoritmo" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                    <a href="#algoritmo" onClick={(e) => {
+                        if (location.pathname !== '/') {
+                          handleNavClick(e, 'landing');
+                          setTimeout(() => {
+                            document.getElementById('algoritmo')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 150);
+                        } else {
+                          e.preventDefault();
+                          document.getElementById('algoritmo')?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }} className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
                       <Zap className="w-4 h-4 text-indigo-500 mt-0.5 shrink-0" />
                       <div>
                         <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Algoritmo Autónomo</span>
-                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Digitaliza tu negocio tradicional en 2 minutos sin programar.</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-normal lowercase font-medium">Digitaliza tu negocio tradicional en 2 minutos sin programar.</span>
                       </div>
                     </a>
-                    <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
+                    <a href="#como-ayudamos" onClick={(e) => {
+                        if (location.pathname !== '/') {
+                          handleNavClick(e, 'landing');
+                          setTimeout(() => {
+                            document.getElementById('como-ayudamos')?.scrollIntoView({ behavior: 'smooth' });
+                          }, 150);
+                        } else {
+                          e.preventDefault();
+                          document.getElementById('como-ayudamos')?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }} className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
                       <Cpu className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
                       <div>
                         <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Citas y Cobros</span>
-                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Reservas automáticas para comensales, pacientes y pasarela Stripe.</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-normal lowercase font-medium">Reservas automáticas para comensales, pacientes y pasarela Stripe.</span>
                       </div>
                     </a>
                   </div>
@@ -151,27 +171,27 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                   <ChevronDown size={12} className="group-hover/nav:rotate-180 transition-transform duration-300" />
                 </button>
                 {/* Dropdown Menu */}
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-850 rounded-2xl shadow-xl p-4 opacity-0 scale-95 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:scale-100 group-hover/nav:pointer-events-auto transition-all duration-300 origin-top z-50">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-xl p-4 opacity-0 scale-95 pointer-events-none group-hover/nav:opacity-100 group-hover/nav:scale-100 group-hover/nav:pointer-events-auto transition-all duration-300 origin-top z-50">
                   <div className="space-y-3">
                     <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
                       <Utensils className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
                       <div>
                         <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Mesones y Hostelería</span>
-                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Reservas de mesa online autónomas y control de comensales.</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-normal lowercase font-medium">Reservas de mesa online autónomas y control de comensales.</span>
                       </div>
                     </a>
                     <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
                       <Stethoscope className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                       <div>
                         <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Clínicas y Consultas</span>
-                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Cita previa para dentistas, fisios, estéticas y servicios de barrio.</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-normal lowercase font-medium">Cita previa para dentistas, fisios, estéticas y servicios de barrio.</span>
                       </div>
                     </a>
                     <a href="#como-ayudamos" className="flex items-start gap-3 p-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-xl transition-all text-left">
                       <Store className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
                       <div>
                         <span className="text-[11px] font-black text-zinc-900 dark:text-white block uppercase tracking-wider">Comercio y Zapaterías</span>
-                        <span className="text-[10px] text-zinc-450 dark:text-zinc-500 block leading-normal lowercase font-medium">Cobros seguros con tarjeta para vender calzado y productos a toda España.</span>
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 block leading-normal lowercase font-medium">Cobros seguros con tarjeta para vender calzado y productos a toda España.</span>
                       </div>
                     </a>
                   </div>
@@ -179,12 +199,32 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
               </div>
 
               {/* Pricing direct link */}
-              <a href="#pricing" className="hover:text-foreground transition-colors py-2">
+              <a href="#pricing" onClick={(e) => {
+                if (location.pathname !== '/') {
+                  handleNavClick(e, 'landing');
+                  setTimeout(() => {
+                    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 150);
+                } else {
+                  e.preventDefault();
+                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }} className="hover:text-foreground transition-colors py-2">
                 Precios
               </a>
 
               {/* Nosotros */}
-              <a href="#testimonios" className="hover:text-foreground transition-colors py-2">
+              <a href="#testimonios" onClick={(e) => {
+                if (location.pathname !== '/') {
+                  handleNavClick(e, 'landing');
+                  setTimeout(() => {
+                    document.getElementById('testimonios')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 150);
+                } else {
+                  e.preventDefault();
+                  document.getElementById('testimonios')?.scrollIntoView({ behavior: 'smooth' });
+                }
+              }} className="hover:text-foreground transition-colors py-2">
                 Nosotros
               </a>
             </div>
