@@ -9,9 +9,7 @@ import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
 import { DotPattern } from './ui/dot-pattern';
 
-import { StripeThreeJSGalaxy } from './ui/StripeThreeJSGalaxy';
 import NumberTicker from './ui/number-ticker';
-import { InteractiveParticles } from './ui/interactive-particles';
 import { cn } from '@/lib/utils';
 
 /* ============================================================
@@ -208,6 +206,60 @@ function LiveSVGBackground({ src }) {
       <div className="absolute inset-0 bg-background/60 [mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_100%)]" />
       <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
       <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-60" />
+    </div>
+  );
+}
+
+// Fondo animado para el hero — efecto Stripe con light-motion-trails.jpg
+// Parallax suave con el ratón + drift automático + glow pulsante
+function MotionTrailsHero() {
+  const mouseX = useMotionValue(0.5);
+  const mouseY = useMotionValue(0.5);
+  const springX = useSpring(mouseX, { stiffness: 12, damping: 28 });
+  const springY = useSpring(mouseY, { stiffness: 12, damping: 28 });
+
+  useEffect(() => {
+    const onMove = (e) => {
+      mouseX.set(e.clientX / window.innerWidth);
+      mouseY.set(e.clientY / window.innerHeight);
+    };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [mouseX, mouseY]);
+
+  const tx = useTransform(springX, [0, 1], ['-5%', '5%']);
+  const ty = useTransform(springY, [0, 1], ['-5%', '5%']);
+
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      {/* Imagen base con drift automático + parallax de ratón */}
+      <motion.img
+        src="/light-motion-trails.jpg"
+        alt=""
+        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover"
+        style={{ x: tx, y: ty }}
+        animate={{ scale: [1.04, 1.10, 1.04] }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Capa de color semitransparente para mantener legibilidad del texto */}
+      <div className="absolute inset-0 bg-background/72 dark:bg-background/82" />
+      {/* Degradados de borde para fundir suavemente con el fondo */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-55" />
+      {/* Glow azul pulsante centrado — "la luz" de Stripe */}
+      <motion.div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[520px] w-[900px] rounded-full blur-[100px]"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(37,99,235,0.22) 0%, rgba(14,165,233,0.10) 50%, transparent 75%)' }}
+        animate={{ opacity: [0.5, 0.9, 0.5], scale: [0.88, 1.08, 0.88] }}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Segundo glow desplazado para efecto aurora */}
+      <motion.div
+        className="absolute right-[15%] top-[30%] h-[320px] w-[500px] rounded-full blur-[90px]"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(14,165,233,0.15) 0%, transparent 70%)' }}
+        animate={{ opacity: [0.3, 0.65, 0.3], x: [0, 40, 0], y: [0, -30, 0] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+      />
     </div>
   );
 }
@@ -672,7 +724,7 @@ export default function LandingPage({ onNavigate }) {
           HÉROE — texto izquierda, capturas ciclando derecha
           ============================================================ */}
       <section className="relative isolate overflow-hidden bg-background px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
-        <StripeThreeJSGalaxy />
+        <MotionTrailsHero />
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
@@ -728,7 +780,7 @@ export default function LandingPage({ onNavigate }) {
               <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
                 {[
                   { src: '/ide-avialo.png', alt: 'Editor Visual IDE' },
-                  { src: '/web-abogados.png', alt: 'Web Gestoría / Abogados' },
+                  { src: '/webArquitectura.png', alt: 'Web Estudio Arquitectura' },
                   { src: '/placeholder-3.png', alt: 'Diseño Personalizado' },
                   { src: '/web-generada.png', alt: 'Web generada por IA' },
                 ].map((shot, index) => {
@@ -1093,7 +1145,10 @@ export default function LandingPage({ onNavigate }) {
           BAJO EL CAPÓ — infraestructura real
           ============================================================ */}
       <section className="relative overflow-hidden border-y border-zinc-800 bg-zinc-950 py-24 text-white">
-        <div className="absolute inset-0 opacity-60" aria-hidden="true"><NeuralNet /></div>
+        {/* Galaxy con parallax de ratón — se mueve con el cursor */}
+        <LiveSVGBackground src="/light-galaxy.jpg" />
+        {/* Red neuronal encima de la galaxy a menor opacidad */}
+        <div className="absolute inset-0 opacity-35" aria-hidden="true"><NeuralNet /></div>
         <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 lg:grid-cols-2">
           <Reveal>
             <Eyebrow className="mb-4 text-brand-accent">Infraestructura real</Eyebrow>
