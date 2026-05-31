@@ -51,7 +51,6 @@ export default function LoginPage({ onLogin }) {
           {
             theme: 'outline',
             size: 'large',
-            width: '100%',
             text: 'signin_with',
             shape: 'rectangular',
           }

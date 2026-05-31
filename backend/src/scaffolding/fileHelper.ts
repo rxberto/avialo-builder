@@ -53,7 +53,15 @@ export async function listSandboxFiles(
     "package-lock.json"
   ]);
 
-  const items = await readdir(currentPath);
+  let items;
+  try {
+    items = await readdir(currentPath);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      return []; // El sandbox no ha sido inicializado aún o está vacío
+    }
+    throw error;
+  }
 
   for (const item of items) {
     if (EXCLUDED_DIRS.has(item)) continue;
