@@ -282,9 +282,9 @@ export default function LandingPage({ onNavigate }) {
               </Reveal>
 
               <Reveal delay={0.06}>
-                <h1 className="mt-5 font-display text-[2.8rem] font-semibold leading-[1.06] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-[4rem]">
+                <h1 className="mt-5 text-[2.8rem] font-bold leading-[1.06] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-[4rem]">
                   Tu negocio en internet,{' '}
-                  <em className="not-italic text-brand">listo en 2 minutos.</em>
+                  <span className="text-brand">listo en 2 minutos.</span>
                 </h1>
               </Reveal>
 
@@ -336,7 +336,7 @@ export default function LandingPage({ onNavigate }) {
                 transition={{ duration: 0.9, ease: EASE, delay: 0.45 }}
                 className="absolute right-0 top-0 w-[76%] rotate-[3deg] overflow-hidden rounded-2xl border border-border/40 bg-card shadow-2xl shadow-black/40"
               >
-                <div className="aspect-video w-full bg-[#141E33]">
+                <div className="aspect-video w-full bg-muted">
                   <img src="/placeholder-3.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
                 </div>
               </motion.div>
@@ -349,7 +349,7 @@ export default function LandingPage({ onNavigate }) {
                 transition={{ duration: 0.9, ease: EASE, delay: 0.3 }}
                 className="absolute left-0 top-[20%] w-[70%] -rotate-[2deg] overflow-hidden rounded-2xl border border-border/40 bg-card shadow-2xl shadow-black/40"
               >
-                <div className="aspect-video w-full bg-[#141E33]">
+                <div className="aspect-video w-full bg-muted">
                   <img src="/placeholder-2.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
                 </div>
               </motion.div>
@@ -362,7 +362,7 @@ export default function LandingPage({ onNavigate }) {
                 transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
                 className="absolute bottom-0 right-[6%] w-[80%] rotate-[1deg] overflow-hidden rounded-2xl border border-brand/15 bg-card shadow-2xl shadow-black/50 ring-1 ring-brand/10"
               >
-                <div className="aspect-video w-full bg-[#141E33]">
+                <div className="aspect-video w-full bg-muted">
                   <img src="/placeholder-1.webp" alt="Constructor Avialo en acción" className="h-full w-full object-cover" loading="lazy" />
                 </div>
               </motion.div>
@@ -375,7 +375,7 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           PRUEBA SOCIAL — estadísticas + barra de logos
           ============================================================ */}
-      <section className="border-y border-border/50 py-16">
+      <section className="border-y border-border/50 bg-muted/40 py-16">
         <div className="mx-auto max-w-7xl px-6">
 
           <Reveal>
