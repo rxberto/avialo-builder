@@ -52,3 +52,5 @@ export function NumberTicker({
     </span>
   );
 }
+
+export default NumberTicker;

@@ -6,92 +6,123 @@ import {
   ArrowLeft, ExternalLink, Sparkles, Plus, Trash2,
   Code, FileCode, Folder, Loader2, FileText,
   ChevronDown, ChevronUp, Sun, Moon, Zap, X,
-  Settings2
+  Settings2, Monitor, Smartphone, Tablet, Lock,
+  Copy, Activity, Server, Clock, CheckCheck, Search
 } from 'lucide-react';
 import { getSandboxFiles, getSandboxFileContent, editJob } from '../lib/api';
-
-// Shadcn UI Imports
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { cn } from '../lib/utils';
 
 /* ─────────────────────────────────────────────
-   Sub-components
+   Icono por tipo de archivo (extensión → color VS Code)
 ───────────────────────────────────────────── */
+function getFileIconConfig(name, isDir) {
+  if (isDir) return { Icon: Folder, color: 'text-violet-400' };
+  const ext = name.split('.').pop()?.toLowerCase();
+  const map = {
+    jsx:    { Icon: Code,     color: 'text-cyan-400'    },
+    tsx:    { Icon: Code,     color: 'text-blue-400'    },
+    js:     { Icon: Code,     color: 'text-yellow-400'  },
+    ts:     { Icon: Code,     color: 'text-blue-500'    },
+    css:    { Icon: FileCode, color: 'text-sky-400'     },
+    scss:   { Icon: FileCode, color: 'text-pink-400'    },
+    json:   { Icon: FileText, color: 'text-amber-400'   },
+    prisma: { Icon: Database, color: 'text-emerald-400' },
+    env:    { Icon: Lock,     color: 'text-red-400'     },
+    md:     { Icon: FileText, color: 'text-zinc-400'    },
+    html:   { Icon: Code,     color: 'text-orange-400'  },
+  };
+  return map[ext] || { Icon: FileText, color: 'text-zinc-500' };
+}
 
-/** Pill status badge using Shadcn Badge component */
+function FileIcon({ name, size = 13 }) {
+  const { Icon, color } = getFileIconConfig(name, false);
+  return <Icon size={size} className={cn(color, 'shrink-0')} />;
+}
+
+/* ─────────────────────────────────────────────
+   Badge de estado del build
+───────────────────────────────────────────── */
 function StatusBadge({ status, progress }) {
   if (status === 'deployed') return (
-    <Badge variant="outline" className="border-emerald-500/20 bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 gap-1.5 py-1 px-3 rounded-full font-bold">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
-      En Línea
-    </Badge>
+    <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1">
+      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" />
+      <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">En línea</span>
+    </div>
   );
   if (status === 'failed') return (
-    <Badge variant="outline" className="border-destructive/20 bg-destructive/10 text-destructive gap-1.5 py-1 px-3 rounded-full font-bold">
-      <span className="h-1.5 w-1.5 rounded-full bg-destructive" />
-      Error
-    </Badge>
+    <div className="flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1">
+      <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+      <span className="text-[11px] font-semibold text-red-500">Error</span>
+    </div>
   );
   return (
-    <Badge variant="outline" className="border-violet-500/20 bg-violet-500/10 text-violet-500 gap-1.5 py-1 px-3 rounded-full font-bold">
-      <span className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-[ping_1.2s_infinite]" />
-      Compilando {progress}%
-    </Badge>
+    <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1">
+      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+      <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+        Compilando{progress > 0 ? ` ${progress}%` : '…'}
+      </span>
+    </div>
   );
 }
 
-/** Single chat bubble using Shadcn Card component */
-function ChatBubble({ message }) {
-  const isUser = message.sender === 'user';
+/* ─────────────────────────────────────────────
+   Mensajes del chat — estilo Claude.ai
+───────────────────────────────────────────── */
+function AIMessage({ message }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn("flex gap-3", isUser ? "flex-row-reverse" : "flex-row")}
+      transition={{ duration: 0.22 }}
+      className="flex gap-3"
     >
-      {/* Avatar */}
-      <div className={cn(
-        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border",
-        isUser 
-          ? "bg-muted text-muted-foreground border-border" 
-          : "bg-violet-500/10 text-violet-500 border-violet-500/20"
-      )}>
-        {isUser ? <FileText className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+      <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+        <Sparkles size={12} color="#fff" />
       </div>
-
-      {/* Bubble Card */}
-      <Card className={cn(
-        "max-w-[85%] py-3 px-4 rounded-2xl shadow-sm text-sm border",
-        isUser 
-          ? "bg-violet-600 border-violet-500 text-white rounded-tr-none ml-auto" 
-          : "bg-card border-border text-foreground rounded-tl-none mr-auto"
-      )}>
-        <p className="whitespace-pre-line leading-relaxed">{message.text}</p>
-        {message.isGenerating && (
-          <div className="flex gap-1 mt-2.5 items-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+      <div className="flex-1 min-w-0">
+        <span className="block text-[10px] font-extrabold text-violet-500 uppercase tracking-wider mb-1.5">
+          Avialo AI
+        </span>
+        {message.isGenerating ? (
+          <div className="flex items-center gap-1 py-1">
+            {[0, 120, 240].map(d => (
+              <span key={d} className="w-1.5 h-1.5 rounded-full bg-violet-400/70 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+            ))}
           </div>
+        ) : (
+          <p className="text-[13px] text-foreground leading-[1.7] whitespace-pre-line">{message.text}</p>
         )}
-        <time className={cn(
-          "block mt-1.5 text-[10px]",
-          isUser ? "text-violet-200" : "text-muted-foreground"
-        )}>{message.timestamp}</time>
-      </Card>
+        <time className="block mt-1.5 text-[10px] text-muted-foreground/50">{message.timestamp}</time>
+      </div>
+    </motion.div>
+  );
+}
+
+function UserMessage({ message }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22 }}
+      className="flex justify-end"
+    >
+      <div className="max-w-[85%] space-y-1">
+        <div className="bg-violet-600 text-white px-4 py-2.5 rounded-2xl rounded-br-none shadow-sm">
+          <p className="text-[13px] leading-[1.7] whitespace-pre-line">{message.text}</p>
+        </div>
+        <time className="block text-right text-[10px] text-muted-foreground/50 pr-1">{message.timestamp}</time>
+      </div>
     </motion.div>
   );
 }
 
 /* ─────────────────────────────────────────────
-   INITIAL DB DATA (simulated)
+   Datos de BD inicial (simulados)
 ───────────────────────────────────────────── */
 const INITIAL_DB = {
   corporativa: {
@@ -131,35 +162,27 @@ const INITIAL_DB = {
 };
 
 /* ─────────────────────────────────────────────
-   MAIN COMPONENT
+   COMPONENTE PRINCIPAL
 ───────────────────────────────────────────── */
 export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateUser, darkMode, toggleTheme }) {
   const { logs, status, progress, previewUrl } = useJobSSE(jobId);
 
-  /* ── Prompt Tutorial States ── */
-  const [showTutorial, setShowTutorial] = useState(() => {
-    const saved = localStorage.getItem('avialo_hide_ide_tutorial');
-    return saved !== 'true';
-  });
-
+  /* Tutorial colapsable */
+  const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('avialo_hide_ide_tutorial') !== 'true');
   const handleHideTutorial = () => {
     setShowTutorial(false);
     localStorage.setItem('avialo_hide_ide_tutorial', 'true');
   };
 
+  /* Créditos */
   const userCredits = user?.aiCredits ?? 0;
   const maxCredits = {
-    none: 50,
-    basic: 800,
-    corporativa: 800,
-    pro: 1500,
-    dinamica: 1500,
-    ecommerce: 3000
+    none: 50, basic: 800, corporativa: 800, pro: 1500, dinamica: 1500, ecommerce: 3000
   }[user?.plan] || 50;
 
-  /* ── Panel Resizing States & Handlers ── */
+  /* Redimensionado de paneles */
   const [sidebarWidth, setSidebarWidth] = useState(280);
-  const [chatWidth, setChatWidth] = useState(400);
+  const [chatWidth, setChatWidth] = useState(380);
   const [isResizing, setIsResizing] = useState(false);
 
   const startSidebarResize = (e) => {
@@ -167,21 +190,14 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     setIsResizing(true);
     const startX = e.clientX;
     const startWidth = sidebarWidth;
-
-    const doResize = (moveEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const newWidth = Math.max(200, Math.min(480, startWidth + deltaX));
-      setSidebarWidth(newWidth);
-    };
-
-    const stopSidebarResize = () => {
+    const doResize = (mv) => setSidebarWidth(Math.max(220, Math.min(480, startWidth + mv.clientX - startX)));
+    const stop = () => {
       setIsResizing(false);
       document.removeEventListener('mousemove', doResize);
-      document.removeEventListener('mouseup', stopSidebarResize);
+      document.removeEventListener('mouseup', stop);
     };
-
     document.addEventListener('mousemove', doResize);
-    document.addEventListener('mouseup', stopSidebarResize);
+    document.addEventListener('mouseup', stop);
   };
 
   const startChatResize = (e) => {
@@ -189,39 +205,33 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     setIsResizing(true);
     const startX = e.clientX;
     const startWidth = chatWidth;
-
-    const doResize = (moveEvent) => {
-      const deltaX = moveEvent.clientX - startX;
-      const newWidth = Math.max(300, Math.min(800, startWidth + deltaX));
-      setChatWidth(newWidth);
-    };
-
-    const stopChatResize = () => {
+    const doResize = (mv) => setChatWidth(Math.max(300, Math.min(800, startWidth + mv.clientX - startX)));
+    const stop = () => {
       setIsResizing(false);
       document.removeEventListener('mousemove', doResize);
-      document.removeEventListener('mouseup', stopChatResize);
+      document.removeEventListener('mouseup', stop);
     };
-
     document.addEventListener('mousemove', doResize);
-    document.addEventListener('mouseup', stopChatResize);
+    document.addEventListener('mouseup', stop);
   };
 
-  /* ── Advanced sidebar ── */
+  /* Panel avanzado */
   const [showSidebar, setShowSidebar] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState('files'); // 'files' | 'db'
+  const [sidebarTab, setSidebarTab] = useState('files');
 
-  /* ── File explorer ── */
+  /* Explorador de archivos */
   const [files, setFiles] = useState([]);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   const [loadingContent, setLoadingContent] = useState(false);
+  const [fileSearch, setFileSearch] = useState('');
 
-  /* ── Terminal ── */
+  /* Terminal */
   const [showTerminal, setShowTerminal] = useState(false);
   const logsEndRef = useRef(null);
 
-  /* ── Chat ── */
+  /* Chat */
   const [promptText, setPromptText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [chatMessages, setChatMessages] = useState([{
@@ -231,21 +241,31 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
   }]);
   const chatEndRef = useRef(null);
-  const inputRef = useRef(null);
 
-  /* ── Database ── */
+  /* Base de datos */
   const dbCat = user?.siteType === 'ecommerce' ? 'ecommerce' : 'corporativa';
   const dbConfig = INITIAL_DB[dbCat];
   const [selectedTable, setSelectedTable] = useState(dbConfig.tables[0]);
   const [dbData, setDbData] = useState(dbConfig.data);
   const [showInsertModal, setShowInsertModal] = useState(false);
   const [newRowData, setNewRowData] = useState({});
-
-  /* ── DB computed ── */
   const activeRows = dbData[selectedTable] || [];
   const headers = activeRows.length > 0 ? Object.keys(activeRows[0]) : [];
 
-  /* ── Load files ── */
+  /* Viewport del preview */
+  const [previewViewport, setPreviewViewport] = useState('desktop');
+  const iframeRef = useRef(null);
+
+  /* Copiar URL */
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const copyUrl = () => {
+    navigator.clipboard.writeText(user?.siteDomain || previewUrl || '').then(() => {
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 1600);
+    });
+  };
+
+  /* Carga de archivos del sandbox */
   const loadFiles = async () => {
     setLoadingFiles(true);
     try {
@@ -257,10 +277,9 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
       setLoadingFiles(false);
     }
   };
-
   useEffect(() => { if (jobId) loadFiles(); }, [jobId]);
 
-  /* ── File select ── */
+  /* Seleccionar archivo */
   const handleSelectFile = async (path) => {
     setSelectedFile(path);
     setLoadingContent(true);
@@ -274,11 +293,11 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     }
   };
 
-  /* ── Auto-scroll ── */
+  /* Auto-scroll */
   useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [chatMessages]);
   useEffect(() => { if (showTerminal) logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs, showTerminal]);
 
-  /* ── Send chat ── */
+  /* Enviar mensaje al agente */
   const handleSend = async (e) => {
     e?.preventDefault();
     if (!promptText.trim() || isSending) return;
@@ -291,57 +310,43 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
       { id: `u-${Date.now()}`, sender: 'user', text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
       { id: aiId, sender: 'ai', text: 'Analizando tu proyecto y aplicando los cambios…', isGenerating: true, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
     ]);
-
-    // Show terminal automatically when building
     setShowTerminal(true);
 
-    // Descontar 1 crédito localmente para una respuesta visual instantánea
+    /* Descuento visual instantáneo */
     if (onUpdateUser && user) {
-      onUpdateUser({
-        ...user,
-        aiCredits: Math.max(0, (user.aiCredits ?? 0) - 1)
-      });
+      onUpdateUser({ ...user, aiCredits: Math.max(0, (user.aiCredits ?? 0) - 1) });
     }
 
     try {
       await editJob(jobId, text);
     } catch (err) {
-      setChatMessages(prev => prev.map(m => m.id === aiId
-        ? { ...m, text: `❌ Error: ${err.message}`, isGenerating: false }
-        : m));
+      setChatMessages(prev => prev.map(m =>
+        m.id === aiId ? { ...m, text: `❌ Error: ${err.message}`, isGenerating: false } : m
+      ));
       setIsSending(false);
-      // Re-sincronizar perfil para restaurar el crédito correcto en caso de error
-      if (onSyncProfile) {
-        onSyncProfile();
-      }
+      if (onSyncProfile) onSyncProfile();
     }
   };
 
-  /* ── SSE status → finish AI bubble ── */
+  /* SSE → terminar burbuja de la IA */
   useEffect(() => {
     if (status === 'deployed' && isSending) {
       setIsSending(false);
-      setChatMessages(prev => prev.map(m => m.isGenerating
-        ? { ...m, text: '✅ ¡Cambios aplicados! La preview se ha actualizado automáticamente.', isGenerating: false }
-        : m));
+      setChatMessages(prev => prev.map(m =>
+        m.isGenerating ? { ...m, text: '✅ ¡Cambios aplicados! La preview se ha actualizado automáticamente.', isGenerating: false } : m
+      ));
       loadFiles();
-      // Sincronizar perfil de base de datos para obtener el balance real
-      if (onSyncProfile) {
-        onSyncProfile();
-      }
+      if (onSyncProfile) onSyncProfile();
     } else if (status === 'failed' && isSending) {
       setIsSending(false);
-      setChatMessages(prev => prev.map(m => m.isGenerating
-        ? { ...m, text: '⚠️ La compilación falló. Revisa la terminal para más detalles.', isGenerating: false }
-        : m));
-      // Sincronizar perfil de base de datos para obtener el balance real
-      if (onSyncProfile) {
-        onSyncProfile();
-      }
+      setChatMessages(prev => prev.map(m =>
+        m.isGenerating ? { ...m, text: '⚠️ La compilación falló. Revisa la terminal para más detalles.', isGenerating: false } : m
+      ));
+      if (onSyncProfile) onSyncProfile();
     }
   }, [status]);
 
-  /* ── DB ops ── */
+  /* Operaciones de base de datos */
   const handleInsertRow = (e) => {
     e.preventDefault();
     const row = { id: Date.now() % 10000, ...newRowData };
@@ -349,82 +354,82 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     setShowInsertModal(false);
     setNewRowData({});
   };
-  const handleDeleteRow = (id) => {
+  const handleDeleteRow = (id) =>
     setDbData(prev => ({ ...prev, [selectedTable]: prev[selectedTable].filter(r => r.id !== id) }));
-  };
 
-  const iframeRef = useRef(null);
+  const filteredFiles = files.filter(f => !fileSearch || f.name.toLowerCase().includes(fileSearch.toLowerCase()));
+
+  /* Tabs del panel avanzado */
+  const advancedTabs = [
+    { id: 'files',  label: 'Código',   Icon: Code     },
+    { id: 'db',     label: 'Datos',    Icon: Database  },
+    { id: 'deploy', label: 'Deploy',   Icon: Activity  },
+  ];
 
   return (
     <>
       <div className="h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground select-none">
 
-        {/* ──────────────── HEADER ──────────────── */}
-        <header className="flex items-center justify-between h-[52px] px-4 bg-card border-b border-border shrink-0 z-10">
-          {/* Left: Back + Project name */}
-          <div className="flex items-center gap-3">
+        {/* ══════════════════════════════════════
+            HEADER
+        ══════════════════════════════════════ */}
+        <header className="flex items-center justify-between h-[52px] px-4 bg-card border-b border-border shrink-0 z-10 gap-3">
+
+          {/* Izquierda: volver + nombre proyecto */}
+          <div className="flex items-center gap-2.5 min-w-0">
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground border-border bg-card hover:bg-accent cursor-pointer"
+              variant="ghost" size="icon"
+              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/60"
               onClick={onReset}
               title="Volver al dashboard"
             >
               <ArrowLeft size={15} />
             </Button>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-md">
-                <Sparkles size={13} color="#fff" />
+            <div className="h-5 w-px bg-border shrink-0" />
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-sm shrink-0">
+              <Sparkles size={13} color="#fff" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[12.5px] font-bold text-foreground leading-none truncate">
+                {user?.siteName || 'Proyecto Avialo'}
               </div>
-              <div>
-                <div className="text-[12.5px] font-extrabold text-foreground leading-none">
-                  {user?.siteName || 'Proyecto Avialo'}
-                </div>
-                <div className="text-[9.5px] text-muted-foreground uppercase font-semibold tracking-wider mt-0.5">
-                  {user?.siteType || 'corporativa'} · avialo.es
-                </div>
+              <div className="text-[9.5px] text-muted-foreground uppercase font-semibold tracking-wider mt-0.5 truncate">
+                {user?.siteType || 'corporativa'} · avialo.es
               </div>
             </div>
           </div>
 
-          {/* Center: Status Badge */}
+          {/* Centro: estado del build */}
           <StatusBadge status={status} progress={progress} />
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            {/* Advanced toggle */}
+          {/* Derecha: acciones */}
+          <div className="flex items-center gap-1.5 shrink-0">
             <Button
-              variant={showSidebar ? "secondary" : "outline"}
+              variant={showSidebar ? 'secondary' : 'ghost'}
               size="sm"
               className={cn(
-                "gap-1.5 h-8 rounded-full font-semibold border-border text-xs cursor-pointer",
-                showSidebar && "bg-violet-500/10 text-violet-500 border-violet-500/20 hover:bg-violet-500/20"
+                'gap-1.5 h-8 rounded-lg font-semibold text-[11px] cursor-pointer px-3',
+                showSidebar && 'bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 border border-violet-500/20'
               )}
               onClick={() => setShowSidebar(s => !s)}
             >
-              <Settings2 size={13} />
-              Avanzado
+              <Settings2 size={13} /> Avanzado
             </Button>
-
-            {/* Open in tab */}
             <a
               href={previewUrl || '#'}
               target="_blank"
               rel="noreferrer"
               className={cn(
-                "inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border bg-card text-muted-foreground hover:text-foreground transition-colors hover:bg-accent cursor-pointer",
-                !previewUrl && "pointer-events-none opacity-35"
+                'h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors',
+                !previewUrl && 'pointer-events-none opacity-35'
               )}
-              title="Abrir preview en nueva pestaña"
+              title="Abrir en nueva pestaña"
             >
               <ExternalLink size={14} />
             </a>
-
-            {/* Theme toggle */}
             <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground border-border bg-card hover:bg-accent cursor-pointer"
+              variant="ghost" size="icon"
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60"
               onClick={toggleTheme}
               title="Cambiar tema"
             >
@@ -433,282 +438,399 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
           </div>
         </header>
 
-        {/* ──────────────── BODY ──────────────── */}
-        <div className={cn(
-          "flex flex-1 overflow-hidden relative w-full",
-          isResizing ? "cursor-col-resize select-none" : ""
-        )}>
+        {/* ══════════════════════════════════════
+            CUERPO
+        ══════════════════════════════════════ */}
+        <div className={cn('flex flex-1 overflow-hidden', isResizing && 'cursor-col-resize select-none')}>
 
-          {/* ── ADVANCED SIDEBAR ── */}
-          <div 
-            className={cn(
-              "shrink-0 border-r border-border bg-muted/10 flex flex-col overflow-hidden transition-all duration-300",
-              showSidebar ? "" : "w-0! opacity-0 pointer-events-none border-r-0"
-            )}
-            style={{ 
-              width: showSidebar ? `${sidebarWidth}px` : 0,
-              transition: isResizing ? 'none' : undefined
+          {/* ── PANEL AVANZADO ── */}
+          <div
+            className="shrink-0 flex flex-col overflow-hidden bg-card border-r border-border"
+            style={{
+              width: showSidebar ? sidebarWidth : 0,
+              minWidth: showSidebar ? sidebarWidth : 0,
+              opacity: showSidebar ? 1 : 0,
+              pointerEvents: showSidebar ? 'auto' : 'none',
+              transition: isResizing ? 'none' : 'width 0.2s ease, opacity 0.15s ease',
             }}
           >
-            <div className="h-full flex flex-col overflow-hidden" style={{ width: `${sidebarWidth}px` }}>
-              <Tabs defaultValue="files" value={sidebarTab} onValueChange={setSidebarTab} className="w-full flex flex-col flex-1 overflow-hidden">
-                <TabsList className="grid grid-cols-2 w-full rounded-none border-b border-border bg-muted/20 shrink-0 h-11 p-0">
-                  <TabsTrigger 
-                    value="files" 
-                    className="text-[10px] uppercase font-bold tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:text-violet-500 h-full bg-transparent hover:bg-muted/10 transition-all cursor-pointer"
-                  >
-                    <Code size={12} className="mr-1.5" /> Código
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="db" 
-                    className="text-[10px] uppercase font-bold tracking-wider rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:text-violet-500 h-full bg-transparent hover:bg-muted/10 transition-all cursor-pointer"
-                  >
-                    <Database size={12} className="mr-1.5" /> Base de Datos
-                  </TabsTrigger>
-                </TabsList>
-                
-                <div className="flex-1 overflow-y-auto p-4">
-                  {/* ── Files Tab ── */}
-                  {sidebarTab === 'files' && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">Archivos del proyecto</span>
-                        <Button variant="outline" size="icon" className="h-6 w-6 border-border bg-card cursor-pointer" onClick={loadFiles} title="Refrescar">
-                          <RefreshCw size={11} />
-                        </Button>
-                      </div>
+            <div className="h-full flex flex-col overflow-hidden" style={{ width: sidebarWidth }}>
 
+              {/* Tabs */}
+              <div className="flex border-b border-border bg-muted/20 shrink-0">
+                {advancedTabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSidebarTab(tab.id)}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 py-2.5 text-[10px] font-extrabold uppercase tracking-wider transition-colors cursor-pointer border-b-2',
+                      sidebarTab === tab.id
+                        ? 'border-violet-500 text-violet-500 bg-violet-500/5'
+                        : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                    )}
+                  >
+                    <tab.Icon size={11} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Contenido del tab */}
+              <div className="flex-1 overflow-y-auto">
+
+                {/* ─── TAB CÓDIGO (explorador de archivos) ─── */}
+                {sidebarTab === 'files' && (
+                  <div className="flex flex-col h-full">
+                    <div className="p-3 border-b border-border/50 space-y-2 shrink-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground">
+                          Explorador
+                        </span>
+                        <button
+                          onClick={loadFiles}
+                          className="text-muted-foreground hover:text-violet-500 transition-colors cursor-pointer"
+                          title="Refrescar"
+                        >
+                          <RefreshCw size={11} />
+                        </button>
+                      </div>
+                      {/* Buscador */}
+                      <div className="relative">
+                        <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Buscar archivo…"
+                          value={fileSearch}
+                          onChange={e => setFileSearch(e.target.value)}
+                          className="w-full pl-7 pr-2.5 py-1.5 text-[11px] bg-muted/40 border border-border/60 rounded-lg focus:outline-none focus:ring-1 focus:ring-violet-500/50 text-foreground placeholder:text-muted-foreground/40"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-2">
                       {loadingFiles ? (
-                        <div className="flex gap-2 items-center justify-center py-6 text-muted-foreground text-xs">
+                        <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
                           <Loader2 size={13} className="animate-spin text-violet-500" />
-                          Escaneando sandbox…
+                          <span className="text-xs">Escaneando sandbox…</span>
+                        </div>
+                      ) : filteredFiles.length === 0 ? (
+                        <div className="text-center py-10 text-xs text-muted-foreground">
+                          {fileSearch ? 'Sin resultados' : 'Sin archivos'}
                         </div>
                       ) : (
-                        <div className="space-y-0.5">
-                          {files.map(file => (
-                            <Button
-                              key={file.path}
-                              variant="ghost"
-                              className={cn(
-                                "w-full justify-start text-xs font-normal h-8 px-2 rounded-lg text-muted-foreground hover:bg-violet-500/5 hover:text-foreground cursor-pointer",
-                                file.isDir && "text-foreground font-semibold cursor-default hover:bg-transparent",
-                                selectedFile === file.path && "bg-violet-500/10 text-violet-500 font-semibold hover:bg-violet-500/15 hover:text-violet-500"
-                              )}
-                              style={{ paddingLeft: `${(file.path.split('/').length - 1) * 10 + 8}px` }}
-                              onClick={() => !file.isDir && handleSelectFile(file.path)}
-                            >
-                              {file.isDir
-                                ? <Folder size={13} className="text-violet-500 shrink-0 mr-1.5" />
-                                : <FileCode size={13} className="shrink-0 mr-1.5 text-muted-foreground" />
-                              }
-                              <span className="truncate">{file.name}</span>
-                            </Button>
-                          ))}
+                        <div className="space-y-px">
+                          {filteredFiles.map(file => {
+                            const { Icon, color } = getFileIconConfig(file.name, file.isDir);
+                            return (
+                              <button
+                                key={file.path}
+                                onClick={() => !file.isDir && handleSelectFile(file.path)}
+                                className={cn(
+                                  'w-full flex items-center gap-1.5 py-1.5 rounded-md text-left text-[12px] transition-colors',
+                                  file.isDir
+                                    ? 'text-foreground font-semibold cursor-default'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 cursor-pointer',
+                                  selectedFile === file.path && 'bg-violet-500/10 text-violet-500 font-semibold hover:bg-violet-500/15 hover:text-violet-500'
+                                )}
+                                style={{ paddingLeft: `${(file.path.split('/').length - 1) * 10 + 8}px` }}
+                              >
+                                <Icon size={12} className={cn(color, 'shrink-0')} />
+                                <span className="truncate">{file.name}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* ── DB Tab ── */}
-                  {sidebarTab === 'db' && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-                        <Database size={13} className="text-violet-500" />
-                        Postgres · schema_b2b
-                      </div>
-
-                      {/* Table selector */}
-                      <div className="flex gap-1.5 flex-wrap">
-                        {dbConfig.tables.map(t => (
-                          <Button
-                            key={t}
-                            variant={selectedTable === t ? "secondary" : "outline"}
-                            size="sm"
-                            onClick={() => setSelectedTable(t)}
-                            className={cn(
-                              "h-7 rounded-full text-[10px] font-bold px-3 border-border cursor-pointer",
-                              selectedTable === t && "bg-violet-500/10 text-violet-500 border-violet-500/20 hover:bg-violet-500/15"
-                            )}
-                          >
-                            {t}
-                          </Button>
-                        ))}
-                      </div>
-
-                      {/* Table preview Card */}
-                      <Card className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
-                        <div className="flex justify-between items-center p-3 border-b border-border bg-muted/10">
-                          <span className="font-mono text-[10px] text-violet-500 font-bold uppercase">
-                            {selectedTable}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setShowInsertModal(true)}
-                            className="flex items-center gap-1 h-6 px-2.5 border-border bg-card text-[10px] font-bold cursor-pointer"
-                          >
-                            <Plus size={10} /> Insertar
-                          </Button>
-                        </div>
-                        <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
-                          <table className="w-full border-collapse text-[11px]">
-                            <thead>
-                              <tr className="border-b border-border">
-                                {headers.map(h => (
-                                  <th key={h} className="p-2.5 text-left text-[9px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border whitespace-nowrap">
-                                    {h}
-                                  </th>
-                                ))}
-                                <th className="w-8" />
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {activeRows.map(row => (
-                                <tr key={row.id} className="border-b border-border/40 hover:bg-violet-500/5 transition-colors">
-                                  {headers.map(h => (
-                                    <td key={h} className="p-2.5 text-muted-foreground max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap" title={String(row[h])}>
-                                      {String(row[h])}
-                                    </td>
-                                  ))}
-                                  <td className="p-2 text-right">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDeleteRow(row.id)}
-                                      className="w-6 h-6 rounded-md hover:bg-destructive/10 hover:text-destructive text-muted-foreground cursor-pointer"
-                                    >
-                                      <Trash2 size={11} />
-                                    </Button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </Card>
+                {/* ─── TAB BASE DE DATOS ─── */}
+                {sidebarTab === 'db' && (
+                  <div className="flex flex-col h-full p-3 gap-3">
+                    {/* Indicador conexión */}
+                    <div className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-lg px-3 py-2 border border-border/50">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                      <span className="text-muted-foreground font-mono truncate">postgres · schema_b2b</span>
                     </div>
-                  )}
-                </div>
-              </Tabs>
+
+                    {/* Selector de tabla */}
+                    <div className="flex gap-1.5 flex-wrap">
+                      {dbConfig.tables.map(t => (
+                        <button
+                          key={t}
+                          onClick={() => setSelectedTable(t)}
+                          className={cn(
+                            'px-2.5 py-1 rounded-full text-[10px] font-bold border transition-colors cursor-pointer',
+                            selectedTable === t
+                              ? 'bg-violet-500/15 text-violet-500 border-violet-500/30'
+                              : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground'
+                          )}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Tabla de datos */}
+                    <div className="flex-1 flex flex-col rounded-xl border border-border overflow-hidden min-h-0">
+                      <div className="flex items-center justify-between px-3 py-2 bg-muted/30 border-b border-border shrink-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-widest">{selectedTable}</span>
+                          <span className="text-[9px] text-muted-foreground/50">{activeRows.length} filas</span>
+                        </div>
+                        <button
+                          onClick={() => setShowInsertModal(true)}
+                          className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-md border border-violet-500/30 bg-violet-500/10 text-violet-500 hover:bg-violet-500/20 transition-colors cursor-pointer"
+                        >
+                          <Plus size={9} /> Insertar
+                        </button>
+                      </div>
+                      <div className="flex-1 overflow-auto">
+                        <table className="w-full text-[10.5px] border-collapse">
+                          <thead className="sticky top-0 bg-muted/40 border-b border-border z-10">
+                            <tr>
+                              {headers.map(h => (
+                                <th key={h} className="px-3 py-2 text-left text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                                  {h}
+                                </th>
+                              ))}
+                              <th className="w-7" />
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/30">
+                            {activeRows.map(row => (
+                              <tr key={row.id} className="hover:bg-violet-500/5 transition-colors group">
+                                {headers.map(h => (
+                                  <td key={h} className="px-3 py-2 text-muted-foreground max-w-[110px] truncate" title={String(row[h])}>
+                                    {String(row[h])}
+                                  </td>
+                                ))}
+                                <td className="px-1.5 text-right">
+                                  <button
+                                    onClick={() => handleDeleteRow(row.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/10 hover:text-red-500 text-muted-foreground transition-all cursor-pointer"
+                                  >
+                                    <Trash2 size={10} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── TAB DEPLOY ─── */}
+                {sidebarTab === 'deploy' && (
+                  <div className="p-4 space-y-5">
+                    {/* Estado */}
+                    <div className={cn(
+                      'rounded-xl border p-4 space-y-3',
+                      status === 'deployed'
+                        ? 'border-emerald-500/30 bg-emerald-500/5'
+                        : status === 'failed'
+                          ? 'border-red-500/30 bg-red-500/5'
+                          : 'border-amber-500/30 bg-amber-500/5'
+                    )}>
+                      <div className="flex items-center justify-between">
+                        <span className={cn(
+                          'text-[11px] font-extrabold',
+                          status === 'deployed' ? 'text-emerald-500' : status === 'failed' ? 'text-red-500' : 'text-amber-500'
+                        )}>
+                          {status === 'deployed' ? '✅ Desplegado correctamente'
+                            : status === 'failed' ? '❌ Error en compilación'
+                              : '⚙️ Compilando…'}
+                        </span>
+                        {status !== 'deployed' && status !== 'failed' && (
+                          <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">{progress}%</span>
+                        )}
+                      </div>
+                      {status !== 'deployed' && status !== 'failed' && (
+                        <Progress value={progress} className="h-1 bg-muted/60 [&>div]:bg-amber-500 rounded-full" />
+                      )}
+                    </div>
+
+                    {/* Info del servidor */}
+                    <div className="space-y-2.5">
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground">Infraestructura</span>
+                      {[
+                        { Icon: Server, label: 'Servidor',    value: 'Hetzner CPX32'        },
+                        { Icon: Globe,  label: 'Región',      value: 'EU-Central · Alemania' },
+                        { Icon: Lock,   label: 'SSL',         value: 'Let\'s Encrypt'        },
+                        { Icon: Clock,  label: 'Último build', value: 'Hace 2 min'           },
+                      ].map(({ Icon, label, value }) => (
+                        <div key={label} className="flex items-center gap-2 text-[11px]">
+                          <Icon size={11} className="text-muted-foreground/60 shrink-0" />
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="font-semibold text-foreground ml-auto text-right">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* URL */}
+                    <div className="space-y-1.5">
+                      <span className="text-[9px] font-extrabold uppercase tracking-widest text-muted-foreground">URL de producción</span>
+                      <div className="flex items-center gap-2 bg-muted/40 border border-border/60 rounded-lg px-3 py-2">
+                        <Lock size={10} className="text-emerald-500 shrink-0" />
+                        <span className="flex-1 text-[11px] font-mono text-foreground truncate">
+                          {user?.siteDomain || previewUrl || 'Sin asignar'}
+                        </span>
+                        <button onClick={copyUrl} className="text-muted-foreground hover:text-violet-500 transition-colors cursor-pointer shrink-0">
+                          {copiedUrl
+                            ? <CheckCheck size={11} className="text-emerald-500" />
+                            : <Copy size={11} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Abrir en nueva pestaña */}
+                    {previewUrl && (
+                      <a
+                        href={previewUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-500 text-[11px] font-bold hover:bg-violet-500/20 transition-colors cursor-pointer"
+                      >
+                        <ExternalLink size={11} /> Abrir web en nueva pestaña
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Resizer 1: between Sidebar and Chat */}
+          {/* Handle 1: entre sidebar y chat */}
           {showSidebar && (
-            <div 
-              className={cn(
-                "w-1 cursor-col-resize hover:bg-violet-500/60 active:bg-violet-500 shrink-0 relative z-50 -mx-[2px] transition-colors duration-150 shadow-[0_0_8px_rgba(124,58,237,0)] hover:shadow-[0_0_8px_rgba(124,58,237,0.5)] active:shadow-[0_0_8px_rgba(124,58,237,0.5)]",
-                isResizing ? "bg-violet-500 shadow-[0_0_8px_rgba(124,58,237,0.5)]" : "bg-transparent"
-              )} 
-              onMouseDown={startSidebarResize} 
+            <div
+              className="w-px cursor-col-resize hover:bg-violet-500/50 bg-border shrink-0 transition-colors hover:shadow-[0_0_8px_rgba(124,58,237,0.35)]"
+              onMouseDown={startSidebarResize}
             />
           )}
 
-          {/* ── CHAT COLUMN ── */}
-          <div 
-            className="shrink-0 flex flex-col border-r border-border bg-card/50 overflow-hidden z-2"
-            style={{ width: `${chatWidth}px` }}
+          {/* ══════════════════════════════════════
+              COLUMNA CHAT
+          ══════════════════════════════════════ */}
+          <div
+            className="shrink-0 flex flex-col bg-background overflow-hidden border-r border-border"
+            style={{ width: chatWidth }}
           >
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {chatMessages.map(msg => <ChatBubble key={msg.id} message={msg} />)}
-              
+            {/* Cabecera del chat */}
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0 bg-card">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-sm">
+                  <Sparkles size={12} color="#fff" />
+                </div>
+                <div>
+                  <div className="text-[12.5px] font-bold text-foreground leading-none">Avialo AI</div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span className="text-[9px] text-muted-foreground">Claude · Diseñador de webs</span>
+                  </div>
+                </div>
+              </div>
+              {/* Badge de créditos en la cabecera */}
+              <div className={cn(
+                'flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border',
+                userCredits <= 5
+                  ? 'text-red-500 border-red-500/30 bg-red-500/10'
+                  : userCredits <= 15
+                    ? 'text-amber-500 border-amber-500/30 bg-amber-500/10'
+                    : 'text-violet-500 border-violet-500/30 bg-violet-500/10'
+              )}>
+                <Zap size={9} className={userCredits <= 5 ? 'fill-red-500' : userCredits <= 15 ? 'fill-amber-500' : 'fill-violet-500'} />
+                {userCredits} créditos
+              </div>
+            </div>
+
+            {/* Hilo de mensajes */}
+            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-5">
+              {chatMessages.map(msg =>
+                msg.sender === 'user'
+                  ? <UserMessage key={msg.id} message={msg} />
+                  : <AIMessage key={msg.id} message={msg} />
+              )}
+
+              {/* Estado vacío: tutorial + sugerencias */}
               {chatMessages.length === 1 && (
-                <div className="pt-2 flex flex-col gap-3">
-                  
-                  {/* Collapsible Prompt Tutorial Card */}
-                  {showTutorial && (
-                    <Card className="p-4 bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent border border-violet-500/20 rounded-2xl relative overflow-hidden shadow-sm text-left animate-fade-in">
-                      <div className="absolute top-2 right-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-5 w-5 text-zinc-400 hover:text-foreground rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 shrink-0 cursor-pointer" 
+                <div className="space-y-4 pt-1">
+
+                  {/* Tutorial colapsable */}
+                  <AnimatePresence>
+                    {showTutorial && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="relative overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-b from-violet-500/8 to-transparent p-4"
+                      >
+                        <button
                           onClick={handleHideTutorial}
-                          title="Ocultar tutorial"
+                          className="absolute top-2.5 right-2.5 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
                         >
                           <X size={10} />
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-1.5 mb-2.5">
-                        <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
-                        <span className="text-[10px] font-extrabold text-foreground uppercase tracking-wider">
-                          💡 Guía de Prompts: ¡Ahorra Créditos IA!
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-                        Para evitar abusos y optimizar tu consumo de créditos IA, te recomendamos seguir estas pautas al chatear con el agente:
-                      </p>
-                      <div className="space-y-2 mb-3.5">
-                        <div className="flex gap-2">
-                          <div className="w-4 h-4 rounded bg-violet-500/20 text-violet-500 flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">1</div>
-                          <div className="text-[10.5px] text-muted-foreground leading-relaxed">
-                            <strong className="text-foreground font-semibold">Agrupa tus cambios:</strong> Pide varias ediciones juntas (ej: <em>"Añade una sección FAQ y pon el botón en verde"</em>). Consumirá <strong className="text-violet-500">solo 1 crédito</strong> en lugar de 2.
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="w-4 h-4 rounded bg-violet-500/20 text-violet-500 flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">2</div>
-                          <div className="text-[10.5px] text-muted-foreground leading-relaxed">
-                            <strong className="text-foreground font-semibold">Sé ultra específico:</strong> Indica colores exactos, textos precisos o las secciones deseadas. La IA acertará a la primera y no malgastarás intentos.
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="w-4 h-4 rounded bg-violet-500/20 text-violet-500 flex items-center justify-center font-bold text-[9px] shrink-0 mt-0.5">3</div>
-                          <div className="text-[10.5px] text-muted-foreground leading-relaxed">
-                            <strong className="text-foreground font-semibold">Evita prompts abstractos:</strong> Frases como <em>"hazlo más chulo"</em> o <em>"cambia el diseño"</em> gastan créditos sin garantías de obtener lo que buscas.
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center bg-violet-500/5 dark:bg-violet-500/[0.03] p-2 py-1.5 rounded-lg border border-violet-500/10">
-                        <span className="text-[9px] text-violet-500 font-bold">
-                          Ediciones: 1 mensaje = 1 crédito
-                        </span>
-                        <button 
-                          className="text-[9px] font-bold text-violet-600 hover:text-violet-750 dark:text-violet-400 dark:hover:text-violet-300 bg-transparent border-none outline-none cursor-pointer" 
-                          onClick={handleHideTutorial}
-                        >
-                          Entendido, ¡vamos! →
                         </button>
-                      </div>
-                    </Card>
-                  )}
+                        <div className="flex items-center gap-2 mb-2.5">
+                          <Sparkles size={11} className="text-violet-500" />
+                          <span className="text-[10.5px] font-extrabold text-foreground uppercase tracking-wider">
+                            Guía de prompts
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 text-[11px] text-muted-foreground leading-relaxed">
+                          <p><strong className="text-foreground">1. Agrupa los cambios:</strong> varios a la vez = 1 crédito.</p>
+                          <p><strong className="text-foreground">2. Sé específico:</strong> colores exactos, secciones concretas.</p>
+                          <p><strong className="text-foreground">3. Evita lo abstracto:</strong> "hazlo más chulo" gasta créditos sin garantías.</p>
+                        </div>
+                        <button
+                          onClick={handleHideTutorial}
+                          className="mt-3 text-[10px] font-bold text-violet-500 hover:underline cursor-pointer"
+                        >
+                          Entendido →
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
-                  {/* Suggestions Grid */}
-                  <div className="grid grid-cols-1 gap-2">
-                    <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 ml-1 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <Sparkles size={11} className="text-indigo-400" /> Sugerencias de uso
+                  {/* Cards de sugerencias */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                        Sugerencias
                       </span>
                       {!showTutorial && (
-                        <button 
-                          onClick={() => setShowTutorial(true)} 
-                          className="text-[9px] text-violet-500 hover:text-violet-700 font-bold flex items-center gap-0.5 cursor-pointer underline bg-transparent border-none outline-none"
-                        >
-                          Ver Guía
+                        <button onClick={() => setShowTutorial(true)} className="text-[9.5px] font-bold text-violet-500 hover:underline cursor-pointer">
+                          Ver guía
                         </button>
                       )}
                     </div>
-                    {[
-                      { title: 'Añadir nueva sección', desc: 'Añade una sección de preguntas frecuentes (FAQ) debajo de los servicios.', icon: '➕' },
-                      { title: 'Cambiar el diseño', desc: 'Cambia la paleta de colores para que parezca más corporativo, con tonos oscuros y elegantes.', icon: '🎨' },
-                      { title: 'Modificar contenido', desc: 'Reescribe el texto de la cabecera para que sea más persuasivo y enfocado en conversión.', icon: '✍️' },
-                      { title: 'Funcionalidad', desc: 'Inserta un formulario de contacto al final de la página pidiendo Nombre, Email y Teléfono.', icon: '⚡' }
-                    ].map((sug, idx) => (
-                      <div 
-                        key={idx} 
-                        onClick={() => setPromptText(sug.desc)}
-                        className="p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm cursor-pointer hover:border-indigo-500/40 hover:bg-indigo-50/50 dark:hover:bg-indigo-500/10 hover:shadow-md transition-all group"
-                      >
-                        <div className="text-xs font-bold text-zinc-800 dark:text-zinc-200 mb-0.5 flex items-center gap-2">
-                          <span>{sug.icon}</span>
-                          <span className="group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{sug.title}</span>
-                        </div>
-                        <div className="text-[10.5px] text-zinc-500 dark:text-zinc-400 leading-relaxed">{sug.desc}</div>
-                      </div>
-                    ))}
-                    <div className="text-center mt-1">
-                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 italic">Haz clic en una sugerencia para usarla en el chat. Cada mensaje consume 1 crédito IA.</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { icon: '➕', title: 'Nueva sección',  desc: 'Añade una sección de FAQ debajo de los servicios.' },
+                        { icon: '🎨', title: 'Cambiar diseño', desc: 'Cambia a paleta oscura y corporativa.' },
+                        { icon: '✍️', title: 'Editar textos',  desc: 'Reescribe el hero para mayor conversión.' },
+                        { icon: '⚡', title: 'Añadir función', desc: 'Inserta formulario con Nombre, Email y Teléfono.' },
+                      ].map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setPromptText(s.desc)}
+                          className="text-left p-3 rounded-xl border border-border bg-card hover:border-violet-500/40 hover:bg-violet-500/5 transition-all group cursor-pointer"
+                        >
+                          <span className="text-lg mb-1 block">{s.icon}</span>
+                          <span className="text-[11px] font-bold text-foreground group-hover:text-violet-500 transition-colors block leading-tight">
+                            {s.title}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground leading-snug mt-0.5 block">
+                            {s.desc}
+                          </span>
+                        </button>
+                      ))}
                     </div>
+                    <p className="text-center text-[9px] text-muted-foreground/50 italic mt-2">
+                      Haz clic para usar · 1 crédito por mensaje
+                    </p>
                   </div>
                 </div>
               )}
@@ -716,44 +838,46 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
               <div ref={chatEndRef} />
             </div>
 
-            {/* Terminal (collapsible) */}
-            <div className="border-t border-border bg-[#05050a] flex flex-col overflow-hidden">
-              <div
-                className="flex items-center justify-between py-2 px-4 border-b border-white/[0.04] cursor-pointer hover:bg-white/[0.02] select-none transition-colors"
+            {/* Terminal colapsable */}
+            <div className="border-t border-border/60 flex flex-col overflow-hidden bg-[#05050a] shrink-0">
+              <button
+                className="flex items-center justify-between px-3 py-2 hover:bg-white/[0.02] transition-colors cursor-pointer"
                 onClick={() => setShowTerminal(t => !t)}
               >
-                <div className="flex items-center gap-2 text-[10px] font-bold tracking-wider uppercase text-zinc-400">
-                  <Terminal size={12} className="text-zinc-400" />
-                  Terminal de compilación
+                <div className="flex items-center gap-2">
+                  <Terminal size={11} className="text-zinc-600" />
+                  <span className="text-[9px] font-extrabold tracking-widest uppercase text-zinc-600">Terminal</span>
                   {logs.length > 0 && (
-                    <Badge className="bg-violet-500/20 text-violet-400 border border-violet-500/30 hover:bg-violet-500/20 py-0.5 px-2 text-[9px] rounded-full">
+                    <span className="px-1.5 rounded-full bg-violet-500/20 text-violet-400 text-[8.5px] font-bold border border-violet-500/30 leading-[18px]">
                       {logs.length}
-                    </Badge>
+                    </span>
                   )}
                 </div>
-                {showTerminal ? <ChevronDown size={13} className="text-zinc-500" /> : <ChevronUp size={13} className="text-zinc-500" />}
-              </div>
+                {showTerminal
+                  ? <ChevronDown size={11} className="text-zinc-700" />
+                  : <ChevronUp size={11} className="text-zinc-700" />}
+              </button>
 
               <div className={cn(
-                "overflow-hidden transition-all duration-300 ease-in-out",
-                showTerminal ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
+                'overflow-hidden transition-all duration-300',
+                showTerminal ? 'max-h-[180px] opacity-100' : 'max-h-0 opacity-0'
               )}>
-                <div className="p-3.5 font-mono text-[10.5px] leading-relaxed overflow-y-auto h-40 text-zinc-400 select-text">
+                <div className="h-[150px] overflow-y-auto p-3 font-mono text-[10.5px] leading-relaxed text-zinc-500 select-text">
                   {logs.length === 0 ? (
-                    <div className="text-zinc-600">
-                      <span className="text-zinc-700">avialo@shell:~$ </span>
-                      Esperando instrucciones del chat…
+                    <div>
+                      <span className="text-zinc-700">avialo@shell ~$ </span>
+                      <span className="text-zinc-600">Esperando instrucciones…</span>
                     </div>
                   ) : (
                     logs.slice(-40).map((log, i) => (
                       <div key={i} className={cn(
-                        (log.includes('✅') || log.includes('éxito')) && "text-emerald-400",
-                        (log.includes('❌') || log.includes('Error')) && "text-red-400",
-                        (log.includes('⚙️') || log.includes('🔧')) && "text-amber-400",
-                        log.includes('🤖') && "text-violet-400"
+                        'py-px',
+                        (log.includes('✅') || log.includes('éxito')) && 'text-emerald-400',
+                        (log.includes('❌') || log.includes('Error')) && 'text-red-400',
+                        (log.includes('⚙️') || log.includes('🔧')) && 'text-amber-400',
+                        log.includes('🤖') && 'text-violet-400'
                       )}>
-                        <span className="text-zinc-700 select-none">$ </span>
-                        {log}
+                        <span className="text-zinc-700 select-none">$ </span>{log}
                       </div>
                     ))
                   )}
@@ -762,185 +886,217 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
               </div>
             </div>
 
-            {/* Input area */}
-            <div className="p-4 border-t border-border bg-card shrink-0">
-              
-              {/* Progress bar and credits counter */}
-              <div className="mb-3">
-                <div className="flex justify-between items-center text-[10px] font-bold mb-1">
-                  <span className="flex items-center gap-1 text-muted-foreground select-none">
-                    <Zap size={11} className="text-amber-500 fill-amber-500 animate-[pulse_2s_infinite]" />
-                    CRÉDITOS DE IA RESTANTES:
-                  </span>
-                  <span className={cn(
-                    "font-bold font-mono text-[11px]",
-                    userCredits <= 5 ? "text-red-500" : userCredits <= 15 ? "text-amber-500" : "text-violet-500"
-                  )}>
-                    {userCredits} / {maxCredits}
-                  </span>
-                </div>
-                <Progress 
-                  value={(userCredits / maxCredits) * 100} 
-                  className={cn(
-                    "h-1.5 bg-muted rounded-full overflow-hidden transition-all duration-300",
-                    userCredits <= 5 
-                      ? "[&>div]:bg-red-500 [&>div]:shadow-[0_0_8px_rgba(239,68,68,0.5)]" 
-                      : userCredits <= 15 
-                        ? "[&>div]:bg-amber-550 [&>div]:shadow-[0_0_8px_rgba(245,158,11,0.5)]" 
-                        : "[&>div]:bg-gradient-to-r [&>div]:from-violet-600 [&>div]:to-fuchsia-500 [&>div]:shadow-[0_0_8px_rgba(124,58,237,0.5)]"
-                  )} 
-                />
-                {userCredits <= 5 && (
-                  <div className="text-[9.5px] text-red-500 font-bold mt-1.5 animate-pulse text-center select-none">
-                    ⚠️ ¡Créditos casi agotados! Realiza un upgrade en Ajustes para continuar editando tu web.
-                  </div>
-                )}
+            {/* Composer — input de chat */}
+            <div className="p-3 border-t border-border bg-card shrink-0">
+              {/* Barra de créditos */}
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="flex items-center gap-1 text-[9px] font-extrabold text-muted-foreground uppercase tracking-wider">
+                  <Zap size={9} className="text-amber-500 fill-amber-500" /> Créditos
+                </span>
+                <span className={cn(
+                  'text-[10px] font-mono font-bold',
+                  userCredits <= 5 ? 'text-red-500' : userCredits <= 15 ? 'text-amber-500' : 'text-violet-500'
+                )}>
+                  {userCredits} / {maxCredits}
+                </span>
               </div>
+              <Progress
+                value={(userCredits / maxCredits) * 100}
+                className={cn(
+                  'h-1 mb-3 bg-muted/60 rounded-full',
+                  userCredits <= 5
+                    ? '[&>div]:bg-red-500'
+                    : userCredits <= 15
+                      ? '[&>div]:bg-amber-500'
+                      : '[&>div]:bg-gradient-to-r [&>div]:from-violet-600 [&>div]:to-fuchsia-500'
+                )}
+              />
 
-              <form className="flex items-end gap-2" onSubmit={handleSend}>
+              {userCredits <= 5 && (
+                <div className="text-[9px] text-red-500 font-bold mb-2 text-center animate-pulse">
+                  ⚠️ Créditos casi agotados. Realiza upgrade desde Ajustes.
+                </div>
+              )}
+
+              <form onSubmit={handleSend} className="relative">
                 <Textarea
-                  ref={inputRef}
-                  className="flex-1 min-h-[44px] max-h-[140px] rounded-xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500 text-sm py-2 px-3 resize-none"
-                  rows={1}
+                  className="w-full min-h-[52px] max-h-[140px] text-[13px] py-3 px-4 pr-12 rounded-2xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500/60 focus-visible:border-violet-500/60 resize-none placeholder:text-muted-foreground/40 leading-relaxed"
+                  rows={2}
                   value={promptText}
                   onChange={e => setPromptText(e.target.value)}
                   disabled={isSending || status === 'generating' || status === 'building'}
-                  placeholder={isSending ? 'La IA está compilando tus cambios…' : 'Describe los cambios que quieres hacer…'}
+                  placeholder={isSending ? 'Compilando cambios…' : 'Describe los cambios que quieres hacer…'}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 />
                 <Button
                   type="submit"
                   size="icon"
                   disabled={!promptText.trim() || isSending}
-                  className="h-11 w-11 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shrink-0 shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all cursor-pointer"
+                  className="absolute right-2 bottom-2 h-8 w-8 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm disabled:opacity-30 transition-all cursor-pointer"
                 >
-                  {isSending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 </Button>
               </form>
-              <div className="flex items-center justify-center gap-1.5 text-[10px] text-muted-foreground mt-3 py-2 px-3 bg-violet-500/[0.03] dark:bg-violet-500/[0.02] border border-dashed border-violet-500/10 dark:border-violet-500/10 rounded-lg">
-                <Sparkles size={11} className="text-violet-500 animate-[pulse_2.5s_infinite_ease-in-out]" />
-                <span>La IA comete errores. Revisa y verifica los cambios importantes de tu web.</span>
-              </div>
+              <p className="text-center text-[9px] text-muted-foreground/40 mt-2">
+                Enter para enviar · Shift+Enter nueva línea
+              </p>
             </div>
           </div>
 
-          {/* Resizer 2: between Chat and Preview */}
-          <div 
-            className={cn(
-              "w-1 cursor-col-resize hover:bg-violet-500/60 active:bg-violet-500 shrink-0 relative z-50 -mx-[2px] transition-colors duration-150 shadow-[0_0_8px_rgba(124,58,237,0)] hover:shadow-[0_0_8px_rgba(124,58,237,0.5)] active:shadow-[0_0_8px_rgba(124,58,237,0.5)]",
-              isResizing ? "bg-violet-500 shadow-[0_0_8px_rgba(124,58,237,0.5)]" : "bg-transparent"
-            )} 
-            onMouseDown={startChatResize} 
+          {/* Handle 2: entre chat y preview */}
+          <div
+            className="w-px cursor-col-resize hover:bg-violet-500/50 bg-border shrink-0 transition-colors hover:shadow-[0_0_8px_rgba(124,58,237,0.35)]"
+            onMouseDown={startChatResize}
           />
 
-          {/* ── PREVIEW COLUMN ── */}
-          <div className="flex-1 flex flex-col bg-muted/20 overflow-hidden z-1">
-            {/* Browser bar */}
-            <div className="flex items-center gap-3 px-4 h-11 bg-card border-b border-border shrink-0">
-              <div className="flex gap-1.5">
+          {/* ══════════════════════════════════════
+              COLUMNA PREVIEW
+          ══════════════════════════════════════ */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+
+            {/* Barra del navegador */}
+            <div className="flex items-center gap-2 px-3 h-11 bg-card border-b border-border shrink-0">
+              {/* Traffic lights */}
+              <div className="flex gap-1.5 shrink-0">
                 <span className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]" />
                 <span className="w-2.5 h-2.5 rounded-full bg-[#27c93f]" />
               </div>
-              <div className="flex-1 max-w-[400px] mx-auto bg-muted/40 border border-border rounded-lg py-1 px-3 text-xs text-muted-foreground font-mono flex items-center gap-2 overflow-hidden truncate">
-                <Globe size={11} className="shrink-0" />
-                <span className="truncate">{user?.siteDomain || 'localhost:8081'}</span>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-7 w-7 rounded-md border-border bg-card cursor-pointer"
-                onClick={() => { if (iframeRef.current) iframeRef.current.src = iframeRef.current.src; }}
-                title="Refrescar preview"
+
+              {/* URL bar */}
+              <button
+                onClick={copyUrl}
+                className="flex-1 max-w-[360px] mx-auto flex items-center gap-2 bg-muted/40 border border-border hover:border-violet-500/40 rounded-lg px-3 py-1.5 text-xs text-muted-foreground font-mono hover:text-foreground transition-colors overflow-hidden cursor-pointer"
               >
-                <RefreshCw size={12} />
-              </Button>
+                <Lock size={10} className="text-emerald-500 shrink-0" />
+                <span className="truncate">{user?.siteDomain || 'localhost:8081'}</span>
+                {copiedUrl && <CheckCheck size={10} className="text-emerald-500 shrink-0 ml-auto" />}
+              </button>
+
+              {/* Viewport toggle + refresh */}
+              <div className="flex items-center gap-0.5 ml-auto shrink-0">
+                {[
+                  { id: 'desktop', Icon: Monitor,     title: 'Escritorio' },
+                  { id: 'tablet',  Icon: Tablet,      title: 'Tablet'     },
+                  { id: 'mobile',  Icon: Smartphone,  title: 'Móvil'      },
+                ].map(({ id, Icon, title }) => (
+                  <button
+                    key={id}
+                    onClick={() => setPreviewViewport(id)}
+                    title={title}
+                    className={cn(
+                      'h-7 w-7 rounded-md flex items-center justify-center transition-colors cursor-pointer',
+                      previewViewport === id
+                        ? 'bg-violet-500/10 text-violet-500'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                    )}
+                  >
+                    <Icon size={13} />
+                  </button>
+                ))}
+                <button
+                  onClick={() => { if (iframeRef.current) iframeRef.current.src = iframeRef.current.src; }}
+                  className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer ml-0.5"
+                  title="Refrescar"
+                >
+                  <RefreshCw size={12} />
+                </button>
+              </div>
             </div>
 
-            {/* Iframe / loading */}
-            <div className="flex-1 relative bg-white">
-              {previewUrl
-                ? <iframe ref={iframeRef} src={previewUrl} title="Preview" style={{ pointerEvents: isResizing ? 'none' : 'auto' }} className="w-full h-full border-none" />
-                : (
+            {/* Iframe con viewport ajustable */}
+            <div className="flex-1 relative bg-zinc-100 dark:bg-zinc-900 overflow-auto flex items-start justify-center">
+              <div
+                className="h-full bg-white transition-[width] duration-300 shadow-lg"
+                style={{
+                  width: previewViewport === 'desktop' ? '100%' : previewViewport === 'tablet' ? '768px' : '375px',
+                  minHeight: '100%',
+                }}
+              >
+                {previewUrl ? (
+                  <iframe
+                    ref={iframeRef}
+                    src={previewUrl}
+                    title="Preview"
+                    className="w-full h-full border-none"
+                    style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
+                  />
+                ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-background text-muted-foreground p-6">
-                    <Globe size={36} className="mb-3 opacity-40 animate-pulse text-violet-500" />
+                    <Globe size={36} className="mb-3 opacity-40 text-violet-500 animate-pulse" />
                     <div className="text-sm font-semibold text-foreground">Conectando con el contenedor…</div>
                     <div className="text-xs mt-1.5 text-muted-foreground">Esto puede tardar unos segundos</div>
                   </div>
-                )
-              }
-
-              {/* Building overlay */}
-              <AnimatePresence>
-                {status !== 'deployed' && status !== 'failed' && previewUrl && (
-                  <motion.div
-                    key="overlay"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-background/94 flex flex-col items-center justify-center z-20 backdrop-blur-[6px]"
-                  >
-                    <motion.div
-                      animate={{ rotate: [0, 5, -5, 0] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                      className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-[0_16px_40px_rgba(124,58,237,0.35)]"
-                    >
-                      <Zap size={24} className="text-white" />
-                    </motion.div>
-                    <div className="text-sm font-extrabold text-foreground mt-4 tracking-wide">
-                      Compilando cambios…
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1.5">
-                      El preview se actualizará automáticamente
-                    </div>
-                    <div className="w-[240px] mt-6">
-                      <Progress value={progress} className="h-1.5 bg-muted rounded-full" />
-                    </div>
-                    <div className="text-[11px] font-mono text-violet-500 mt-2 font-bold">
-                      {progress}%
-                    </div>
-                  </motion.div>
                 )}
-              </AnimatePresence>
+
+                {/* Overlay de compilación */}
+                <AnimatePresence>
+                  {status !== 'deployed' && status !== 'failed' && previewUrl && (
+                    <motion.div
+                      key="overlay"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-background/90 flex flex-col items-center justify-center z-20 backdrop-blur-sm"
+                    >
+                      <motion.div
+                        animate={{ rotate: [0, 4, -4, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-500 flex items-center justify-center shadow-[0_16px_40px_rgba(124,58,237,0.35)]"
+                      >
+                        <Zap size={24} className="text-white" />
+                      </motion.div>
+                      <div className="text-sm font-extrabold text-foreground mt-4">Compilando cambios…</div>
+                      <div className="text-xs text-muted-foreground mt-1.5">El preview se actualizará automáticamente</div>
+                      <div className="w-[220px] mt-6">
+                        <Progress
+                          value={progress}
+                          className="h-1.5 bg-muted [&>div]:bg-gradient-to-r [&>div]:from-violet-600 [&>div]:to-fuchsia-500 rounded-full"
+                        />
+                      </div>
+                      <div className="text-[11px] font-mono text-violet-500 mt-2 font-bold">{progress}%</div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ──────────────── MODALS ──────────────── */}
+      {/* ══════════════════════════════════════
+          MODALS
+      ══════════════════════════════════════ */}
 
-      {/* Code viewer */}
+      {/* Visor de código */}
       <AnimatePresence>
         {selectedFile && (
           <motion.div
-            className="fixed inset-0 bg-black/45 backdrop-blur-[4px] z-[100] flex items-center justify-center p-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSelectedFile(null)}
           >
             <motion.div
-              className="w-full max-w-[800px] max-h-[80vh] flex flex-col bg-card border border-border rounded-2xl p-6 shadow-2xl overflow-hidden"
-              initial={{ scale: .96, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: .96, opacity: 0 }}
+              className="w-full max-w-[820px] max-h-[85vh] flex flex-col bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+              initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-4 shrink-0">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-border shrink-0 bg-muted/20">
                 <div className="flex items-center gap-2">
-                  <Code size={14} className="text-violet-500" />
+                  <FileIcon name={selectedFile.split('/').pop() || ''} size={14} />
                   <span className="font-mono text-xs text-muted-foreground">{selectedFile}</span>
                 </div>
-                <Button variant="outline" size="icon" className="h-7 w-7 border-border cursor-pointer" onClick={() => setSelectedFile(null)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => setSelectedFile(null)}>
                   <X size={14} />
                 </Button>
               </div>
-              <div className="flex-1 rounded-xl overflow-auto bg-[#040408] border border-white/[0.02] p-4">
+              <div className="flex-1 overflow-auto bg-[#040408] p-5">
                 {loadingContent ? (
-                  <div className="flex items-center justify-center h-full gap-2 text-zinc-500 text-xs">
+                  <div className="flex items-center justify-center h-32 gap-2 text-zinc-500 text-xs">
                     <Loader2 size={13} className="text-violet-500 animate-spin" /> Cargando…
                   </div>
                 ) : (
-                  <pre className="m-0 font-mono text-[12px] leading-relaxed text-cyan-300 overflow-x-auto whitespace-pre">
+                  <pre className="m-0 font-mono text-[12px] leading-relaxed text-cyan-300 whitespace-pre overflow-x-auto">
                     {fileContent}
                   </pre>
                 )}
@@ -950,65 +1106,61 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
         )}
       </AnimatePresence>
 
-      {/* Insert DB row */}
+      {/* Modal insertar fila en BD */}
       <AnimatePresence>
         {showInsertModal && (
           <motion.div
-            className="fixed inset-0 bg-black/45 backdrop-blur-[4px] z-[100] flex items-center justify-center p-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowInsertModal(false)}
           >
             <motion.div
-              className="w-full max-w-[520px] bg-card border border-border rounded-2xl p-7 shadow-2xl overflow-hidden"
-              initial={{ scale: .96, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: .96, opacity: 0 }}
+              className="w-full max-w-[480px] bg-card border border-border rounded-2xl p-6 shadow-2xl"
+              initial={{ scale: 0.96, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.96, opacity: 0 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center gap-2">
-                  <Database size={14} className="text-violet-500" />
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                    <Database size={13} className="text-violet-500" />
+                  </div>
                   <span className="font-bold text-sm text-foreground">
-                    Insertar en {selectedTable}
+                    Insertar en <span className="text-violet-500">{selectedTable}</span>
                   </span>
                 </div>
-                <Button variant="outline" size="icon" className="h-7 w-7 border-border cursor-pointer" onClick={() => setShowInsertModal(false)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer" onClick={() => setShowInsertModal(false)}>
                   <X size={14} />
                 </Button>
               </div>
-              <form onSubmit={handleInsertRow}>
-                <div className="space-y-4">
-                  {headers.filter(h => h !== 'id').map(field => (
-                    <div key={field} className="space-y-1.5">
-                      <Label htmlFor={field} className="text-[10px] font-bold tracking-wider uppercase text-zinc-400">
-                        {field}
-                      </Label>
-                      <Input
-                        id={field}
-                        type="text"
-                        required
-                        placeholder={`Valor para ${field}…`}
-                        value={newRowData[field] || ''}
-                        onChange={e => setNewRowData(p => ({ ...p, [field]: e.target.value }))}
-                        className="w-full rounded-xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500 focus-visible:border-violet-500 text-sm py-2 px-3 h-10"
-                      />
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-3 mt-6 shrink-0">
+
+              <form onSubmit={handleInsertRow} className="space-y-3.5">
+                {headers.filter(h => h !== 'id').map(field => (
+                  <div key={field} className="space-y-1">
+                    <Label htmlFor={field} className="text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                      {field}
+                    </Label>
+                    <Input
+                      id={field}
+                      type="text"
+                      required
+                      placeholder={`Valor para ${field}…`}
+                      value={newRowData[field] || ''}
+                      onChange={e => setNewRowData(p => ({ ...p, [field]: e.target.value }))}
+                      className="h-9 rounded-xl border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500 text-sm"
+                    />
+                  </div>
+                ))}
+                <div className="flex gap-3 pt-2">
                   <Button
-                    type="button"
-                    variant="outline"
+                    type="button" variant="outline"
                     onClick={() => setShowInsertModal(false)}
-                    className="flex-1 h-11 rounded-xl text-sm font-semibold border-border bg-card cursor-pointer"
+                    className="flex-1 h-10 rounded-xl cursor-pointer"
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 h-11 rounded-xl text-sm font-bold bg-violet-600 hover:bg-violet-700 text-white shadow-[0_4px_16px_rgba(124,58,237,0.3)] transition-all cursor-pointer"
+                    className="flex-1 h-10 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-sm cursor-pointer"
                   >
                     Insertar fila
                   </Button>
