@@ -194,7 +194,7 @@ export default function LandingPage({ onNavigate }) {
   const [activeMetric, setActiveMetric] = useState(0);
 
   useEffect(() => {
-    const t1 = setInterval(() => setActiveShot(p => (p + 1) % 3), 3600);
+    const t1 = setInterval(() => setActiveShot(p => (p + 1) % 4), 3600);
     const t2 = setInterval(() => setActiveMetric(p => (p + 1) % 4), 2500);
     return () => { clearInterval(t1); clearInterval(t2); };
   }, []);
@@ -446,22 +446,24 @@ export default function LandingPage({ onNavigate }) {
             <Reveal delay={0.1} y={30}>
               <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
                 {[
+                  { src: '/ide-avialo.png', alt: 'Editor Visual IDE' },
                   { src: '/placeholder-1.png', alt: 'Panel Avialo Builder' },
                   { src: '/placeholder-2.png', alt: 'Reservas en tiempo real' },
                   { src: '/placeholder-3.png', alt: 'Web generada' },
                 ].map((shot, index) => {
-                  const pos = (index - activeShot + 3) % 3;
+                  const pos = (index - activeShot + 4) % 4;
                   const posMap = [
                     { scale: 1,    rotate: 1,   x: '0%',    y: '0%',    opacity: 1    },
                     { scale: 0.87, rotate: 6,   x: '18%',   y: '-11%',  opacity: 0.68 },
-                    { scale: 0.75, rotate: -5,  x: '-15%',  y: '-15%',  opacity: 0.42 },
+                    { scale: 0.75, rotate: 0,   x: '0%',    y: '-18%',  opacity: 0    },
+                    { scale: 0.87, rotate: -5,  x: '-18%',  y: '-11%',  opacity: 0.68 },
                   ];
                   return (
                     <motion.div
                       key={index}
                       className={cn(
                         'absolute inset-0 cursor-pointer overflow-hidden rounded-2xl border bg-card shadow-2xl',
-                        pos === 0 ? 'z-30 border-brand/25 shadow-brand/15' : pos === 1 ? 'z-20 border-border/50' : 'z-10 border-border/30'
+                        pos === 0 ? 'z-30 border-brand/25 shadow-brand/15' : (pos === 1 || pos === 3) ? 'z-20 border-border/50' : 'z-10 border-border/30'
                       )}
                       animate={posMap[pos]}
                       transition={{ duration: 0.65, ease: EASE }}
@@ -476,7 +478,7 @@ export default function LandingPage({ onNavigate }) {
 
                 {/* Dots indicadores */}
                 <div className="absolute -bottom-8 left-0 right-0 z-40 flex justify-center gap-2">
-                  {[0, 1, 2].map(i => (
+                  {[0, 1, 2, 3].map(i => (
                     <button key={i} onClick={() => setActiveShot(i)}
                       className={cn('h-1.5 rounded-full transition-all duration-500',
                         activeShot === i ? 'w-6 bg-brand' : 'w-1.5 bg-border hover:bg-muted-foreground/40')} />
