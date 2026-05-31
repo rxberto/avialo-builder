@@ -727,8 +727,8 @@ export default function LandingPage({ onNavigate }) {
                 {[
                   { src: '/ide-avialo.png', alt: 'Editor Visual IDE' },
                   { src: '/web-abogados.png', alt: 'Web Gestoría / Abogados' },
-                  { src: '/reservas-tiempo-real.png', alt: 'Reservas en tiempo real' },
-                  { src: '/web-generada.png', alt: 'Web generada' },
+                  { src: '/placeholder-2.png', alt: 'Reservas en tiempo real' },
+                  { src: '/placeholder-3.png', alt: 'Web generada' },
                 ].map((shot, index) => {
                   const pos = (index - activeShot + 4) % 4;
                   const posMap = [
