@@ -168,6 +168,66 @@ function PricingGridGlow({ children }) {
   );
 }
 
+function WorkflowDiagramSection() {
+  const steps = [
+    { icon: <MousePointerClick className="h-6 w-6 text-blue-400" />, title: "1. Tu idea", desc: "Eliges tu sector y describes lo que necesitas en lenguaje natural." },
+    { icon: <Cpu className="h-6 w-6 text-sky-400" />, title: "2. Motor IA", desc: "El algoritmo analiza y diseña la estructura ideal para tu negocio." },
+    { icon: <Database className="h-6 w-6 text-indigo-400" />, title: "3. Generación", desc: "Se crea el frontend, el backend y una base de datos aislada." },
+    { icon: <Globe className="h-6 w-6 text-brand-success" />, title: "4. Despliegue", desc: "Publicación automática en alta disponibilidad en segundos." }
+  ];
+
+  return (
+    <section className="relative overflow-hidden border-y border-blue-900/30 bg-slate-950 py-24 text-white lg:py-32">
+      {/* Fondos y Blurs */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
+      <div className="absolute -top-24 left-1/2 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-blue-600/20 blur-[120px]" />
+      
+      <div className="relative mx-auto max-w-7xl px-6">
+        <Reveal className="text-center">
+          <Eyebrow className="mb-4 justify-center text-sky-400">Flujo de trabajo</Eyebrow>
+          <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
+            Magia visual, ingeniería real
+          </h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg text-slate-400">
+            Así es como Avialo Builder transforma una simple idea en una plataforma completamente funcional en menos de 2 minutos.
+          </p>
+        </Reveal>
+
+        <div className="mt-20 relative">
+          {/* Línea conectora animada (Desktop) */}
+          <div className="absolute left-[12.5%] top-1/2 hidden h-1 w-[75%] -translate-y-1/2 overflow-hidden rounded-full bg-slate-800 lg:block">
+            <div className="h-full w-1/3 animate-marquee bg-gradient-to-r from-transparent via-blue-500 to-transparent blur-[1px]" />
+          </div>
+
+          <div className="grid gap-8 lg:grid-cols-4 relative z-10">
+            {steps.map((step, i) => (
+              <Reveal key={step.title} delay={i * 0.15}>
+                <div className="group relative flex h-full flex-col items-center rounded-3xl border border-blue-500/10 bg-slate-900/50 p-8 text-center backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:border-blue-400/30 hover:bg-slate-800/80 hover:shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]">
+                  
+                  {/* Círculo del icono rotando suavemente */}
+                  <div className="relative mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950 shadow-inner">
+                    <div className="absolute inset-0 rounded-2xl border border-blue-500/20 transition-transform duration-700 group-hover:rotate-12" />
+                    <div className="absolute inset-0 rounded-2xl border border-sky-400/10 transition-transform duration-700 group-hover:-rotate-12" />
+                    <motion.div
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      {step.icon}
+                    </motion.div>
+                  </div>
+
+                  <h3 className="mb-3 text-xl font-bold text-slate-100">{step.title}</h3>
+                  <p className="text-sm leading-relaxed text-slate-400">{step.desc}</p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage({ onNavigate }) {
   // Selector del escaparate de PYMEs tradicionales
   const [activePyme, setActivePyme] = useState('hosteleria');
@@ -882,6 +942,11 @@ export default function LandingPage({ onNavigate }) {
           </Reveal>
         </div>
       </section>
+
+      {/* ============================================================
+          FLUJO DE TRABAJO AVANZADO
+          ============================================================ */}
+      <WorkflowDiagramSection />
 
       {/* ============================================================
           MÉTRICAS — efecto cine: se destaca automáticamente cada dato
