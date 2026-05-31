@@ -8,7 +8,9 @@ import {
 import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
 import { DotPattern } from './ui/dot-pattern';
-import { NumberTicker } from './ui/number-ticker';
+import { HeroWave } from './ui/hero-wave';
+import { StripeThreeJSGalaxy } from './ui/StripeThreeJSGalaxy';
+import NumberTicker from './ui/number-ticker';
 import { InteractiveParticles } from './ui/interactive-particles';
 import { cn } from '@/lib/utils';
 
@@ -670,7 +672,7 @@ export default function LandingPage({ onNavigate }) {
           HÉROE — texto izquierda, capturas ciclando derecha
           ============================================================ */}
       <section className="relative isolate overflow-hidden bg-background px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
-        <LiveSVGBackground src="/light-galaxy.svg" />
+        <StripeThreeJSGalaxy />
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
