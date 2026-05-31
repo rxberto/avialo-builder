@@ -236,8 +236,8 @@ function MotionTrailsHero() {
       <motion.img
         src="/light-motion-trails.jpg"
         alt=""
-        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-30 dark:opacity-20"
-        style={{ x: tx, y: ty, filter: 'blur(3px) saturate(1.3)' }}
+        className="absolute -inset-[12%] h-[124%] w-[124%] max-w-none object-cover opacity-55 dark:opacity-45"
+        style={{ x: tx, y: ty, filter: 'blur(2px) saturate(1.3)' }}
         animate={{ scale: [1.04, 1.10, 1.04] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
@@ -1148,10 +1148,19 @@ export default function LandingPage({ onNavigate }) {
           BAJO EL CAPÓ — infraestructura real
           ============================================================ */}
       <section className="relative overflow-hidden border-y border-zinc-800 bg-zinc-950 py-24 text-white">
-        {/* Galaxy con parallax de ratón — se mueve con el cursor */}
-        <LiveSVGBackground src="/light-galaxy.jpg" />
-        {/* Red neuronal encima de la galaxy a menor opacidad */}
-        <div className="absolute inset-0 opacity-35" aria-hidden="true"><NeuralNet /></div>
+        {/* Galaxy — visible pero al fondo, con parallax de ratón */}
+        <img
+          src="/light-galaxy.jpg"
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-50 dark:opacity-60"
+          style={{ filter: 'blur(1px) saturate(1.4)', zIndex: 0 }}
+        />
+        {/* Gradientes de borde para fundir sin corte brusco */}
+        <div aria-hidden className="pointer-events-none absolute inset-0" style={{ zIndex: 1, background: 'linear-gradient(to right, #09090b 0%, transparent 25%, transparent 75%, #09090b 100%)' }} />
+        <div aria-hidden className="pointer-events-none absolute inset-0" style={{ zIndex: 1, background: 'linear-gradient(to bottom, #09090b 0%, transparent 20%, transparent 80%, #09090b 100%)' }} />
+        {/* Red neuronal encima */}
+        <div className="absolute inset-0 opacity-30" aria-hidden="true" style={{ zIndex: 2 }}><NeuralNet /></div>
         <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 lg:grid-cols-2">
           <Reveal>
             <Eyebrow className="mb-4 text-brand-accent">Infraestructura real</Eyebrow>
