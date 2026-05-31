@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform } from 'framer-motion';
 import {
   ArrowRight, Check, Sparkles, Globe, Calendar, Database, Terminal,
   ChevronDown, Star, Utensils, Stethoscope, Store, Shield, Cpu,
@@ -50,6 +50,72 @@ function Eyebrow({ children, className }) {
   );
 }
 
+// Olas SVG animadas en 3 capas para el fondo del héroe
+function HeroWave({ style }) {
+  return (
+    <motion.div aria-hidden style={style} className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
+        <defs>
+          <linearGradient id="wg1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="var(--brand-accent)" stopOpacity="0.04" />
+          </linearGradient>
+          <linearGradient id="wg2" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="var(--brand-accent)" stopOpacity="0.1" />
+            <stop offset="100%" stopColor="var(--brand)" stopOpacity="0.03" />
+          </linearGradient>
+          <filter id="wblur"><feGaussianBlur stdDeviation="12" /></filter>
+        </defs>
+        <path className="animate-wave1" filter="url(#wblur)"
+          d="M-200,380 C150,180 480,480 760,340 C1040,200 1300,420 1640,300 L1640,900 L-200,900 Z"
+          fill="url(#wg1)" />
+        <path className="animate-wave2" filter="url(#wblur)"
+          d="M-200,520 C200,400 520,600 820,480 C1120,360 1380,520 1640,440 L1640,900 L-200,900 Z"
+          fill="url(#wg2)" />
+        <path className="animate-wave3" filter="url(#wblur)"
+          d="M-200,660 C300,580 620,720 940,640 C1260,560 1440,660 1640,620 L1640,900 L-200,900 Z"
+          fill="url(#wg1)" style={{ opacity: 0.45 }} />
+      </svg>
+    </motion.div>
+  );
+}
+
+// Red neuronal animada — fondo para sección "Bajo el capó"
+function NeuralNet() {
+  const nodes = [
+    {cx:80,cy:60},{cx:80,cy:140},{cx:80,cy:220},{cx:80,cy:300},
+    {cx:260,cy:30},{cx:260,cy:110},{cx:260,cy:190},{cx:260,cy:270},{cx:260,cy:340},
+    {cx:440,cy:70},{cx:440,cy:160},{cx:440,cy:250},{cx:440,cy:330},
+    {cx:620,cy:40},{cx:620,cy:130},{cx:620,cy:220},{cx:620,cy:310},
+    {cx:800,cy:80},{cx:800,cy:180},{cx:800,cy:270},
+    {cx:980,cy:50},{cx:980,cy:160},{cx:980,cy:260},{cx:980,cy:340},
+    {cx:1160,cy:100},{cx:1160,cy:200},{cx:1160,cy:300},
+    {cx:1340,cy:140},{cx:1340,cy:240},
+  ];
+  const edges = [
+    [0,4],[0,5],[1,4],[1,5],[1,6],[2,6],[2,7],[3,7],[3,8],
+    [4,9],[5,10],[6,10],[6,11],[7,11],[7,12],[8,12],
+    [9,13],[10,14],[11,15],[12,16],[9,14],[10,15],[11,16],
+    [13,17],[14,18],[15,19],[16,19],[13,18],
+    [17,20],[18,21],[19,22],[19,23],[17,21],[18,22],
+    [20,24],[21,25],[22,26],[23,26],[20,25],[21,26],
+    [24,27],[25,27],[25,28],[26,28],
+  ];
+  return (
+    <svg aria-hidden className="absolute inset-0 h-full w-full" viewBox="0 0 1440 380" preserveAspectRatio="xMidYMid slice">
+      {edges.map(([a, b], i) => (
+        <line key={i} x1={nodes[a].cx} y1={nodes[a].cy} x2={nodes[b].cx} y2={nodes[b].cy}
+          stroke="#3B82F6" strokeWidth="1"
+          style={{ animation: `edgePulse 4s ease-in-out infinite`, animationDelay: `${(i * 0.15) % 3.5}s` }} />
+      ))}
+      {nodes.map((n, i) => (
+        <circle key={i} cx={n.cx} cy={n.cy} r="3.5" fill="#3B82F6"
+          style={{ animation: `nodePulse 3s ease-in-out infinite`, animationDelay: `${(i * 0.2) % 2.8}s` }} />
+      ))}
+    </svg>
+  );
+}
+
 // Overlay de grano SVG — textura de papel sutil en toda la página
 function GrainOverlay() {
   return (
@@ -83,6 +149,23 @@ export default function LandingPage({ onNavigate }) {
 
   // Acordeón de preguntas frecuentes
   const [openFaq, setOpenFaq] = useState(0);
+
+  // Captura activa en el hero (ciclo automático)
+  const [activeShot, setActiveShot] = useState(0);
+  // Métrica destacada en sección cine
+  const [activeMetric, setActiveMetric] = useState(0);
+
+  useEffect(() => {
+    const t1 = setInterval(() => setActiveShot(p => (p + 1) % 3), 3600);
+    const t2 = setInterval(() => setActiveMetric(p => (p + 1) % 4), 2500);
+    return () => { clearInterval(t1); clearInterval(t2); };
+  }, []);
+
+  // Parallax del hero al hacer scroll (efecto Apple)
+  const { scrollY } = useScroll();
+  const heroTextY  = useTransform(scrollY, [0, 500], [0, -70]);
+  const waveY      = useTransform(scrollY, [0, 600], [0, -120]);
+  const heroOpacity = useTransform(scrollY, [0, 320], [1, 0.35]);
 
   // Configuración de los negocios tradicionales (PYMEs)
   const pymes = {
@@ -266,23 +349,18 @@ export default function LandingPage({ onNavigate }) {
       <GrainOverlay />
 
       {/* ============================================================
-          HÉROE — texto izquierda, capturas en cascada derecha
+          HÉROE — texto izquierda, capturas ciclando derecha
           ============================================================ */}
-      <section className="relative isolate overflow-hidden px-6 pb-16 pt-24 sm:pt-28 lg:pt-32">
+      <section className="relative isolate overflow-hidden bg-gradient-to-br from-blue-50 via-white to-sky-50 px-6 pb-20 pt-24 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 sm:pt-28 lg:pt-32">
+        <HeroWave style={{ y: waveY }} />
 
         <div className="mx-auto max-w-7xl">
-          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
 
-            {/* Columna izquierda — copy */}
-            <div>
-              <Reveal y={8}>
-                <span className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-brand/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand">
-                  Algoritmo Avialo · genera tu web en español
-                </span>
-              </Reveal>
-
-              <Reveal delay={0.06}>
-                <h1 className="mt-5 text-[2.8rem] font-bold leading-[1.06] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-[4rem]">
+            {/* Columna izquierda — texto con parallax */}
+            <motion.div style={{ y: heroTextY, opacity: heroOpacity }}>
+              <Reveal delay={0.04}>
+                <h1 className="text-[2.8rem] font-bold leading-[1.06] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-[4rem]">
                   Tu negocio en internet,{' '}
                   <span className="text-brand">listo en 2 minutos.</span>
                 </h1>
@@ -290,9 +368,9 @@ export default function LandingPage({ onNavigate }) {
 
               <Reveal delay={0.12}>
                 <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-[1.05rem]">
-                  Describe tu PYME en español. Nuestro algoritmo genera tu web
+                  Describe tu PYME en español. El algoritmo genera tu web
                   profesional con reservas o cobros incluidos.
-                  Sin plantillas, sin código.
+                  Sin plantillas, sin código, sin técnicos.
                 </p>
               </Reveal>
 
@@ -300,14 +378,14 @@ export default function LandingPage({ onNavigate }) {
                 <div className="mt-8 flex flex-wrap gap-3">
                   <button
                     onClick={() => onNavigate('register')}
-                    className="group inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-sm font-semibold text-midnight shadow-lg shadow-brand/25 transition-all duration-200 hover:bg-brand/90 hover:shadow-xl hover:shadow-brand/30 active:scale-[0.98]"
+                    className="group inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand/30 transition-all duration-200 hover:bg-brand/90 hover:shadow-xl hover:shadow-brand/40 active:scale-[0.98]"
                   >
                     Probar gratis
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </button>
                   <a
                     href="#pricing"
-                    className="inline-flex items-center gap-2 rounded-xl border border-brand-accent/30 bg-brand-accent/10 px-6 py-3.5 text-sm font-semibold text-brand-accent transition-all duration-200 hover:bg-brand-accent/15 active:scale-[0.98]"
+                    className="inline-flex items-center gap-2 rounded-xl border border-brand/25 bg-brand/8 px-6 py-3.5 text-sm font-semibold text-brand transition-all duration-200 hover:bg-brand/12 active:scale-[0.98]"
                   >
                     Ver precios
                   </a>
@@ -323,51 +401,50 @@ export default function LandingPage({ onNavigate }) {
                   ))}
                 </ul>
               </Reveal>
-            </div>
+            </motion.div>
 
-            {/* Columna derecha — capturas de pantalla en cascada */}
-            <div className="relative mx-auto h-[280px] w-full max-w-[440px] sm:h-[340px] lg:mx-0 lg:h-[420px] lg:max-w-none">
+            {/* Columna derecha — capturas ciclando (deck de cartas) */}
+            <Reveal delay={0.1} y={30}>
+              <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
+                {[
+                  { src: '/placeholder-1.webp', alt: 'Panel Avialo Builder' },
+                  { src: '/placeholder-2.webp', alt: 'Reservas en tiempo real' },
+                  { src: '/placeholder-3.webp', alt: 'Web generada' },
+                ].map((shot, index) => {
+                  const pos = (index - activeShot + 3) % 3;
+                  const posMap = [
+                    { scale: 1,    rotate: 1,   x: '0%',    y: '0%',    opacity: 1    },
+                    { scale: 0.87, rotate: 6,   x: '18%',   y: '-11%',  opacity: 0.68 },
+                    { scale: 0.75, rotate: -5,  x: '-15%',  y: '-15%',  opacity: 0.42 },
+                  ];
+                  return (
+                    <motion.div
+                      key={index}
+                      className={cn(
+                        'absolute inset-0 cursor-pointer overflow-hidden rounded-2xl border bg-card shadow-2xl',
+                        pos === 0 ? 'z-30 border-brand/25 shadow-brand/15' : pos === 1 ? 'z-20 border-border/50' : 'z-10 border-border/30'
+                      )}
+                      animate={posMap[pos]}
+                      transition={{ duration: 0.65, ease: EASE }}
+                      onClick={() => setActiveShot(index)}
+                    >
+                      <div className="h-full w-full bg-muted">
+                        <img src={shot.src} alt={shot.alt} className="h-full w-full object-cover" loading="lazy" />
+                      </div>
+                    </motion.div>
+                  );
+                })}
 
-              {/* Captura 3 — fondo, inclinada +3° */}
-              <motion.div
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.9, ease: EASE, delay: 0.45 }}
-                className="absolute right-0 top-0 w-[76%] rotate-[3deg] overflow-hidden rounded-2xl border border-border/40 bg-card shadow-2xl shadow-black/40"
-              >
-                <div className="aspect-video w-full bg-muted">
-                  <img src="/placeholder-3.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
+                {/* Dots indicadores */}
+                <div className="absolute -bottom-8 left-0 right-0 z-40 flex justify-center gap-2">
+                  {[0, 1, 2].map(i => (
+                    <button key={i} onClick={() => setActiveShot(i)}
+                      className={cn('h-1.5 rounded-full transition-all duration-500',
+                        activeShot === i ? 'w-6 bg-brand' : 'w-1.5 bg-border hover:bg-muted-foreground/40')} />
+                  ))}
                 </div>
-              </motion.div>
-
-              {/* Captura 2 — plano medio, inclinada -2° */}
-              <motion.div
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.9, ease: EASE, delay: 0.3 }}
-                className="absolute left-0 top-[20%] w-[70%] -rotate-[2deg] overflow-hidden rounded-2xl border border-border/40 bg-card shadow-2xl shadow-black/40"
-              >
-                <div className="aspect-video w-full bg-muted">
-                  <img src="/placeholder-2.webp" alt="" className="h-full w-full object-cover" loading="lazy" />
-                </div>
-              </motion.div>
-
-              {/* Captura 1 — primer plano, +1° */}
-              <motion.div
-                initial={{ opacity: 0, y: 32 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.9, ease: EASE, delay: 0.15 }}
-                className="absolute bottom-0 right-[6%] w-[80%] rotate-[1deg] overflow-hidden rounded-2xl border border-brand/15 bg-card shadow-2xl shadow-black/50 ring-1 ring-brand/10"
-              >
-                <div className="aspect-video w-full bg-muted">
-                  <img src="/placeholder-1.webp" alt="Constructor Avialo en acción" className="h-full w-full object-cover" loading="lazy" />
-                </div>
-              </motion.div>
-
-            </div>
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>
@@ -380,17 +457,17 @@ export default function LandingPage({ onNavigate }) {
 
           <Reveal>
             <p className="mb-10 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Ya confían en Avialo
+              Capacidades del sistema
             </p>
           </Reveal>
 
-          {/* Contadores animados */}
+          {/* Contadores — métricas reales del sistema */}
           <div className="mb-14 grid grid-cols-2 gap-y-8 sm:grid-cols-4">
             {[
-              { value: 847,   suffix: '+',   label: 'PYMEs activas' },
-              { value: 12400, suffix: '+',   label: 'Reservas gestionadas' },
-              { value: 2,     suffix: ' min', label: 'Tiempo de deploy' },
-              { value: 98,    suffix: '%',   label: 'Satisfacción cliente' },
+              { value: 2,   suffix: ' min', label: 'De idea a web publicada' },
+              { value: 3,   suffix: ' tipos', label: 'Corporativa, reservas y ecommerce' },
+              { value: 0,   suffix: '€',   label: 'Comisiones por reserva' },
+              { value: 100, suffix: '%',   label: 'Datos aislados por negocio' },
             ].map((stat, i) => (
               <Reveal key={stat.label} delay={i * 0.07} className="text-center">
                 <div className="font-display text-[2.5rem] font-semibold leading-none text-foreground sm:text-5xl">
@@ -694,7 +771,7 @@ export default function LandingPage({ onNavigate }) {
           BAJO EL CAPÓ — infraestructura real
           ============================================================ */}
       <section className="relative overflow-hidden border-y border-zinc-800 bg-zinc-950 py-24 text-white">
-        <div className="bg-dots-fade absolute inset-0 opacity-50" aria-hidden="true" />
+        <div className="absolute inset-0 opacity-60" aria-hidden="true"><NeuralNet /></div>
         <div className="relative mx-auto grid max-w-6xl items-center gap-14 px-6 lg:grid-cols-2">
           <Reveal>
             <Eyebrow className="mb-4 text-brand-accent">Infraestructura real</Eyebrow>
@@ -766,19 +843,43 @@ export default function LandingPage({ onNavigate }) {
       </section>
 
       {/* ============================================================
-          MÉTRICAS
+          MÉTRICAS — efecto cine: se destaca automáticamente cada dato
           ============================================================ */}
       <section className="mx-auto max-w-6xl px-6 py-20">
-        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+        <Reveal className="mb-10 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">En números</p>
+        </Reveal>
+        <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
           {metrics.map((m, i) => (
-            <Reveal key={m.label} delay={i * 0.08} className="text-center">
-              <div className="text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl dark:text-white">
-                {m.prefix}
-                <NumberTicker value={m.value} />
-                {m.suffix}
+            <motion.div
+              key={m.label}
+              animate={activeMetric === i
+                ? { scale: 1.08, opacity: 1 }
+                : { scale: 1, opacity: 0.38 }}
+              transition={{ duration: 0.55, ease: EASE }}
+              className="cursor-pointer text-center"
+              onClick={() => setActiveMetric(i)}
+            >
+              <div className={cn(
+                'text-4xl font-bold tracking-tight transition-colors duration-500 sm:text-5xl',
+                activeMetric === i ? 'text-brand' : 'text-foreground'
+              )}>
+                {m.prefix}<NumberTicker value={m.value} />{m.suffix}
               </div>
-              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{m.label}</p>
-            </Reveal>
+              <p className={cn(
+                'mt-2 text-sm transition-colors duration-500',
+                activeMetric === i ? 'font-semibold text-foreground' : 'text-muted-foreground'
+              )}>
+                {m.label}
+              </p>
+              <div className="mt-3 flex justify-center">
+                <motion.div
+                  animate={activeMetric === i ? { width: 40, opacity: 1 } : { width: 0, opacity: 0 }}
+                  transition={{ duration: 0.4, ease: EASE }}
+                  className="h-1 rounded-full bg-brand"
+                />
+              </div>
+            </motion.div>
           ))}
         </div>
       </section>
@@ -840,35 +941,19 @@ export default function LandingPage({ onNavigate }) {
         <div className="grid items-stretch gap-6 lg:grid-cols-3">
           {plans.map((plan, i) => (
             <Reveal key={plan.name} delay={i * 0.08}>
-              <div
-                className={cn(
-                  'relative flex h-full flex-col overflow-hidden rounded-3xl border p-8 transition-all duration-300',
-                  plan.featured
-                    ? 'border-brand/40 bg-card shadow-2xl shadow-brand/10 lg:scale-[1.03]'
-                    : 'border-border bg-card hover:-translate-y-1 hover:shadow-xl hover:shadow-black/5'
-                )}
-              >
-                {plan.featured && (
-                  <>
-                    <BorderBeam size={280} duration={12} borderWidth={1.4} colorFrom="var(--brand)" colorTo="var(--brand-accent)" />
-                    <span className="absolute right-6 top-6 rounded-full bg-brand/10 px-3 py-1 text-[11px] font-semibold text-brand dark:text-brand-accent">
-                      Recomendado
-                    </span>
-                  </>
-                )}
-
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">{plan.name}</h3>
-                <p className="mt-2 h-10 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{plan.description}</p>
+              <div className="relative flex h-full flex-col rounded-3xl border border-border bg-card p-8 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/6 hover:border-brand/20">
+                <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
+                <p className="mt-2 h-10 text-sm leading-relaxed text-muted-foreground">{plan.description}</p>
 
                 <div className="mt-6 flex items-baseline gap-1">
-                  <span className="text-5xl font-semibold tracking-tight text-zinc-900 dark:text-white">{plan.price}</span>
-                  <span className="text-sm font-medium text-zinc-400">{plan.period}</span>
+                  <span className="text-5xl font-bold tracking-tight text-foreground">{plan.price}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{plan.period}</span>
                 </div>
 
                 <ul className="mt-8 space-y-3.5">
                   {plan.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-zinc-600 dark:text-zinc-300">
-                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand dark:text-brand-accent">
+                    <li key={f} className="flex items-start gap-3 text-sm text-muted-foreground">
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand/10 text-brand">
                         <Check className="h-3 w-3" />
                       </span>
                       {f}
@@ -878,12 +963,7 @@ export default function LandingPage({ onNavigate }) {
 
                 <button
                   onClick={() => onNavigate('register')}
-                  className={cn(
-                    'mt-9 w-full rounded-xl py-3.5 text-sm font-semibold transition-all active:scale-[0.98]',
-                    plan.featured
-                      ? 'bg-brand text-white shadow-lg shadow-brand/25 hover:bg-brand/90'
-                      : 'bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200'
-                  )}
+                  className="mt-9 w-full rounded-xl bg-brand py-3.5 text-sm font-semibold text-white shadow-sm shadow-brand/20 transition-all hover:bg-brand/90 active:scale-[0.98]"
                 >
                   {plan.cta}
                 </button>
@@ -904,26 +984,41 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           FAQ
           ============================================================ */}
-      <section className="mx-auto max-w-3xl px-6 py-24">
-        <Reveal className="mb-14 text-center">
+      <section className="mx-auto max-w-5xl px-6 py-24">
+        <Reveal className="mb-12 text-center">
           <Eyebrow className="mb-4 justify-center">Dudas frecuentes</Eyebrow>
-          <h2 className="text-balance text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl dark:text-white">
-            Preguntas frecuentes
+          <h2 className="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            ¿Tienes preguntas?
           </h2>
+          <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">Aquí van las respuestas más directas.</p>
         </Reveal>
 
-        <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           {faqs.map((faq, index) => {
             const isOpen = openFaq === index;
+            const badges = [
+              'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+              'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+              'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+              'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+            ];
             return (
-              <Reveal key={faq.q} delay={index * 0.05}>
-                <div className={cn('overflow-hidden rounded-2xl border transition-colors', isOpen ? 'border-brand/30 bg-card' : 'border-border bg-card/50')}>
+              <Reveal key={faq.q} delay={index * 0.04}>
+                <div className={cn(
+                  'overflow-hidden rounded-2xl border transition-all duration-300',
+                  isOpen ? 'border-brand/20 bg-brand/3 shadow-sm' : 'border-border bg-card hover:border-border/80'
+                )}>
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="flex w-full items-center justify-between gap-4 p-5 text-left outline-none"
+                    className="flex w-full items-start gap-3.5 p-5 text-left outline-none"
                   >
-                    <span className="text-[15px] font-semibold text-zinc-800 dark:text-zinc-100">{faq.q}</span>
-                    <ChevronDown className={cn('h-4 w-4 shrink-0 text-zinc-400 transition-transform duration-300', isOpen && 'rotate-180 text-brand')} />
+                    <span className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[11px] font-extrabold', badges[index])}>
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="flex-1 text-[15px] font-semibold leading-snug text-foreground">{faq.q}</span>
+                    <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.28, ease: EASE }}>
+                      <ChevronDown className={cn('mt-0.5 h-4 w-4 shrink-0 transition-colors', isOpen ? 'text-brand' : 'text-muted-foreground')} />
+                    </motion.div>
                   </button>
                   <AnimatePresence initial={false}>
                     {isOpen && (
@@ -931,9 +1026,9 @@ export default function LandingPage({ onNavigate }) {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.3, ease: EASE }}
+                        transition={{ duration: 0.28, ease: EASE }}
                       >
-                        <p className="px-5 pb-5 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{faq.a}</p>
+                        <p className="px-5 pb-5 pl-[3.75rem] text-sm leading-relaxed text-muted-foreground">{faq.a}</p>
                       </motion.div>
                     )}
                   </AnimatePresence>

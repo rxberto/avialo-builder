@@ -403,7 +403,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                 <Button
                   size="sm"
                   onClick={(e) => handleNavClick(e, 'register')}
-                  className="group flex h-9 items-center gap-1.5 rounded-full bg-brand px-5 text-sm font-semibold text-midnight shadow-md shadow-brand/20 transition-all hover:bg-brand/90 hover:shadow-brand/30"
+                  className="group flex h-9 items-center gap-1.5 rounded-full bg-brand px-5 text-sm font-semibold text-white shadow-md shadow-brand/20 transition-all hover:bg-brand/90 hover:shadow-brand/30"
                 >
                   Empezar Gratis
                   <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
@@ -484,7 +484,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                       </div>
                       <button
                         onClick={(e) => handleNavClick(e, 'register')}
-                        className="group/cta inline-flex items-center gap-1.5 self-start rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-midnight shadow-sm shadow-brand/20 transition-all hover:bg-brand/90 active:scale-95"
+                        className="group/cta inline-flex items-center gap-1.5 self-start rounded-lg bg-brand px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-brand/20 transition-all hover:bg-brand/90 active:scale-95"
                       >
                         {MEGA_MENUS[activeMenu].featured.cta}
                         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/cta:translate-x-0.5" />
