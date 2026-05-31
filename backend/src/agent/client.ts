@@ -35,6 +35,12 @@ const deepseekClient = config.deepseek.apiKey
     })
   : null;
 
+const openAIClient = config.openai.apiKey
+  ? new OpenAI({
+      apiKey: config.openai.apiKey,
+    })
+  : null;
+
 /**
  * Genera contenido de código llamando principalmente a Claude Sonnet,
  * y en caso de error o cuota excedida, realiza un fallback automático a Gemini Flash.
@@ -135,18 +141,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         // 2. Intentar Gemini Directo
         return await callGemini(prompt, systemPrompt, MODELS.GEMINI, maxTokens, onUsage);
       } catch (errorGemini: any) {
-        console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}.`);
+        console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}. Probando OpenAI...`);
 
-        // 3. Fallback a OpenRouter con Modelos Gratuitos como salvavidas
-        if (openRouterClient) {
+        try {
+          // 3. Fallback a OpenAI (GPT-4o)
+          return await callOpenAI(prompt, systemPrompt, maxTokens, onUsage);
+        } catch (errorOpenAI: any) {
+          console.warn(`⚠️ OpenAI falló: ${errorOpenAI.message}. Probando DeepSeek...`);
+
           try {
-            console.log(`🔌 Activando salvavidas de OpenRouter (Gemini Pro Free) para tarea compleja...`);
-            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-pro:free", onUsage);
-          } catch (errorOR: any) {
-            throw new Error(`❌ Todos los modelos fallaron. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message} | OpenRouter: ${errorOR.message}`);
+            // 4. Fallback final a DeepSeek (muy económico y de alta lógica)
+            return await callDeepSeek(prompt, systemPrompt, maxTokens, onUsage);
+          } catch (errorDeepSeek: any) {
+            throw new Error(`❌ Todos los modelos fallaron en cascada. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message} | OpenAI: ${errorOpenAI.message} | DeepSeek: ${errorDeepSeek.message}`);
           }
         }
-        throw new Error(`❌ Modelos principales fallaron y OpenRouter no está configurado. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message}`);
       }
     }
   } else {
@@ -342,4 +351,37 @@ async function callDeepSeek(prompt: string, systemPrompt: string, maxTokens: num
   }
   
   throw new Error("DeepSeek devolvió un contenido de respuesta vacío.");
+}
+
+/**
+ * Llama al API oficial de OpenAI
+ */
+async function callOpenAI(prompt: string, systemPrompt: string, maxTokens: number = DEFAULT_MAX_TOKENS, onUsage?: OnUsage): Promise<string> {
+  if (!openAIClient) {
+    throw new Error("Cliente de OpenAI no inicializado (falta OPENAI_API_KEY).");
+  }
+
+  const response = await openAIClient.chat.completions.create({
+    model: "gpt-4o",
+    max_tokens: maxTokens,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: prompt },
+    ],
+  });
+
+  if (onUsage && response.usage) {
+    onUsage({
+      model: "gpt-4o",
+      inputTokens: response.usage.prompt_tokens ?? 0,
+      outputTokens: response.usage.completion_tokens ?? 0,
+    });
+  }
+
+  const text = response.choices[0]?.message?.content;
+  if (text) {
+    return text;
+  }
+  
+  throw new Error("OpenAI devolvió un contenido de respuesta vacío.");
 }
