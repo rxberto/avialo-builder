@@ -26,6 +26,8 @@ export default defineConfig({
     port: 4173,
   },
   build: {
-    sourcemap: true,
+    // Sin sourcemap en producción: el .map exponía el código fuente completo
+    // en builder.avialo.es. No hay error-tracking (Sentry) que lo requiera.
+    sourcemap: false,
   },
 })

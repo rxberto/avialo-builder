@@ -32,6 +32,7 @@ export function useJobSSE(jobId) {
     pollingRef.current = setInterval(async () => {
       try {
         const job = await getJob(jobId);
+        setError(null);
         setStatus(job.status);
         setProgress(job.progress ?? 0);
         if (job.previewUrl) setPreviewUrl(job.previewUrl);
@@ -76,11 +77,12 @@ export function useJobSSE(jobId) {
     });
 
     es.onerror = () => {
-      // SSE cerrado — activar polling
+      // SSE cerrado — activar polling como respaldo y exponer el fallo
       if (esRef.current) {
         esRef.current.close();
         esRef.current = null;
       }
+      setError('Conexión de logs en tiempo real interrumpida; usando sondeo periódico.');
       startPolling();
     };
 

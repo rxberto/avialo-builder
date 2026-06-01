@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Globe, Database, CreditCard, ShieldCheck, 
   Key, RefreshCw, Server, ArrowUpRight, Copy, CheckCircle, 
-  Trash2, ShieldAlert, Sparkles, Terminal, Activity, Eye, EyeOff,
+  Trash2, Sparkles, Activity,
   Mail, Plus, Loader2, HelpCircle, ExternalLink, Smartphone, Laptop
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -151,7 +151,7 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
   const [mailboxes, setMailboxes] = useState(() => {
     const saved = localStorage.getItem('avialo_mailboxes');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
+      try { return JSON.parse(saved); } catch { /* JSON corrupto: usar valor por defecto */ }
     }
     const domainPart = user?.siteDomain || 'tu-dominio.com';
     return [

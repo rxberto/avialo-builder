@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
 import { createCheckoutSession } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
-  Rocket, ShieldCheck, Zap, Globe, CheckCircle2,
-  Loader2, CreditCard, Building2, ShoppingBag, Lock, Info, Building, AlertCircle
+  Rocket, ShieldCheck, Zap, CheckCircle2,
+  Loader2, CreditCard, Building2, ShoppingBag, Lock, Building, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -90,7 +88,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         const parsed = JSON.parse(saved);
         return parsed[field] !== undefined ? parsed[field] : defaultValue;
       }
-    } catch (e) {}
+    } catch { /* datos de facturación corruptos: ignorar */ }
     return defaultValue;
   };
 
@@ -109,7 +107,7 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
       const parsed = saved ? JSON.parse(saved) : {};
       parsed[field] = value;
       localStorage.setItem('avialo_billing_data', JSON.stringify(parsed));
-    } catch (e) {}
+    } catch { /* datos de facturación corruptos: ignorar */ }
   };
 
   const webType = clientData?.websiteArchitecture?.type || 'dinamica';

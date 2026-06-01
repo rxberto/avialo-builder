@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mail, Lock, LogIn, AlertCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { login } from '../lib/api';
 import Logo from './ui/Logo';
 import { Button } from '@/components/ui/button';

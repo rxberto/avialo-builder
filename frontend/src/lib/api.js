@@ -11,7 +11,7 @@ function getHeaders() {
       if (user.token) {
         headers['Authorization'] = `Bearer ${user.token}`;
       }
-    } catch (e) {}
+    } catch { /* token ausente o corrupto: continuar sin autenticación */ }
   }
   return headers;
 }
@@ -170,7 +170,7 @@ export function getJobLogsSSEUrl(jobId) {
     try {
       const user = JSON.parse(userStr);
       if (user.token) token = user.token;
-    } catch (e) {}
+    } catch { /* token ausente o corrupto: continuar sin autenticación */ }
   }
   return `${API_BASE}/api/jobs/${jobId}/logs?token=${encodeURIComponent(token)}`;
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, useReducedMotion, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import {
   ArrowRight, Check, Sparkles, Globe, Calendar, Database, Terminal,
-  ChevronDown, Star, Utensils, Stethoscope, Store, Shield, Cpu,
+  Star, Utensils, Stethoscope, Store, Shield, Cpu,
   Zap, CreditCard, Folder, File, Minus, Plus, Lock, MousePointerClick, Headset, Layout
 } from 'lucide-react';
 import { ShimmerButton } from './ui/shimmer-button';
@@ -48,36 +48,6 @@ function Eyebrow({ children, className }) {
       <span className="h-1 w-1 rounded-full bg-brand/50" />
       {children}
     </span>
-  );
-}
-
-// Olas SVG animadas en 3 capas para el fondo del héroe
-function HeroWave({ style }) {
-  return (
-    <motion.div aria-hidden style={style} className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
-        <defs>
-          <linearGradient id="wg1" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="var(--brand)" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="var(--brand-accent)" stopOpacity="0.04" />
-          </linearGradient>
-          <linearGradient id="wg2" x1="100%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="var(--brand-accent)" stopOpacity="0.1" />
-            <stop offset="100%" stopColor="var(--brand)" stopOpacity="0.03" />
-          </linearGradient>
-          <filter id="wblur"><feGaussianBlur stdDeviation="12" /></filter>
-        </defs>
-        <path className="animate-wave1" filter="url(#wblur)"
-          d="M-200,380 C150,180 480,480 760,340 C1040,200 1300,420 1640,300 L1640,900 L-200,900 Z"
-          fill="url(#wg1)" />
-        <path className="animate-wave2" filter="url(#wblur)"
-          d="M-200,520 C200,400 520,600 820,480 C1120,360 1380,520 1640,440 L1640,900 L-200,900 Z"
-          fill="url(#wg2)" />
-        <path className="animate-wave3" filter="url(#wblur)"
-          d="M-200,660 C300,580 620,720 940,640 C1260,560 1440,660 1640,620 L1640,900 L-200,900 Z"
-          fill="url(#wg1)" style={{ opacity: 0.45 }} />
-      </svg>
-    </motion.div>
   );
 }
 
@@ -168,48 +138,6 @@ function PricingGridGlow({ children }) {
   );
 }
 
-function LiveSVGBackground({ src }) {
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-  const springX = useSpring(mouseX, { stiffness: 20, damping: 30 });
-  const springY = useSpring(mouseY, { stiffness: 20, damping: 30 });
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      mouseX.set(e.clientX / window.innerWidth);
-      mouseY.set(e.clientY / window.innerHeight);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  const translateX = useTransform(springX, [0, 1], ['-3%', '3%']);
-  const translateY = useTransform(springY, [0, 1], ['-3%', '3%']);
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden flex items-center justify-center">
-      {/* Pulsing glow behind the SVG */}
-      <motion.div 
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[800px] w-[800px] bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.3),transparent_60%)] blur-3xl"
-      />
-      
-      <motion.img
-        src={src}
-        className="absolute -inset-[10%] h-[120%] w-[120%] max-w-none object-cover opacity-70 dark:opacity-40"
-        style={{ x: translateX, y: translateY, scale: 1.05 }}
-        alt=""
-      />
-      
-      {/* Blend edges into the background */}
-      <div className="absolute inset-0 bg-background/60 [mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_100%)]" />
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-60" />
-    </div>
-  );
-}
-
 // Fondo animado para el hero — efecto Stripe con light-motion-trails.jpg
 // Parallax suave con el ratón + drift automático + glow pulsante
 function MotionTrailsHero() {
@@ -277,71 +205,6 @@ function MotionTrailsHero() {
         animate={{ opacity: [0.2, 0.5, 0.2], x: [0, 35, 0], y: [0, -25, 0] }}
         transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
       />
-    </div>
-  );
-}
-
-function Galaxy3DBackground() {
-  const mouseX = useMotionValue(0.5);
-  const mouseY = useMotionValue(0.5);
-  const rotateX = useTransform(mouseY, [0, 1], [15, -15]);
-  const rotateY = useTransform(mouseX, [0, 1], [-15, 15]);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      mouseX.set(e.clientX / window.innerWidth);
-      mouseY.set(e.clientY / window.innerHeight);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden flex items-center justify-center [perspective:1000px]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,92,246,0.05),transparent_70%)]" />
-      <motion.div
-        className="relative w-[150vw] h-[150vh]"
-        style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-      >
-        {/* 3D Stars / Dust */}
-        {[...Array(80)].map((_, i) => {
-          const angle = Math.random() * Math.PI * 2;
-          const radius = Math.random() * 50 + 10;
-          const x = 50 + Math.cos(angle) * radius;
-          const y = 50 + Math.sin(angle) * radius;
-          const z = Math.random() * 600 - 300;
-          const isViolet = Math.random() > 0.5;
-          return (
-            <motion.div
-              key={i}
-              className={cn(
-                "absolute rounded-full",
-                isViolet ? "bg-violet-500/50 dark:bg-violet-400" : "bg-sky-500/50 dark:bg-sky-300"
-              )}
-              style={{
-                width: Math.random() * 3 + 1 + "px",
-                height: Math.random() * 3 + 1 + "px",
-                left: `${x}%`,
-                top: `${y}%`,
-                transform: `translateZ(${z}px)`,
-                opacity: Math.random() * 0.5 + 0.1
-              }}
-              animate={{
-                opacity: [0.1, 0.8, 0.1],
-                scale: [1, 1.5, 1]
-              }}
-              transition={{
-                duration: Math.random() * 3 + 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: Math.random() * 2
-              }}
-            />
-          );
-        })}
-      </motion.div>
-      <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background via-transparent to-background opacity-50" />
     </div>
   );
 }

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, ArrowLeft, User, Briefcase, Users, LayoutGrid, Check, Info, AlertCircle, Loader2 } from 'lucide-react';
 import { updateProfile } from '../lib/api';
 import Logo from './ui/Logo';
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DotPattern } from '@/components/ui/dot-pattern';

@@ -14,6 +14,26 @@ import { Badge } from '@/components/ui/badge';
 // Curva de animación compartida (estilo "Emil Kowalski")
 const EASE = [0.16, 1, 0.3, 1];
 
+// Formatea una marca de tiempo ISO como tiempo relativo ("Hace 5 min").
+// A nivel de módulo: depende del reloj (no idempotente), no debe vivir en render.
+const formatTime = (timeStr) => {
+  if (!timeStr) return '';
+  try {
+    const date = new Date(timeStr);
+    const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (diffSec < 15) return 'Ahora mismo';
+    if (diffSec < 60) return `Hace ${diffSec} seg`;
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `Hace ${diffHr} hora${diffHr > 1 ? 's' : ''}`;
+    const diffDay = Math.floor(diffHr / 24);
+    return `Hace ${diffDay} día${diffDay > 1 ? 's' : ''}`;
+  } catch {
+    return timeStr;
+  }
+};
+
 // Estructura de datos de los mega-menús públicos
 const MEGA_MENUS = {
   producto: {
@@ -123,24 +143,6 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
   };
 
   const isActive = (path) => location.pathname === path;
-
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    try {
-      const date = new Date(timeStr);
-      const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
-      if (diffSec < 15) return 'Ahora mismo';
-      if (diffSec < 60) return `Hace ${diffSec} seg`;
-      const diffMin = Math.floor(diffSec / 60);
-      if (diffMin < 60) return `Hace ${diffMin} min`;
-      const diffHr = Math.floor(diffMin / 60);
-      if (diffHr < 24) return `Hace ${diffHr} hora${diffHr > 1 ? 's' : ''}`;
-      const diffDay = Math.floor(diffHr / 24);
-      return `Hace ${diffDay} día${diffDay > 1 ? 's' : ''}`;
-    } catch (e) {
-      return timeStr;
-    }
-  };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 

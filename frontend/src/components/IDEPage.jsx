@@ -1011,6 +1011,9 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                   </button>
                 ))}
                 <button
+                  // Reasignar src a sí mismo fuerza la recarga del iframe; funciona
+                  // también con previews cross-origin (contentWindow.reload lanzaría error).
+                  // eslint-disable-next-line no-self-assign
                   onClick={() => { if (iframeRef.current) iframeRef.current.src = iframeRef.current.src; }}
                   className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer ml-0.5"
                   title="Refrescar"

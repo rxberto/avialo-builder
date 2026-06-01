@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Globe, Eye, Zap, Shield, CreditCard, Terminal,
   Calendar, CheckCircle2, Plus, ExternalLink, Sparkles,
-  ArrowRight, Clock, Database, Gauge, BarChart3, Users2,
-  FileCode2, Play, Check, AlertTriangle, ArrowUpRight, HelpCircle, ShieldCheck, Loader2,
+  ArrowRight, Clock, Database, BarChart3, Users2,
+  FileCode2, Check, AlertTriangle, ArrowUpRight, HelpCircle, Loader2,
   ArrowUp, ArrowDown
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

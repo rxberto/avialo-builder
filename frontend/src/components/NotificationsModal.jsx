@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Bell, CheckCircle2, AlertCircle, Sparkles, 
-  Trash2, Search, Check, Filter, Inbox
+  X, Bell, CheckCircle2, AlertCircle, Sparkles,
+  Trash2, Search, Check, Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +42,7 @@ export default function NotificationsModal({
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch (e) {
+    } catch {
       return timeStr;
     }
   };

@@ -1,29 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
+// LandingPage y Navbar se cargan eager: son la entrada pública (LCP/SEO).
 import LandingPage from './components/LandingPage';
-import LoginPage from './components/LoginPage';
-import RegisterPage from './components/RegisterPage';
-import UserOnboarding from './components/UserOnboarding';
-import DashboardPage from './components/DashboardPage';
-import OnboardingFlow from './components/onboarding/OnboardingFlow';
-import CheckoutPage from './components/CheckoutPage';
-import JobProgressPage from './components/JobProgressPage';
-import IDEPage from './components/IDEPage';
 import Navbar from './components/layout/Navbar';
-import GoogleOnboarding from './components/GoogleOnboarding';
-import SettingsPage from './components/SettingsPage';
 import NotificationsModal from './components/NotificationsModal';
-import AdminPage from './components/AdminPage';
-import IAInfoPage from './components/IAInfoPage';
+// El resto de rutas (auth, panel, IDE) se cargan bajo demanda (code-splitting).
+const LoginPage = lazy(() => import('./components/LoginPage'));
+const RegisterPage = lazy(() => import('./components/RegisterPage'));
+const UserOnboarding = lazy(() => import('./components/UserOnboarding'));
+const DashboardPage = lazy(() => import('./components/DashboardPage'));
+const OnboardingFlow = lazy(() => import('./components/onboarding/OnboardingFlow'));
+const CheckoutPage = lazy(() => import('./components/CheckoutPage'));
+const JobProgressPage = lazy(() => import('./components/JobProgressPage'));
+const IDEPage = lazy(() => import('./components/IDEPage'));
+const GoogleOnboarding = lazy(() => import('./components/GoogleOnboarding'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const AdminPage = lazy(() => import('./components/AdminPage'));
+const IAInfoPage = lazy(() => import('./components/IAInfoPage'));
 import { createJob, getProfile, updateProfile } from './lib/api';
+import { readStoredJSON } from './lib/utils';
+
+// Fallback mientras se descarga el chunk de una ruta diferida
+const RouteFallback = () => (
+  <div className="flex-1 flex items-center justify-center py-32">
+    <Loader2 className="w-8 h-8 animate-spin text-brand" />
+  </div>
+);
 
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser]               = useState(() => {
-    const saved = localStorage.getItem('avialo_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [user, setUser]               = useState(() => readStoredJSON('avialo_user', null));
   const [clientData, setClientData]   = useState(null);
   const [jobId, setJobId]             = useState(null);
   const [jobError, setJobError]       = useState(null);
@@ -37,12 +45,8 @@ function App() {
 
   // Real Notifications State
   const [notifications, setNotifications] = useState(() => {
-    const saved = localStorage.getItem('avialo_notifications');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {}
-    }
+    const saved = readStoredJSON('avialo_notifications', null);
+    if (saved) return saved;
     return [
       {
         id: 'welcome',
@@ -91,7 +95,7 @@ function App() {
 
   // Sincronizar el perfil del usuario en tiempo real con PostgreSQL
   const syncProfile = useCallback(async (currentUser) => {
-    const activeUser = currentUser || JSON.parse(localStorage.getItem('avialo_user') || 'null');
+    const activeUser = currentUser || readStoredJSON('avialo_user', null);
     if (activeUser && activeUser.token) {
       try {
         const profile = await getProfile();
@@ -115,7 +119,7 @@ function App() {
 
   useEffect(() => {
     syncProfile();
-  }, []);
+  }, [syncProfile]);
 
   // Escuchar retorno de Stripe
   useEffect(() => {
@@ -273,7 +277,7 @@ function App() {
         if (billingStr) {
           finalPayload.billingData = JSON.parse(billingStr);
         }
-      } catch(e) {}
+      } catch { /* datos de facturación corruptos: continuar sin ellos */ }
 
       const result = await createJob(finalPayload);
       setJobId(result.jobId);
@@ -333,6 +337,7 @@ function App() {
       )}
 
       <main className={`flex-1 flex flex-col relative z-0 ${isIDERoute ? '' : 'pt-16'}`}>
+        <Suspense fallback={<RouteFallback />}>
         <Routes>
           {/* Landing pública */}
           <Route path="/" element={<LandingPage onNavigate={(path) => navigate(path === '' ? '/' : `/${path}`)} />} />
@@ -456,6 +461,7 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
 
       <NotificationsModal

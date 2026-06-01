@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
-import { Server, Globe, ShieldCheck, Mail, Database, Zap, Layers, Palette, Layout, Rocket, CheckCircle2, Box } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Server, Globe, ShieldCheck, Database, Zap, Layers, Palette, Layout, Rocket, CheckCircle2, Box } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 export default function StepSummary({ datos }) {

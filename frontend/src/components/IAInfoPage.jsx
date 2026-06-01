@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, Zap, ArrowLeft, Check, Cpu, RefreshCw, HelpCircle, Activity, ExternalLink } from 'lucide-react';
+import { Sparkles, ArrowLeft, Cpu, RefreshCw, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

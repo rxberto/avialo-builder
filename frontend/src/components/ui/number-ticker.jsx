@@ -9,7 +9,6 @@ export function NumberTicker({
   decimalPlaces = 0,
 }) {
   const ref = useRef(null);
-  const prevValue = useRef(0);
 
   useEffect(() => {
     const el = ref.current;

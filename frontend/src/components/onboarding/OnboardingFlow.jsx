@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  ChevronLeft, ChevronRight, Rocket, ShieldCheck, 
-  Sparkles, CheckCircle2, Circle, AlertCircle, Box, Server 
+import {
+  ChevronLeft, ChevronRight, Rocket, ShieldCheck,
+  Sparkles, CheckCircle2, AlertCircle
 } from "lucide-react";
 import StepBusinessData from './StepBusinessData';
 import StepVoiceGoals from './StepVoiceGoals';
@@ -59,11 +59,8 @@ export default function OnboardingFlow({ user, onComplete, onSyncProfile }) {
     spacingStyle: 'balanced',
   });
 
-  useEffect(() => {
-    if (user?.email && !datos.email) {
-      setDatos(prev => ({ ...prev, email: user.email }));
-    }
-  }, [user]);
+  // email ya se inicializa desde user en el estado inicial (arriba); no hace
+  // falta un effect que lo re-sincronice y provoque renders en cascada.
 
   useEffect(() => {
     const checkSubscription = async () => {
