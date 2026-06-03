@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 import path from "path";
 import { runCommandInContainer } from "../docker/dockerode.js";
 
@@ -32,6 +32,9 @@ export async function readSandboxFile(clientId: string, relativePath: string): P
  */
 export async function writeSandboxFile(clientId: string, relativePath: string, content: string): Promise<void> {
   const fullPath = resolveSandboxPath(clientId, relativePath);
+  // La IA suele crear archivos en carpetas nuevas (src/pages/, src/app/...). Sin esto
+  // writeFile lanza ENOENT porque el directorio padre aún no existe.
+  await mkdir(path.dirname(fullPath), { recursive: true });
   await writeFile(fullPath, content, "utf-8");
 }
 

@@ -101,7 +101,9 @@ export async function runAutocorrectionLoop(
 
       // El modelId concreto procede del router (MODELS), fuente única de verdad.
       const modelId = preferredModel === "claude" ? MODELS.CLAUDE : MODELS.GEMINI;
-      addJobLog(jobId, `🤖 Usando ${preferredModel.toUpperCase()} (${modelId}) para generación de tipo ${clientData.webType}.`);
+      // Nota: si LLM_PRIMARY está fijado, la cascada (generateCode) usa ese proveedor;
+      // este es solo el tier "preferido" según el tipo de web.
+      addJobLog(jobId, `🤖 Tier preferido ${preferredModel.toUpperCase()} para tipo ${clientData.webType} (el proveedor real lo decide la cascada/LLM_PRIMARY).`);
 
       const llmOutput = await generateCode(userPrompt, SYSTEM_PROMPT, preferredModel, modelId, undefined, onUsage);
       addJobLog(jobId, `💰 Coste IA: ${costTracker.summary}`);
