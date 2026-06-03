@@ -11,7 +11,7 @@ import { renderSectorDirectives } from "../prompts/sectorProfiles.js";
 // y los datos del cliente los inyecta el scaffold. La IA rompe estos archivos una y otra vez
 // (config truncada, globals.css inválido, layout roto, business.ts machacado) impidiendo que
 // el build converja. Los ignoramos SIEMPRE y conservamos los del boilerplate/scaffold.
-const PROTECTED_FILES = new Set([
+export const PROTECTED_FILES = new Set([
   // Configuración del proyecto
   "next.config.mjs", "next.config.js", "next.config.ts",
   "package.json", "package-lock.json",
@@ -35,7 +35,7 @@ function stripAnsi(text: string): string {
  * Limpia el output de un build (npm/next/vite): quita ANSI, frames del spinner de npm
  * (\ | / -), avisos "npm notice" y líneas vacías. Deja solo el error útil para el modelo.
  */
-function cleanBuildOutput(text: string): string {
+export function cleanBuildOutput(text: string): string {
   return stripAnsi(text)
     .replace(/\r/g, "\n")                       // los \r del spinner separan frames
     .split("\n")
@@ -46,7 +46,7 @@ function cleanBuildOutput(text: string): string {
 }
 
 /** Devuelve los últimos n caracteres (la cola es donde suele estar el error real). */
-function tail(text: string, n: number): string {
+export function tail(text: string, n: number): string {
   return text.length > n ? "…" + text.slice(-n) : text;
 }
 

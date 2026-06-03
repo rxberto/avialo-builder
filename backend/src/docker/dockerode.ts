@@ -335,8 +335,27 @@ export async function startPreviewContainer(
 }
 
 /**
+ * Reinicia el contenedor de preview de un cliente para que sirva el build recién recompilado
+ * (tras una edición). El comando del contenedor vuelve a copiar estáticos y arranca server.js
+ * con el nuevo .next del sandbox. Devuelve true si pudo reiniciarlo.
+ */
+export async function restartPreviewContainer(clientId: string): Promise<boolean> {
+  const containerName = `avialo-preview-${clientId}`;
+  try {
+    const container = docker.getContainer(containerName);
+    addJobLog(clientId, `🔄 Reiniciando contenedor de preview para servir los cambios...`);
+    await container.restart({ t: 2 });
+    addJobLog(clientId, `✅ Preview reiniciado con el nuevo build.`);
+    return true;
+  } catch (err: any) {
+    addJobLog(clientId, `⚠️ No se pudo reiniciar el preview (${err.message}). Puede que no esté levantado.`);
+    return false;
+  }
+}
+
+/**
  * Detiene y elimina un contenedor de previsualización en ejecución
- * 
+ *
  * @param containerId ID del contenedor Docker
  */
 export async function stopPreviewContainer(containerId: string): Promise<void> {

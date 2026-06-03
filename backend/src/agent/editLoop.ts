@@ -5,7 +5,8 @@ import { listSandboxFiles, getSandboxFileContent } from "../scaffolding/fileHelp
 import { SYSTEM_PROMPT } from "../prompts/system-base.js";
 import { addJobLog } from "../queue/logs.js";
 import { getJobStatus, setJobStatus } from "../queue/jobState.js";
-import { parseFileChanges } from "./loop.js";
+import { parseFileChanges, PROTECTED_FILES, cleanBuildOutput, tail } from "./loop.js";
+import { restartPreviewContainer } from "../docker/dockerode.js";
 import { prisma } from "../database/client.js";
 import { JobCostTracker } from "./cost.js";
 import { recordJobUsage } from "./usageLog.js";
@@ -142,11 +143,19 @@ export async function runEditAutocorrectionLoop(
     .join("\n")}
   
   TAREA DEL ASISTENTE DE IA:
-  1. Modifica exclusivamente los archivos necesarios para cumplir fielmente con la instrucción del usuario.
-  2. Ofrece un diseño premium con estética Silicon Valley (estilo Lovable/v0), animaciones de calidad, paleta HSL impecable y textos en estricto español B2B profesional.
-  3. Devuelve los archivos modificados con su código completo utilizando OBLIGATORIAMENTE la cabecera:
-     [ARCHIVO: ruta/relativa/archivo]
-     <código completo corregido>
+  1. Aplica ÚNICAMENTE el cambio que pide el usuario, tocando el MÍNIMO de archivos posible
+     (idealmente 1). No rediseñes ni reescribas lo que el usuario no ha pedido.
+  2. NO modifiques ni devuelvas archivos de configuración (next.config.*, package.json, tsconfig,
+     postcss, tailwind.config), ni 'src/config/business.ts', ni 'src/app/globals.css', ni
+     'src/app/layout.tsx', ni 'src/app/CookieBanner.tsx' (se ignorarán). Usa solo dependencias ya
+     instaladas (React, next, tailwind, lucide-react) y el alias '@/...'.
+  3. Devuelve TSX/TS válido y COMPLETO por archivo (todas las llaves y etiquetas cerradas).
+  4. FORMATO ESTRICTO: el código EN CRUDO tras la cabecera, SIN vallas markdown (\`\`\`), SIN
+     encabezados (#), SIN negritas (**) y SIN texto antes o después.
+
+  Devuelve los archivos modificados así (obligatorio):
+  [ARCHIVO: ruta/relativa/archivo]
+  <código completo corregido>
   `;
 
   while (attempts < maxAttempts) {
@@ -195,6 +204,16 @@ export async function runEditAutocorrectionLoop(
       await updateProgress("building", 50);
 
       for (const change of fileChanges) {
+        const rel = change.relativePath.replace(/^\.?\//, "");
+        // Mismo blindaje que en generación: no dejar que la IA rompa config/estructura.
+        if (PROTECTED_FILES.has(rel)) {
+          addJobLog(jobId, `   ⏭️  Protegido (ignoro la versión de la IA): ${rel}`);
+          continue;
+        }
+        if (!change.content.trim()) {
+          addJobLog(jobId, `   ⏭️  Ignorando archivo vacío devuelto por la IA: ${rel}`);
+          continue;
+        }
         addJobLog(jobId, `   ✍️  Sobrescribiendo: ${change.relativePath}`);
         await writeSandboxFile(clientId, change.relativePath, change.content);
       }
@@ -204,6 +223,9 @@ export async function runEditAutocorrectionLoop(
 
       if (buildResult.success) {
         addJobLog(jobId, `✅ ¡Cambios aplicados y validados con éxito en la iteración ${attempts}!`);
+        // Reiniciar el preview para que sirva el build recién recompilado (si no, seguiría
+        // mostrando la versión anterior y el cambio "no se vería").
+        await restartPreviewContainer(clientId).catch(() => {});
         await updateProgress("deployed", 100);
 
         if (userId) {
@@ -215,8 +237,8 @@ export async function runEditAutocorrectionLoop(
 
         return { success: true };
       } else {
-        lastBuildError = buildResult.stderr || buildResult.stdout || "Error de compilación desconocido.";
-        addJobLog(jobId, `⚠️  Error de compilación en el build: ${lastBuildError.substring(0, 150)}...`);
+        lastBuildError = cleanBuildOutput(buildResult.stderr || buildResult.stdout || "Error de compilación desconocido.");
+        addJobLog(jobId, `⚠️  Error de compilación (intento ${attempts}): ${tail(lastBuildError, 500)}`);
       }
 
     } catch (error: any) {
