@@ -409,7 +409,11 @@ export default function JobProgressPage({ jobId, clientData, error, onReset, onR
                   <span>Conectando con el orquestador BullMQ y Redis...</span>
                 </div>
               ) : (
-                visibleLogs.map((log, i) => (
+                visibleLogs.map((rawLog, i) => {
+                  // Algún log puede llegar undefined/no-string desde el SSE: coaccionar a
+                  // texto evita el crash "Cannot read properties of undefined (includes)".
+                  const log = typeof rawLog === 'string' ? rawLog : String(rawLog ?? '');
+                  return (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -6 }}
@@ -426,7 +430,8 @@ export default function JobProgressPage({ jobId, clientData, error, onReset, onR
                     <span className="text-zinc-650 select-none mr-2">avialo-shell$</span>
                     {log}
                   </motion.div>
-                ))
+                  );
+                })
               )}
               <div ref={logsEndRef} />
             </div>

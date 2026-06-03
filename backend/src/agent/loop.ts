@@ -15,6 +15,25 @@ function stripAnsi(text: string): string {
   return text.replace(ANSI_REGEX, "");
 }
 
+/**
+ * Limpia el output de un build (npm/next/vite): quita ANSI, frames del spinner de npm
+ * (\ | / -), avisos "npm notice" y líneas vacías. Deja solo el error útil para el modelo.
+ */
+function cleanBuildOutput(text: string): string {
+  return stripAnsi(text)
+    .replace(/\r/g, "\n")                       // los \r del spinner separan frames
+    .split("\n")
+    .map((l) => l.replace(/[\\|/-]{2,}/g, "").trimEnd()) // residuo del spinner
+    .filter((l) => l.trim() && !/^npm notice/.test(l.trim()))
+    .join("\n")
+    .trim();
+}
+
+/** Devuelve los últimos n caracteres (la cola es donde suele estar el error real). */
+function tail(text: string, n: number): string {
+  return text.length > n ? "…" + text.slice(-n) : text;
+}
+
 // parseFileChanges vive en un módulo sin efectos secundarios (testeable). Se re-exporta
 // aquí para no romper los imports existentes (editLoop.ts).
 export { parseFileChanges, type FileChange } from "./parseFiles.js";
@@ -151,10 +170,10 @@ export async function runAutocorrectionLoop(
         addJobLog(jobId, `✅ Compilación completada con éxito en el intento ${attempts}!`);
         return { success: true, attempts };
       } else {
-        // Limpiar códigos de color ANSI: ensucian los logs y, sobre todo, impiden que el
-        // modelo entienda el error en el prompt de corrección del siguiente intento.
-        lastBuildError = stripAnsi(buildResult.stderr || buildResult.stdout || "Error de compilación desconocido.");
-        addJobLog(jobId, `⚠️  Fallo en la validación: ${lastBuildError.substring(0, 200)}...`);
+        // Limpiar ANSI + ruido de npm para que el log y el prompt de corrección muestren
+        // el error real de Next/Vite (que suele estar al FINAL del output).
+        lastBuildError = cleanBuildOutput(buildResult.stderr || buildResult.stdout || "Error de compilación desconocido.");
+        addJobLog(jobId, `⚠️  Fallo en la validación (intento ${attempts}): ${tail(lastBuildError, 600)}`);
       }
 
     } catch (err: any) {
@@ -168,6 +187,6 @@ export async function runAutocorrectionLoop(
   return {
     success: false,
     attempts,
-    error: `Se alcanzó el número máximo de intentos (${maxAttempts}). Último error: ${lastBuildError.substring(0, 300)}`,
+    error: `Se alcanzó el número máximo de intentos (${maxAttempts}). Último error: ${tail(lastBuildError, 400)}`,
   };
 }
