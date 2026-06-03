@@ -1,5 +1,3 @@
-import { existsSync } from "fs";
-import path from "path";
 import { generateCode } from "./client.js";
 import { writeSandboxFile, runSandboxCommand } from "./executor.js";
 import { SYSTEM_PROMPT } from "../prompts/system-base.js";
@@ -8,7 +6,6 @@ import { MODELS } from "../models/router.js";
 import { JobCostTracker } from "./cost.js";
 import { recordJobUsage } from "./usageLog.js";
 import { renderSectorDirectives } from "../prompts/sectorProfiles.js";
-import { sandboxPath } from "../config/sandbox.js";
 
 // Ficheros de configuración que el boilerplate ya trae funcionando. La IA tiende a
 // regenerarlos truncados/rotos (p.ej. next.config.mjs incompleto -> el build ni arranca),
@@ -171,10 +168,11 @@ export async function runAutocorrectionLoop(
       const writtenChanges: FileChange[] = [];
       for (const change of fileChanges) {
         const rel = change.relativePath.replace(/^\.?\//, "");
-        // Proteger los ficheros de config del boilerplate (ya funcionan) frente a
-        // versiones rotas/truncadas de la IA.
-        if (PROTECTED_CONFIG.has(rel) && existsSync(path.join(sandboxPath(clientData.clientId), rel))) {
-          addJobLog(jobId, `   ⏭️  Conservando config del boilerplate (ignoro cambio de la IA): ${rel}`);
+        // Bloquear SIEMPRE los ficheros de config: el boilerplate trae los válidos. Si la IA
+        // crea uno nuevo (p.ej. next.config.js junto al next.config.mjs del boilerplate),
+        // Next usaría el de la IA -> sin output:standalone -> no se genera server.js -> crash.
+        if (PROTECTED_CONFIG.has(rel)) {
+          addJobLog(jobId, `   ⏭️  Config protegida del boilerplate (ignoro la versión de la IA): ${rel}`);
           continue;
         }
         // No sobrescribir con un archivo vacío (p.ej. si la IA solo devolvió ruido markdown
