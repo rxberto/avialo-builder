@@ -733,17 +733,23 @@ app.delete("/api/jobs/:id", authenticateToken as any, async (req: AuthRequest, r
   }
 
   try {
-    await cleanupUserSite(jobId);                  // contenedor + esquema + sandbox
-    await job.remove().catch(() => {});            // sacar de la cola (best-effort)
-    await setJobStatus({ jobId, state: "failed", progress: 0, error: "Generación eliminada por el usuario.", updatedAt: new Date().toISOString() }).catch(() => {});
-
-    // Resetear el sitio en el perfil del usuario solo si apuntaba a este job.
+    // Resetear el sitio del usuario (rápido) y responder YA. La limpieza de recursos
+    // (contenedor Docker + esquema PG + sandbox) puede tardar; si bloqueáramos la respuesta
+    // el proxy cortaría con 5xx y el navegador lo reporta como error de CORS.
     await prisma.user.updateMany({
       where: { id: req.user.id, siteJobId: jobId },
       data: { siteStatus: "none", siteJobId: null, siteName: null, siteDomain: null, siteType: null },
     }).catch((err: any) => console.error("⚠️ Error al resetear el sitio del usuario tras borrado:", err));
 
-    return res.json({ success: true, message: "Generación eliminada correctamente." });
+    res.json({ success: true, message: "Generación eliminada correctamente." });
+
+    // Limpieza en segundo plano (best-effort).
+    void (async () => {
+      await cleanupUserSite(jobId).catch((e) => console.error("⚠️ Cleanup en background falló:", e));
+      await job.remove().catch(() => {});
+      await setJobStatus({ jobId, state: "failed", progress: 0, error: "Generación eliminada por el usuario.", updatedAt: new Date().toISOString() }).catch(() => {});
+    })();
+    return;
   } catch (error: any) {
     console.error("❌ Error al eliminar la generación:", error);
     return res.status(500).json({ error: "Error al eliminar la generación.", details: error.message });
@@ -781,20 +787,11 @@ app.post("/api/jobs/:id/retry", authenticateToken as any, async (req: AuthReques
     const prev = job.data;
     const businessName = prev.businessName || dbUser.siteName || "sitio";
 
-    // Limpiar recursos del intento fallido antes de reencolar.
-    await cleanupUserSite(jobId);
-    await job.remove().catch(() => {});
-
     // Nuevo clientId para un sandbox limpio.
     const clientId = `${businessName
       .toLowerCase()
       .normalize("NFD").replace(/[̀-ͯ]/g, "")
       .replace(/[^a-z0-9]/g, "")}-${Date.now()}`;
-
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: { siteStatus: "pending" },
-    }).catch((err: any) => console.error("⚠️ Error al marcar pending en retry:", err));
 
     const newJob = await generationQueue.add(`generation-${clientId}`, {
       ...prev,
@@ -811,7 +808,14 @@ app.post("/api/jobs/:id/retry", authenticateToken as any, async (req: AuthReques
     }).catch((err: any) => console.error("⚠️ Error al guardar nuevo jobId en retry:", err));
 
     console.log(`🔁 Reintento encolado: ${jobId} → ${newJobId} (cliente ${clientId})`);
-    return res.status(202).json({ success: true, jobId: newJobId, state: "pending", clientId });
+    res.status(202).json({ success: true, jobId: newJobId, state: "pending", clientId });
+
+    // Limpiar los recursos del intento fallido en segundo plano (no bloquea la respuesta).
+    void (async () => {
+      await cleanupUserSite(jobId).catch((e) => console.error("⚠️ Cleanup en background (retry) falló:", e));
+      await job.remove().catch(() => {});
+    })();
+    return;
   } catch (error: any) {
     console.error("❌ Error al reintentar la generación:", error);
     return res.status(500).json({ error: "Error al reintentar la generación.", details: error.message });

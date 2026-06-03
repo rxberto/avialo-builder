@@ -7,6 +7,14 @@ import { JobCostTracker } from "./cost.js";
 import { recordJobUsage } from "./usageLog.js";
 import { renderSectorDirectives } from "../prompts/sectorProfiles.js";
 
+// Elimina secuencias de escape ANSI (colores/control) del output de npm/vite:
+// ESC (27) + "[" + parametros + byte final. Ensucian logs e impiden que el modelo
+// entienda el error de build en el prompt de correccion.
+const ANSI_REGEX = new RegExp(String.fromCharCode(27) + "\[[0-9;?]*[0-9A-PR-TZcf-ntqry=><]", "g");
+function stripAnsi(text: string): string {
+  return text.replace(ANSI_REGEX, "");
+}
+
 // parseFileChanges vive en un módulo sin efectos secundarios (testeable). Se re-exporta
 // aquí para no romper los imports existentes (editLoop.ts).
 export { parseFileChanges, type FileChange } from "./parseFiles.js";
@@ -143,7 +151,9 @@ export async function runAutocorrectionLoop(
         addJobLog(jobId, `✅ Compilación completada con éxito en el intento ${attempts}!`);
         return { success: true, attempts };
       } else {
-        lastBuildError = buildResult.stderr || buildResult.stdout || "Error de compilación desconocido.";
+        // Limpiar códigos de color ANSI: ensucian los logs y, sobre todo, impiden que el
+        // modelo entienda el error en el prompt de corrección del siguiente intento.
+        lastBuildError = stripAnsi(buildResult.stderr || buildResult.stdout || "Error de compilación desconocido.");
         addJobLog(jobId, `⚠️  Fallo en la validación: ${lastBuildError.substring(0, 200)}...`);
       }
 
