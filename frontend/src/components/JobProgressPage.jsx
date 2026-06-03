@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Loader2, CheckCircle2, XCircle, Rocket, ExternalLink,
-  Terminal, RefreshCw, Clock, Zap, Database, Globe, ArrowRight, ShieldCheck, Mail
+  Terminal, RefreshCw, Clock, Zap, Database, Globe, ArrowRight, ShieldCheck, Mail, Trash2
 } from 'lucide-react';
 
 const STATUS_INFO = {
@@ -38,13 +38,26 @@ function getStepState(stepKey, currentStatus) {
   return 'pending';
 }
 
-export default function JobProgressPage({ jobId, clientData, error, onReset, onSyncProfile, onAddNotification }) {
+export default function JobProgressPage({ jobId, clientData, error, onReset, onRetry, onDelete, onSyncProfile, onAddNotification }) {
   const navigate = useNavigate();
   const { logs, status: sseStatus, progress, previewUrl } = useJobSSE(jobId);
   const status = error ? 'failed' : sseStatus;
   const logsEndRef = useRef(null);
   const [showAllLogs, setShowAllLogs] = useState(false);
   const [simulatedLogs, setSimulatedLogs] = useState([]);
+  const [actionLoading, setActionLoading] = useState(null); // 'retry' | 'delete' | null
+
+  const handleRetry = async () => {
+    if (!jobId || !onRetry) return onReset?.();
+    setActionLoading('retry');
+    try { await onRetry(jobId); } finally { setActionLoading(null); }
+  };
+
+  const handleDelete = async () => {
+    if (!jobId || !onDelete) return onReset?.();
+    setActionLoading('delete');
+    try { await onDelete(jobId); } finally { setActionLoading(null); }
+  };
 
   // Simulated Node/Packages installation logs
   useEffect(() => {
@@ -329,13 +342,28 @@ export default function JobProgressPage({ jobId, clientData, error, onReset, onS
                   <XCircle size={24} className="text-red-500 shrink-0" />
                   <div>
                     <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">La generación automática falló</h3>
-                    <p className="text-[10px] text-zinc-550 dark:text-zinc-400 mt-1">El agente IA agotó los 5 intentos de compilación y linter.</p>
+                    <p className="text-[10px] text-zinc-550 dark:text-zinc-400 mt-1">Puedes reintentar con los mismos datos o eliminar esta generación para empezar de cero.</p>
                   </div>
                 </div>
-                <Button variant="outline" className="gap-2 shrink-0 rounded-xl font-bold text-xs" onClick={onReset}>
-                  <RefreshCw size={14} />
-                  Reintentar Generar
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto shrink-0">
+                  <Button
+                    className="gap-2 rounded-xl font-bold text-xs bg-[var(--brand)] hover:bg-[var(--brand-2)] text-white"
+                    onClick={handleRetry}
+                    disabled={actionLoading !== null}
+                  >
+                    {actionLoading === 'retry' ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    Reintentar generación
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="gap-2 rounded-xl font-bold text-xs border-red-300 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20"
+                    onClick={handleDelete}
+                    disabled={actionLoading !== null}
+                  >
+                    {actionLoading === 'delete' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                    Eliminar generación
+                  </Button>
+                </div>
               </Card>
             </motion.div>
           )}

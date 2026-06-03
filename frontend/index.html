@@ -28,7 +28,19 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet" />
+    <!-- Fuente no bloqueante: se aplica al cargar y no retrasa el primer pintado (FCP) -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap" rel="stylesheet" />
+    </noscript>
+
+    <!-- Precarga del fondo del héroe (elemento visible más grande / LCP) -->
+    <link rel="preload" as="image" href="/optimized/light-motion-trails.webp" fetchpriority="high" />
   </head>
   <body>
     <div id="root"></div>

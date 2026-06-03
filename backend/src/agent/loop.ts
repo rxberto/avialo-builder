@@ -5,6 +5,7 @@ import { addJobLog } from "../queue/logs.js";
 import { MODELS } from "../models/router.js";
 import { JobCostTracker } from "./cost.js";
 import { recordJobUsage } from "./usageLog.js";
+import { renderSectorDirectives } from "../prompts/sectorProfiles.js";
 
 // parseFileChanges vive en un módulo sin efectos secundarios (testeable). Se re-exporta
 // aquí para no romper los imports existentes (editLoop.ts).
@@ -37,16 +38,22 @@ export async function runAutocorrectionLoop(
 
   addJobLog(jobId, `🧠 Iniciando bucle de generación de IA para pyme "${clientData.businessName}"`);
 
+  // Directrices de diseño según el sector (el cliente no es diseñador → defaults sólidos).
+  const sectorDirectives = renderSectorDirectives(clientData.sector, clientData.primaryColor);
+  addJobLog(jobId, `🎨 Aplicando perfil de diseño para sector "${clientData.sector}".`);
+
   // Prompt base para guiar al modelo
   let userPrompt = `
-  Hola Claude. Necesito que personalices el código del boilerplate para un nuevo cliente.
-  
+  Hola. Necesito que personalices el código del boilerplate para un nuevo cliente.
+
   DATOS DE LA PYME:
   - Nombre Comercial: "${clientData.businessName}"
   - Sector/Industria: "${clientData.sector}"
   - Ubicación/Ciudad: "${clientData.city}"
   - Color de Marca Primario: "${clientData.primaryColor || '#2563EB'}"
   - Páginas requeridas: [${(clientData.pages || []).join(", ")}]
+
+  ${sectorDirectives}
 
   ¡ATENCIÓN! IMPORTANTE PARA AHORRAR TIEMPO:
   Ya hemos inyectado automáticamente el archivo 'src/config/business.ts' que exporta \`businessConfig\`. Este archivo contiene todos los datos reales y de facturación del cliente (como su CIF/NIF, teléfono y dirección exactos recabados durante el checkout).

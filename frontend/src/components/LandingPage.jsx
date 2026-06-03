@@ -8,9 +8,41 @@ import {
 import { ShimmerButton } from './ui/shimmer-button';
 import { BorderBeam } from './ui/border-beam';
 import { DotPattern } from './ui/dot-pattern';
+import ProgressiveImage from './ui/ProgressiveImage';
 
 import NumberTicker from './ui/number-ticker';
 import { cn } from '@/lib/utils';
+import lqip from '@/data/lqip.json';
+
+// Monta a sus hijos solo cuando el contenedor se acerca al viewport.
+// Evita que los fondos decorativos pesados compitan con el LCP del héroe.
+function DeferUntilVisible({ children, className, rootMargin = '300px' }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(
+    () => typeof IntersectionObserver === 'undefined'
+  );
+  useEffect(() => {
+    if (visible) return;
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { rootMargin }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [rootMargin, visible]);
+  return (
+    <div ref={ref} className={className}>
+      {visible && children}
+    </div>
+  );
+}
 
 /* ============================================================
    Primitivas de movimiento reutilizables
@@ -167,8 +199,10 @@ function MotionTrailsHero() {
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       {/* Capa principal — sigue el ratón con arrastre suave */}
       <motion.img
-        src="/light-motion-trails.jpg"
+        src="/optimized/light-motion-trails.webp"
         alt=""
+        fetchPriority="high"
+        decoding="async"
         className="absolute -inset-[14%] h-[128%] w-[128%] max-w-none object-cover opacity-[0.88] dark:opacity-[0.78]"
         style={{ x: tx, y: ty, filter: 'blur(2px) saturate(1.3)' }}
         animate={{ scale: [1.04, 1.10, 1.04] }}
@@ -176,8 +210,9 @@ function MotionTrailsHero() {
       />
       {/* Segunda capa en contrafase — profundidad y partículas en movimiento */}
       <motion.img
-        src="/light-motion-trails.jpg"
+        src="/optimized/light-motion-trails.webp"
         alt=""
+        decoding="async"
         className="absolute -inset-[14%] h-[128%] w-[128%] max-w-none object-cover opacity-[0.22] dark:opacity-[0.18]"
         style={{ x: tx2, y: ty2, filter: 'blur(8px) saturate(1.8)', mixBlendMode: 'screen' }}
         animate={{ scale: [1.08, 1.03, 1.08] }}
@@ -236,8 +271,9 @@ function GalaxyParallax() {
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Capa base — sigue el ratón suavemente */}
       <motion.img
-        src="/light-galaxy.jpg"
+        src="/optimized/light-galaxy.webp"
         alt=""
+        decoding="async"
         className="absolute -inset-[8%] h-[116%] w-[116%] max-w-none object-cover opacity-[0.65] dark:opacity-[0.75]"
         style={{ x: tx, y: ty, filter: 'blur(1px) saturate(1.6)' }}
         animate={{ scale: [1.02, 1.06, 1.02] }}
@@ -245,8 +281,9 @@ function GalaxyParallax() {
       />
       {/* Capa de profundidad — contrafase, más blur, blend screen */}
       <motion.img
-        src="/light-galaxy.jpg"
+        src="/optimized/light-galaxy.webp"
         alt=""
+        decoding="async"
         className="absolute -inset-[8%] h-[116%] w-[116%] max-w-none object-cover opacity-[0.28] dark:opacity-[0.35]"
         style={{ x: tx2, y: ty2, filter: 'blur(12px) saturate(2)', mixBlendMode: 'screen' }}
         animate={{ scale: [1.06, 1.02, 1.06] }}
@@ -716,10 +753,10 @@ export default function LandingPage({ onNavigate }) {
             <Reveal delay={0.1} y={30}>
               <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
                 {[
-                  { src: '/ide-avialo.png', alt: 'Editor Visual IDE' },
-                  { src: '/webArquitectura.png', alt: 'Web Estudio Arquitectura' },
-                  { src: '/placeholder-3.png', alt: 'Diseño Personalizado' },
-                  { src: '/web-generada.png', alt: 'Web generada por IA' },
+                  { src: '/optimized/ide-avialo.webp', lqip: lqip['ide-avialo'], alt: 'Editor Visual IDE' },
+                  { src: '/optimized/webArquitectura.webp', lqip: lqip['webArquitectura'], alt: 'Web Estudio Arquitectura' },
+                  { src: '/optimized/placeholder-3.webp', lqip: lqip['placeholder-3'], alt: 'Diseño Personalizado' },
+                  { src: '/optimized/web-generada.webp', lqip: lqip['web-generada'], alt: 'Web generada por IA' },
                 ].map((shot, index) => {
                   const pos = (index - activeShot + 4) % 4;
                   const posMap = [
@@ -739,9 +776,12 @@ export default function LandingPage({ onNavigate }) {
                       transition={{ duration: 0.65, ease: EASE }}
                       onClick={() => setActiveShot(index)}
                     >
-                      <div className="h-full w-full bg-muted">
-                        <img src={shot.src} alt={shot.alt} className="h-full w-full object-cover" loading="lazy" />
-                      </div>
+                      <ProgressiveImage
+                        src={shot.src}
+                        lqip={shot.lqip}
+                        alt={shot.alt}
+                        wrapperClassName="h-full w-full"
+                      />
                     </motion.div>
                   );
                 })}
@@ -955,7 +995,7 @@ export default function LandingPage({ onNavigate }) {
                     transition={{ duration: 0.35, ease: EASE }}
                   >
                     <div className="relative h-36 w-full overflow-hidden">
-                      <img src={active.image} alt={active.label} className="h-full w-full object-cover" loading="lazy" />
+                      <ProgressiveImage src={active.image} alt={active.label} wrapperClassName="h-full w-full" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <span className="absolute bottom-3 left-4 text-sm font-semibold text-white">{active.title}</span>
                     </div>
@@ -1247,7 +1287,9 @@ export default function LandingPage({ onNavigate }) {
           PRECIOS
           ============================================================ */}
       <section id="pricing" className="relative scroll-mt-24 py-28 overflow-hidden">
-        <GalaxyParallax />
+        <DeferUntilVisible className="pointer-events-none absolute inset-0">
+          <GalaxyParallax />
+        </DeferUntilVisible>
         <div className="relative z-10 mx-auto max-w-6xl px-6">
           <Reveal className="mx-auto mb-16 max-w-2xl text-center">
           <Eyebrow className="mb-4 justify-center">Precios transparentes</Eyebrow>

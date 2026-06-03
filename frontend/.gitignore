@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Originales pesados de imagen (fuente para `npm run optimize-images`).
+# No se despliegan; los WebP optimizados viven en public/optimized/. Se mantienen solo en local.
+image-sources

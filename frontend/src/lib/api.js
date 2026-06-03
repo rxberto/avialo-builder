@@ -48,6 +48,37 @@ export async function getJob(jobId) {
 }
 
 /**
+ * Elimina una generación (típicamente fallida): limpia recursos y resetea el sitio.
+ */
+export async function deleteJob(jobId) {
+  const response = await fetch(`${API_BASE}/api/jobs/${jobId}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo eliminar la generación.');
+  }
+  return response.json();
+}
+
+/**
+ * Reintenta una generación fallida reutilizando los datos del job original.
+ * Devuelve el nuevo { jobId }.
+ */
+export async function retryJob(jobId) {
+  const response = await fetch(`${API_BASE}/api/jobs/${jobId}/retry`, {
+    method: 'POST',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo reintentar la generación.');
+  }
+  return response.json();
+}
+
+/**
  * Crea una sesión de suscripción Stripe a través del backend.
  * Protegido con JWT.
  */

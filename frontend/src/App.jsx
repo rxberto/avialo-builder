@@ -18,7 +18,7 @@ const GoogleOnboarding = lazy(() => import('./components/GoogleOnboarding'));
 const SettingsPage = lazy(() => import('./components/SettingsPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const IAInfoPage = lazy(() => import('./components/IAInfoPage'));
-import { createJob, getProfile, updateProfile } from './lib/api';
+import { createJob, getProfile, updateProfile, retryJob, deleteJob } from './lib/api';
 import { readStoredJSON } from './lib/utils';
 
 // Fallback mientras se descarga el chunk de una ruta diferida
@@ -167,6 +167,8 @@ function App() {
   const handleLogin = (loggedInUser, isNewGoogleUser = false) => {
     setUser(loggedInUser);
     localStorage.setItem('avialo_user', JSON.stringify(loggedInUser));
+    // Traer créditos IA / plan / fecha de reinicio reales sin esperar recarga
+    if (loggedInUser.role !== 'admin') syncProfile(loggedInUser);
     handleAddNotification('success', 'Sesión iniciada', `Conexión segura como ${loggedInUser.name || loggedInUser.email}.`);
 
     // Admin va directo al panel, nunca al flujo SaaS
@@ -195,6 +197,7 @@ function App() {
   const handleRegister = (registeredUser, isNewGoogleUser = false) => {
     setUser(registeredUser);
     localStorage.setItem('avialo_user', JSON.stringify(registeredUser));
+    syncProfile(registeredUser);
     handleAddNotification('success', 'Cuenta creada', '¡Bienvenido a Avialo! Perfil inicializado con éxito.');
     
     if (isNewGoogleUser) {
@@ -316,6 +319,41 @@ function App() {
     setJobError(null);
   };
 
+  // Reintentar una generación fallida: el backend reutiliza los datos del job original.
+  const handleRetryGeneration = async (failedJobId) => {
+    if (!failedJobId) return;
+    setJobError(null);
+    try {
+      const result = await retryJob(failedJobId);
+      setJobId(result.jobId);
+      // Actualizar el sitio almacenado para que el panel apunte al nuevo job.
+      const stored = readStoredJSON('avialo_current_site', null);
+      if (stored) localStorage.setItem('avialo_current_site', JSON.stringify({ ...stored, jobId: result.jobId }));
+      handleAddNotification('info', 'Reintentando generación', 'El agente IA está reconstruyendo tu web con los mismos datos.');
+      navigate('/progress');
+      await syncProfile();
+    } catch (err) {
+      setJobError(err.message || 'No se pudo reintentar la generación.');
+    }
+  };
+
+  // Eliminar una generación (fallida): limpia recursos y resetea el sitio.
+  const handleDeleteGeneration = async (targetJobId) => {
+    if (!targetJobId) return;
+    try {
+      await deleteJob(targetJobId);
+      handleAddNotification('info', 'Generación eliminada', 'Se han liberado los recursos. Puedes crear una web nueva cuando quieras.');
+    } catch (err) {
+      handleAddNotification('error', 'Error al eliminar', err.message || 'No se pudo eliminar la generación.');
+    } finally {
+      setJobId(null);
+      setJobError(null);
+      localStorage.removeItem('avialo_current_site');
+      await syncProfile();
+      navigate('/dashboard');
+    }
+  };
+
 
 
   const isIDERoute = location.pathname === '/ide';
@@ -386,6 +424,8 @@ function App() {
                   setJobId(jid);
                   navigate('/progress');
                 }}
+                onRetrySite={handleRetryGeneration}
+                onDeleteSite={handleDeleteGeneration}
                 onUpdateUser={(updated) => {
                   setUser(updated);
                   localStorage.setItem('avialo_user', JSON.stringify(updated));
@@ -431,6 +471,8 @@ function App() {
                 clientData={clientData}
                 error={jobError}
                 onReset={handleReset}
+                onRetry={handleRetryGeneration}
+                onDelete={handleDeleteGeneration}
                 onSyncProfile={() => syncProfile()}
                 onAddNotification={handleAddNotification}
               />

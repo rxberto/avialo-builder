@@ -122,68 +122,54 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     }
   }
 
-  // Intentar primero con las APIs oficiales directas de pago (alta calidad)
-  if (preferredModel === "deepseek") {
+  // Proveedores disponibles (solo los que tienen cliente configurado).
+  const available = {
+    claude: !!anthropicClient,
+    gemini: !!googleClient,
+    deepseek: !!deepseekClient,
+    openai: !!openAIClient,
+    openrouter: !!openRouterClient,
+  };
+
+  // Proveedor primario: LLM_PRIMARY fuerza el orden (p.ej. solo hay créditos DeepSeek);
+  // si no, manda el modelo preferido del router.
+  const primary = config.llm.primary || preferredModel;
+
+  // Orden de cascada por defecto tras el primario. Calidad descendente + salvavidas final.
+  const baseOrder: ProviderName[] = ["claude", "deepseek", "gemini", "openai", "openrouter"];
+  const chain = [primary, ...baseOrder].filter(
+    (p, i, arr): p is ProviderName => arr.indexOf(p) === i && available[p as ProviderName]
+  );
+
+  if (chain.length === 0) {
+    throw new Error("❌ Ningún proveedor de IA está configurado (faltan las API keys).");
+  }
+
+  const callers: Record<ProviderName, () => Promise<string>> = {
+    claude: () => callClaude(prompt, systemPrompt, claudeModelId, maxTokens, onUsage),
+    gemini: () => callGemini(prompt, systemPrompt, geminiModelId, maxTokens, onUsage),
+    deepseek: () => callDeepSeek(prompt, systemPrompt, maxTokens, onUsage),
+    openai: () => callOpenAI(prompt, systemPrompt, maxTokens, onUsage),
+    openrouter: () => callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-flash:free", onUsage),
+  };
+
+  console.log(`🔗 Cascada de modelos: ${chain.join(" → ")}`);
+
+  const errors: string[] = [];
+  for (const provider of chain) {
     try {
-      console.log("🚀 Usando DeepSeek para edición económica y ultra-rápida.");
-      return await callDeepSeek(prompt, systemPrompt, maxTokens, onUsage);
+      return await callers[provider]();
     } catch (err: any) {
-      console.warn(`⚠️ DeepSeek falló: ${err.message}. Fallback a Claude...`);
-      return await callClaude(prompt, systemPrompt, MODELS.CLAUDE, maxTokens, onUsage);
-    }
-  } else if (preferredModel === "claude") {
-    try {
-      // 1. Intentar Claude Directo (Máxima calidad)
-      return await callClaude(prompt, systemPrompt, claudeModelId, maxTokens, onUsage);
-    } catch (errorClaude: any) {
-      console.warn(`⚠️ Claude Directo falló: ${errorClaude.message}. Probando Gemini Directo...`);
-      try {
-        // 2. Intentar Gemini Directo
-        return await callGemini(prompt, systemPrompt, MODELS.GEMINI, maxTokens, onUsage);
-      } catch (errorGemini: any) {
-        console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}. Probando OpenAI...`);
-
-        try {
-          // 3. Fallback a OpenAI (GPT-4o)
-          return await callOpenAI(prompt, systemPrompt, maxTokens, onUsage);
-        } catch (errorOpenAI: any) {
-          console.warn(`⚠️ OpenAI falló: ${errorOpenAI.message}. Probando DeepSeek...`);
-
-          try {
-            // 4. Fallback final a DeepSeek (muy económico y de alta lógica)
-            return await callDeepSeek(prompt, systemPrompt, maxTokens, onUsage);
-          } catch (errorDeepSeek: any) {
-            throw new Error(`❌ Todos los modelos fallaron en cascada. Claude: ${errorClaude.message} | Gemini: ${errorGemini.message} | OpenAI: ${errorOpenAI.message} | DeepSeek: ${errorDeepSeek.message}`);
-          }
-        }
-      }
-    }
-  } else {
-    try {
-      // 1. Intentar Gemini Directo (Rápido y económico)
-      return await callGemini(prompt, systemPrompt, geminiModelId, maxTokens, onUsage);
-    } catch (errorGemini: any) {
-      console.warn(`⚠️ Gemini Directo falló: ${errorGemini.message}. Probando Claude Directo...`);
-      try {
-        // 2. Intentar Claude Directo
-        return await callClaude(prompt, systemPrompt, MODELS.CLAUDE, maxTokens, onUsage);
-      } catch (errorClaude: any) {
-        console.warn(`⚠️ Claude Directo falló: ${errorClaude.message}.`);
-
-        // 3. Fallback a OpenRouter con Modelos Gratuitos como salvavidas
-        if (openRouterClient) {
-          try {
-            console.log(`🔌 Activando salvavidas de OpenRouter (Gemini Flash Free) para tarea simple...`);
-            return await callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-flash:free", onUsage);
-          } catch (errorOR: any) {
-            throw new Error(`❌ Todos los modelos fallaron. Gemini: ${errorGemini.message} | Claude: ${errorClaude.message} | OpenRouter: ${errorOR.message}`);
-          }
-        }
-        throw new Error(`❌ Modelos principales fallaron y OpenRouter no está configurado. Gemini: ${errorGemini.message} | Claude: ${errorClaude.message}`);
-      }
+      const msg = err?.message || "error desconocido";
+      console.warn(`⚠️ ${provider.toUpperCase()} falló: ${msg}. Probando siguiente...`);
+      errors.push(`${provider}: ${msg}`);
     }
   }
+
+  throw new Error(`❌ Todos los modelos fallaron en cascada. ${errors.join(" | ")}`);
 }
+
+type ProviderName = "claude" | "gemini" | "deepseek" | "openai" | "openrouter";
 
 /**
  * Llama al API de Anthropic. El modelId procede del router (MODELS.CLAUDE).
@@ -329,7 +315,7 @@ async function callDeepSeek(prompt: string, systemPrompt: string, maxTokens: num
   }
 
   const response = await deepseekClient.chat.completions.create({
-    model: "deepseek-chat", // Podríamos usar deepseek-coder si es necesario
+    model: config.deepseek.model, // deepseek-chat por defecto (configurable vía DEEPSEEK_MODEL)
     max_tokens: maxTokens,
     messages: [
       { role: "system", content: systemPrompt },
@@ -339,7 +325,7 @@ async function callDeepSeek(prompt: string, systemPrompt: string, maxTokens: num
 
   if (onUsage && response.usage) {
     onUsage({
-      model: "deepseek-chat",
+      model: config.deepseek.model,
       inputTokens: response.usage.prompt_tokens ?? 0,
       outputTokens: response.usage.completion_tokens ?? 0,
     });

@@ -8,6 +8,9 @@
 const PRICING: Record<string, { in: number; out: number }> = {
   "claude-sonnet-4-6": { in: 3, out: 15 },
   "gemini-2.5-flash":  { in: 0.3, out: 2.5 },
+  "deepseek-chat":     { in: 0.27, out: 1.1 },
+  "deepseek-coder":    { in: 0.27, out: 1.1 },
+  "gpt-4o":            { in: 2.5, out: 10 },
 };
 const DEFAULT_PRICING = { in: 3, out: 15 };
 

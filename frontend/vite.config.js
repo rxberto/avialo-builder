@@ -29,5 +29,21 @@ export default defineConfig({
     // Sin sourcemap en producción: el .map exponía el código fuente completo
     // en builder.avialo.es. No hay error-tracking (Sentry) que lo requiera.
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        // Separa las librerías pesadas en chunks cacheables aparte del código
+        // de la app, para que el navegador los reutilice entre despliegues.
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('framer-motion') || id.includes('motion-dom') || id.includes('motion-utils')) {
+              return 'vendor-motion';
+            }
+            if (id.includes('react-dom') || id.includes('react-router') || /[\\/]react[\\/]/.test(id)) {
+              return 'vendor-react';
+            }
+          }
+        },
+      },
+    },
   },
 })

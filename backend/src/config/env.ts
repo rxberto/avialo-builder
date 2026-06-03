@@ -30,6 +30,12 @@ function requiredSecret(name: string, value: string | undefined): string {
   return randomBytes(32).toString("base64");
 }
 
+/** Valida el proveedor primario forzado vía LLM_PRIMARY. */
+function parseLlmPrimary(value: string | undefined): "claude" | "gemini" | "deepseek" | undefined {
+  const v = (value || "").trim().toLowerCase();
+  return v === "claude" || v === "gemini" || v === "deepseek" ? v : undefined;
+}
+
 export interface AppConfig {
   anthropic: {
     apiKey?: string;
@@ -45,6 +51,12 @@ export interface AppConfig {
   };
   deepseek: {
     apiKey?: string;
+    model: string;
+  };
+  llm: {
+    // Proveedor primario forzado para la generación (sobrescribe el routing por tarea).
+    // Útil cuando solo se tienen créditos de un proveedor (p.ej. "deepseek").
+    primary?: "claude" | "gemini" | "deepseek";
   };
   redis: {
     url: string;
@@ -77,6 +89,10 @@ export const config: AppConfig = {
   },
   deepseek: {
     apiKey: process.env.DEEPSEEK_API_KEY,
+    model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
+  },
+  llm: {
+    primary: parseLlmPrimary(process.env.LLM_PRIMARY),
   },
   redis: {
     url: process.env.REDIS_URL || "redis://localhost:6379",

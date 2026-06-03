@@ -15,6 +15,7 @@ import { emailRouter } from "./routes/email.js";
 import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
 import { runEditAutocorrectionLoop } from "./agent/editLoop.js";
+import { cleanupUserSite } from "./services/siteCleanup.js";
 import { creditsForPlan, nextCreditsResetDate } from "./config/plans.js";
 import { stripe } from "./config/stripe.js";
 import { redisConnection } from "./config/redis.js";
@@ -710,6 +711,111 @@ app.get("/api/jobs/:id", authenticateToken as any, async (req: AuthRequest, res:
     progress:   jobData.progress ?? 0,
     previewUrl: jobData.previewUrl ?? null,
   });
+});
+
+/**
+ * DELETE /api/jobs/:id
+ * Elimina una generación (típicamente fallida): limpia recursos (contenedor, esquema,
+ * sandbox), borra el job de la cola y resetea el sitio del usuario a "none".
+ * No permite borrar un job en ejecución.
+ */
+app.delete("/api/jobs/:id", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const jobId = req.params.id;
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  const { job, status } = await getOwnedJob(jobId, req.user.id);
+  if (!job) return res.status(status).json({ error: `Trabajo con ID "${jobId}" no encontrado.` });
+
+  // No borrar mientras se está generando activamente.
+  const state = await job.getState();
+  if (["active", "waiting", "delayed"].includes(state)) {
+    return res.status(409).json({ error: "No se puede eliminar una generación en curso. Espera a que termine." });
+  }
+
+  try {
+    await cleanupUserSite(jobId);                  // contenedor + esquema + sandbox
+    await job.remove().catch(() => {});            // sacar de la cola (best-effort)
+    await setJobStatus({ jobId, state: "failed", progress: 0, error: "Generación eliminada por el usuario.", updatedAt: new Date().toISOString() }).catch(() => {});
+
+    // Resetear el sitio en el perfil del usuario solo si apuntaba a este job.
+    await prisma.user.updateMany({
+      where: { id: req.user.id, siteJobId: jobId },
+      data: { siteStatus: "none", siteJobId: null, siteName: null, siteDomain: null, siteType: null },
+    }).catch((err: any) => console.error("⚠️ Error al resetear el sitio del usuario tras borrado:", err));
+
+    return res.json({ success: true, message: "Generación eliminada correctamente." });
+  } catch (error: any) {
+    console.error("❌ Error al eliminar la generación:", error);
+    return res.status(500).json({ error: "Error al eliminar la generación.", details: error.message });
+  }
+});
+
+/**
+ * POST /api/jobs/:id/retry
+ * Reintenta una generación fallida reutilizando los datos del job original (persistidos
+ * en la cola), tras limpiar los recursos del intento anterior. Encola un job nuevo.
+ */
+app.post("/api/jobs/:id/retry", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const jobId = req.params.id;
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  const { job, status } = await getOwnedJob(jobId, req.user.id);
+  if (!job) return res.status(status).json({ error: `Trabajo con ID "${jobId}" no encontrado.` });
+
+  const state = await job.getState();
+  if (["active", "waiting", "delayed"].includes(state)) {
+    return res.status(409).json({ error: "Ya hay una generación en curso para este sitio." });
+  }
+
+  try {
+    const dbUser = await verifyAndResetCredits(req.user.id);
+    if (!dbUser) return res.status(404).json({ error: "Usuario no encontrado." });
+    if (!dbUser.plan || dbUser.plan === "none") {
+      return res.status(402).json({ error: "Suscripción activa requerida.", code: "SUBSCRIPTION_REQUIRED" });
+    }
+    if (dbUser.aiCredits < 500) {
+      return res.status(402).json({ error: "Créditos IA insuficientes para reintentar la generación.", code: "INSUFFICIENT_CREDITS" });
+    }
+
+    // Datos del intento original (persistidos al encolar).
+    const prev = job.data;
+    const businessName = prev.businessName || dbUser.siteName || "sitio";
+
+    // Limpiar recursos del intento fallido antes de reencolar.
+    await cleanupUserSite(jobId);
+    await job.remove().catch(() => {});
+
+    // Nuevo clientId para un sandbox limpio.
+    const clientId = `${businessName
+      .toLowerCase()
+      .normalize("NFD").replace(/[̀-ͯ]/g, "")
+      .replace(/[^a-z0-9]/g, "")}-${Date.now()}`;
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { siteStatus: "pending" },
+    }).catch((err: any) => console.error("⚠️ Error al marcar pending en retry:", err));
+
+    const newJob = await generationQueue.add(`generation-${clientId}`, {
+      ...prev,
+      clientId,
+      userId: req.user.id,
+    });
+
+    const newJobId = newJob.id || `job-${Date.now()}`;
+    await setJobStatus({ jobId: newJobId, state: "pending", progress: 0, updatedAt: new Date().toISOString() });
+
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { siteJobId: newJobId, siteStatus: "pending" },
+    }).catch((err: any) => console.error("⚠️ Error al guardar nuevo jobId en retry:", err));
+
+    console.log(`🔁 Reintento encolado: ${jobId} → ${newJobId} (cliente ${clientId})`);
+    return res.status(202).json({ success: true, jobId: newJobId, state: "pending", clientId });
+  } catch (error: any) {
+    console.error("❌ Error al reintentar la generación:", error);
+    return res.status(500).json({ error: "Error al reintentar la generación.", details: error.message });
+  }
 });
 
 /**

@@ -5,7 +5,7 @@ import {
   Calendar, CheckCircle2, Plus, ExternalLink, Sparkles,
   ArrowRight, Clock, Database, BarChart3, Users2,
   FileCode2, Check, AlertTriangle, ArrowUpRight, HelpCircle, Loader2,
-  ArrowUp, ArrowDown
+  ArrowUp, ArrowDown, RefreshCw, Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,8 @@ const STATUS_CONFIG = {
   },
 };
 
-export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenSiteIDE, onOpenProgress, onUpdateUser, onAddNotification }) {
+export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenSiteIDE, onOpenProgress, onRetrySite, onDeleteSite, onUpdateUser, onAddNotification }) {
+  const [siteActionLoading, setSiteActionLoading] = useState(null); // 'retry' | 'delete' | null
   const site = user.siteStatus && user.siteStatus !== 'none' ? {
     businessName: user.siteName,
     webType: user.siteType,
@@ -566,24 +567,54 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
 
                     <Separator className="bg-border/60" />
 
-                    {/* Action buttons */}
-                    <div className="flex flex-col sm:flex-row gap-3">
-                      <Button
-                        onClick={() => onOpenSiteIDE(site)}
-                        className="flex-1 gap-2 font-bold shadow-md shadow-brand/10 hover:shadow-brand/20 bg-brand hover:bg-brand/90 text-white rounded-full py-5 h-11"
-                      >
-                        <Eye className="w-4 h-4" />
-                        Abrir IDE / Chat IA
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => onOpenProgress(site.jobId)}
-                        className="gap-2 rounded-full border-border hover:bg-muted/80 h-11"
-                      >
-                        <Terminal className="w-4 h-4" />
-                        Ver Consola de Logs
-                      </Button>
-                    </div>
+                    {/* Action buttons — según el estado del sitio */}
+                    {siteStatus === 'failed' ? (
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                          onClick={async () => { setSiteActionLoading('retry'); try { await onRetrySite?.(site.jobId); } finally { setSiteActionLoading(null); } }}
+                          disabled={siteActionLoading !== null || !site.jobId}
+                          className="flex-1 gap-2 font-bold bg-brand hover:bg-brand/90 text-white rounded-full py-5 h-11"
+                        >
+                          {siteActionLoading === 'retry' ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                          Reintentar generación
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={async () => { setSiteActionLoading('delete'); try { await onDeleteSite?.(site.jobId); } finally { setSiteActionLoading(null); } }}
+                          disabled={siteActionLoading !== null}
+                          className="gap-2 rounded-full border-red-300 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 h-11"
+                        >
+                          {siteActionLoading === 'delete' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          Eliminar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => onOpenProgress(site.jobId)}
+                          className="gap-2 rounded-full border-border hover:bg-muted/80 h-11"
+                        >
+                          <Terminal className="w-4 h-4" />
+                          Ver Logs
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Button
+                          onClick={() => onOpenSiteIDE(site)}
+                          className="flex-1 gap-2 font-bold shadow-md shadow-brand/10 hover:shadow-brand/20 bg-brand hover:bg-brand/90 text-white rounded-full py-5 h-11"
+                        >
+                          <Eye className="w-4 h-4" />
+                          Abrir IDE / Chat IA
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => onOpenProgress(site.jobId)}
+                          className="gap-2 rounded-full border-border hover:bg-muted/80 h-11"
+                        >
+                          <Terminal className="w-4 h-4" />
+                          Ver Consola de Logs
+                        </Button>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </motion.div>
