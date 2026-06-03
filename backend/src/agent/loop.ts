@@ -177,6 +177,12 @@ export async function runAutocorrectionLoop(
           addJobLog(jobId, `   ⏭️  Conservando config del boilerplate (ignoro cambio de la IA): ${rel}`);
           continue;
         }
+        // No sobrescribir con un archivo vacío (p.ej. si la IA solo devolvió ruido markdown
+        // que al limpiarse quedó en nada): rompería el build (package.json vacío, etc.).
+        if (!change.content.trim()) {
+          addJobLog(jobId, `   ⏭️  Ignorando archivo vacío devuelto por la IA: ${rel}`);
+          continue;
+        }
         addJobLog(jobId, `   ✍️  Modificando: ${change.relativePath}`);
         await writeSandboxFile(clientData.clientId, change.relativePath, change.content);
         writtenChanges.push(change);

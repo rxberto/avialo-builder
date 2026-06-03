@@ -106,6 +106,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
+      # Boilerplates (Next.js + Tailwind ya configurados) que el scaffold copia por cliente.
+      - ../boilerplates:/app/boilerplates:ro
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
@@ -163,6 +165,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
+      - ../boilerplates:/app/boilerplates:ro
     depends_on:
       - pgbouncer
       - redis
