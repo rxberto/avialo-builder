@@ -9,7 +9,7 @@ import {
   Settings2, Monitor, Smartphone, Tablet, Lock,
   Copy, Activity, Server, Clock, CheckCheck, Search
 } from 'lucide-react';
-import { getSandboxFiles, getSandboxFileContent, editJob } from '../lib/api';
+import { getSandboxFiles, getSandboxFileContent, editJob, getJob } from '../lib/api';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
@@ -298,6 +298,18 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
   useEffect(() => { if (showTerminal) logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [logs, showTerminal]);
 
   /* Enviar mensaje al agente */
+  /* Recarga el iframe del preview (con cache-bust). Reintenta un par de veces porque el
+     contenedor recién reiniciado tarda unos segundos en aceptar conexiones. */
+  const reloadPreview = () => {
+    const doReload = () => {
+      if (!iframeRef.current) return;
+      const base = (previewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
+      if (base) iframeRef.current.src = `${base}?t=${Date.now()}`;
+    };
+    setTimeout(doReload, 1500);
+    setTimeout(doReload, 5000);
+  };
+
   const handleSend = async (e) => {
     e?.preventDefault();
     if (!promptText.trim() || isSending) return;
@@ -317,42 +329,39 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
       onUpdateUser({ ...user, aiCredits: Math.max(0, (user.aiCredits ?? 0) - 1) });
     }
 
+    const finish = (msg) => {
+      setIsSending(false);
+      setChatMessages(prev => prev.map(m => m.id === aiId ? { ...m, text: msg, isGenerating: false } : m));
+      if (onSyncProfile) onSyncProfile();
+    };
+
     try {
       await editJob(jobId, text);
+
+      // Sondeo propio del estado del job hasta que termine (robusto, no depende del SSE).
+      // El endpoint de edición pone el estado en 'generating' de forma síncrona antes de
+      // responder, así que aquí ya veremos generating/building → deployed/failed.
+      const deadline = Date.now() + 8 * 60 * 1000; // 8 min de techo
+      let done = false;
+      while (!done && Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 2500));
+        let job;
+        try { job = await getJob(jobId); } catch { continue; }
+        if (job.status === 'deployed') {
+          done = true;
+          finish('✅ ¡Cambios aplicados! La preview se actualiza automáticamente.');
+          loadFiles();
+          reloadPreview();
+        } else if (job.status === 'failed') {
+          done = true;
+          finish('⚠️ No se pudo aplicar el cambio (el build falló). Revisa la terminal e inténtalo de nuevo.');
+        }
+      }
+      if (!done) finish('⏱️ El cambio está tardando más de lo normal. Refresca en un momento para ver el resultado.');
     } catch (err) {
-      setChatMessages(prev => prev.map(m =>
-        m.id === aiId ? { ...m, text: `❌ Error: ${err.message}`, isGenerating: false } : m
-      ));
-      setIsSending(false);
-      if (onSyncProfile) onSyncProfile();
+      finish(`❌ Error: ${err.message}`);
     }
   };
-
-  /* SSE → terminar burbuja de la IA */
-  useEffect(() => {
-    if (status === 'deployed' && isSending) {
-      setIsSending(false);
-      setChatMessages(prev => prev.map(m =>
-        m.isGenerating ? { ...m, text: '✅ ¡Cambios aplicados! La preview se ha actualizado automáticamente.', isGenerating: false } : m
-      ));
-      loadFiles();
-      // Recargar el iframe del preview para mostrar el nuevo build. Pequeño retardo para
-      // dar tiempo a que el contenedor reiniciado vuelva a aceptar conexiones.
-      setTimeout(() => {
-        if (iframeRef.current) {
-          const base = (previewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
-          iframeRef.current.src = base ? `${base}?t=${Date.now()}` : iframeRef.current.src;
-        }
-      }, 1500);
-      if (onSyncProfile) onSyncProfile();
-    } else if (status === 'failed' && isSending) {
-      setIsSending(false);
-      setChatMessages(prev => prev.map(m =>
-        m.isGenerating ? { ...m, text: '⚠️ La compilación falló. Revisa la terminal para más detalles.', isGenerating: false } : m
-      ));
-      if (onSyncProfile) onSyncProfile();
-    }
-  }, [status]);
 
   /* Operaciones de base de datos */
   const handleInsertRow = (e) => {

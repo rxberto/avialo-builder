@@ -102,22 +102,27 @@ export async function runAutocorrectionLoop(
   Ya hemos inyectado automáticamente el archivo 'src/config/business.ts' que exporta \`businessConfig\`. Este archivo contiene todos los datos reales y de facturación del cliente (como su CIF/NIF, teléfono y dirección exactos recabados durante el checkout).
   Por favor, IMPORTA y UTILIZA siempre los datos de \`src/config/business.ts\` (ej. import { businessConfig } from '@/config/business') en el Footer, el Aviso Legal y las páginas de Contacto en lugar de inventar números de teléfono o direcciones aleatorias.
 
-  El proyecto YA es un Next.js 14 + TypeScript + Tailwind COMPLETO y que COMPILA (layout, estilos,
-  banner de cookies, login/panel y configuración ya funcionan). Tu trabajo es SOLO personalizar el
-  contenido visible de la página de inicio. Cuantos menos archivos toques, mejor.
+  El proyecto YA es un Next.js 14 + TypeScript + Tailwind COMPLETO y que COMPILA. El LAYOUT ya
+  incluye el HEADER (con menú responsive/hamburguesa) y el FOOTER, y YA EXISTEN las páginas
+  '/servicios', '/sobre-nosotros', '/contacto', '/aviso-legal', '/privacidad' y '/cookies'.
+  Tu trabajo es SOLO personalizar el contenido visible de la página de INICIO. Menos archivos = mejor.
 
   ⛔ PROHIBIDO devolver estos archivos (se ignorarán y solo gastan tiempo): cualquier archivo de
   configuración (next.config.*, package.json, tsconfig.json, postcss.config.*, tailwind.config.*),
   'src/config/business.ts', 'src/app/globals.css', 'src/app/layout.tsx' y 'src/app/CookieBanner.tsx'.
-  No crees páginas legales nuevas ni toques login/admin/dashboard.
+  NO crees ni modifiques páginas legales, /servicios, /contacto, /sobre-nosotros, login/admin/dashboard.
+  NO añadas tu propio header, navbar ni footer en page.tsx: el layout ya los pone (saldrían duplicados).
 
   ✅ TAREA (haz SOLO esto):
-  1. Reescribe 'src/app/page.tsx' (la home) con un diseño premium para el sector: Hero con titular y
-     subtítulo potentes, sección de servicios propios del sector, y una sección de testimonios.
+  1. Reescribe 'src/app/page.tsx' (la home) con un diseño premium y TOTALMENTE RESPONSIVE (mobile-first:
+     usa clases como px-4 sm:px-6, text-3xl sm:text-5xl, grid-cols-1 md:grid-cols-3, etc.). Incluye:
+     Hero con titular y subtítulo potentes + CTA, sección de servicios del sector, y testimonios.
+     NO repitas el header ni el footer (ya están en el layout); empieza directamente por el <section> del hero.
   2. Si necesitas trocear en componentes, créalos en 'src/components/' (TSX válido) e impórtalos en
      page.tsx con el alias '@/components/...'. Importa SOLO componentes que tú mismo crees en esta
      respuesta (no referencies componentes inexistentes).
-  3. Usa los datos reales con: import { businessConfig } from '@/config/business'. NO inventes datos.
+  3. Usa los datos reales con: import { businessConfig } from '@/config/business'. NO inventes datos
+     (nombre: businessConfig.name, teléfono/email/dirección en businessConfig.contact).
   4. Aplica el color de marca con clases Tailwind o estilos inline (NO edites globals.css).
 
   REGLAS DE FORMATO ESTRICTAS:
