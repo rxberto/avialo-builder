@@ -124,11 +124,18 @@ export async function runCommandInContainer(
  */
 function traefikPreviewLabels(clientId: string, host: string, internalPort: number): Record<string, string> {
   const router = `preview-${clientId}`.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+  // Dominio base (avialo.app) para pedir UN cert wildcard *.avialo.app compartido por todas
+  // las previews, en vez de uno por subdominio (evita los rate limits de Let's Encrypt).
+  const base = host.split(".").slice(1).join(".") || host;
   return {
     "traefik.enable": "true",
     [`traefik.http.routers.${router}.rule`]: "Host(`" + host + "`)",
     [`traefik.http.routers.${router}.entrypoints`]: "websecure",
     [`traefik.http.routers.${router}.tls`]: "true",
+    // Reto DNS de Cloudflare → permite emitir el wildcard. Sin esto saldría cert autofirmado.
+    [`traefik.http.routers.${router}.tls.certresolver`]: "dns-letsencrypt",
+    [`traefik.http.routers.${router}.tls.domains[0].main`]: base,
+    [`traefik.http.routers.${router}.tls.domains[0].sans`]: `*.${base}`,
     [`traefik.http.services.${router}.loadbalancer.server.port`]: String(internalPort),
     "traefik.docker.network": "avialo-network",
   };
