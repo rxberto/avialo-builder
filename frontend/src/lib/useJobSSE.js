@@ -36,9 +36,8 @@ export function useJobSSE(jobId) {
         setStatus(job.status);
         setProgress(job.progress ?? 0);
         if (job.previewUrl) setPreviewUrl(job.previewUrl);
-        if (job.status === 'deployed' || job.status === 'failed') {
-          cleanup();
-        }
+        // NO cerramos al llegar a deployed/failed: el IDE reutiliza el mismo job para
+        // editar (deployed→generating→deployed) y debe seguir escuchando esas transiciones.
       } catch {
         // silencioso
       }
@@ -68,9 +67,7 @@ export function useJobSSE(jobId) {
         if (data.status) setStatus(data.status);
         if (data.progress !== undefined) setProgress(data.progress);
         if (data.previewUrl) setPreviewUrl(data.previewUrl);
-        if (data.status === 'deployed' || data.status === 'failed') {
-          cleanup();
-        }
+        // Mantener la conexión abierta tras deployed/failed para observar ediciones futuras.
       } catch {
         // silencioso
       }

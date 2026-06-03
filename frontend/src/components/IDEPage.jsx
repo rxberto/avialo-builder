@@ -336,6 +336,14 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
         m.isGenerating ? { ...m, text: '✅ ¡Cambios aplicados! La preview se ha actualizado automáticamente.', isGenerating: false } : m
       ));
       loadFiles();
+      // Recargar el iframe del preview para mostrar el nuevo build. Pequeño retardo para
+      // dar tiempo a que el contenedor reiniciado vuelva a aceptar conexiones.
+      setTimeout(() => {
+        if (iframeRef.current) {
+          const base = (previewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
+          iframeRef.current.src = base ? `${base}?t=${Date.now()}` : iframeRef.current.src;
+        }
+      }, 1500);
       if (onSyncProfile) onSyncProfile();
     } else if (status === 'failed' && isSending) {
       setIsSending(false);
