@@ -41,6 +41,15 @@ const openAIClient = config.openai.apiKey
     })
   : null;
 
+// Log de diagnóstico al arrancar: qué proveedores de IA están realmente configurados.
+// Si "deepseek: no" y esperas usarlo, falta DEEPSEEK_API_KEY en el entorno del proceso.
+console.log(
+  `🧩 Proveedores IA configurados → claude: ${!!anthropicClient ? "sí" : "no"}, ` +
+  `gemini: ${!!googleClient ? "sí" : "no"}, deepseek: ${!!deepseekClient ? "sí" : "no"}, ` +
+  `openai: ${!!openAIClient ? "sí" : "no"}, openrouter: ${!!openRouterClient ? "sí" : "no"}` +
+  `${config.llm.primary ? ` | LLM_PRIMARY=${config.llm.primary}` : ""}`
+);
+
 /**
  * Genera contenido de código llamando principalmente a Claude Sonnet,
  * y en caso de error o cuota excedida, realiza un fallback automático a Gemini Flash.
@@ -131,6 +140,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     openrouter: !!openRouterClient,
   };
 
+  // Si LLM_PRIMARY se fijó explícitamente pero ese proveedor no tiene API key,
+  // fallamos CLARO en vez de caer en silencio a otros (que pueden estar sin saldo).
+  if (config.llm.primary && !available[config.llm.primary]) {
+    throw new Error(
+      `❌ LLM_PRIMARY="${config.llm.primary}" pero falta su API key ` +
+      `(${config.llm.primary === "deepseek" ? "DEEPSEEK_API_KEY" : config.llm.primary === "claude" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY"}). ` +
+      `Define la clave en el entorno del worker o cambia LLM_PRIMARY.`
+    );
+  }
+
   // Proveedor primario: LLM_PRIMARY fuerza el orden (p.ej. solo hay créditos DeepSeek);
   // si no, manda el modelo preferido del router.
   const primary = config.llm.primary || preferredModel;
@@ -145,12 +164,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     throw new Error("❌ Ningún proveedor de IA está configurado (faltan las API keys).");
   }
 
+  // Modelo de OpenRouter configurable: los ids "...:free" cambian/expiran a menudo (404).
+  const openRouterModel = process.env.OPENROUTER_MODEL || "deepseek/deepseek-chat-v3.1:free";
+
   const callers: Record<ProviderName, () => Promise<string>> = {
     claude: () => callClaude(prompt, systemPrompt, claudeModelId, maxTokens, onUsage),
     gemini: () => callGemini(prompt, systemPrompt, geminiModelId, maxTokens, onUsage),
     deepseek: () => callDeepSeek(prompt, systemPrompt, maxTokens, onUsage),
     openai: () => callOpenAI(prompt, systemPrompt, maxTokens, onUsage),
-    openrouter: () => callOpenRouter(prompt, systemPrompt, "google/gemini-2.5-flash:free", onUsage),
+    openrouter: () => callOpenRouter(prompt, systemPrompt, openRouterModel, onUsage),
   };
 
   console.log(`🔗 Cascada de modelos: ${chain.join(" → ")}`);
