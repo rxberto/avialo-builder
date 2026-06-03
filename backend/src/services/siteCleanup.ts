@@ -1,10 +1,8 @@
 import { rm } from "fs/promises";
-import path from "path";
 import { generationQueue } from "../queue/queue.js";
 import { dropTenantSchema } from "../database/tenant.js";
 import { docker } from "../docker/dockerode.js";
-
-const PROJECTS_DIR = "./projects";
+import { sandboxPath } from "../config/sandbox.js";
 
 /**
  * Limpia TODOS los recursos del sitio de un usuario (RGPD + housekeeping):
@@ -41,7 +39,7 @@ export async function cleanupUserSite(siteJobId?: string | null): Promise<void> 
   );
 
   // 3. Carpeta del sandbox
-  await rm(path.resolve(PROJECTS_DIR, clientId), { recursive: true, force: true }).catch((err) =>
+  await rm(sandboxPath(clientId), { recursive: true, force: true }).catch((err) =>
     console.error(`⚠️ [CLEANUP] Error al borrar el sandbox ${clientId}:`, err)
   );
 }

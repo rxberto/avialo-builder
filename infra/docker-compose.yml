@@ -75,6 +75,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - DOCKER_SOCKET=/var/run/docker.sock
       - PORT=3000
+      # Sandbox: el worker escribe en /app/sandbox (volumen) y los contenedores hijos
+      # se montan con la ruta del HOST (SANDBOX_HOST_DIR) porque el daemon vive en el host.
+      - SANDBOX_DIR=/app/sandbox
+      - SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR}
       - FRONTEND_URL=${FRONTEND_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - LITELLM_URL=${LITELLM_URL}
@@ -131,6 +135,10 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@pgbouncer:5432/${DB_NAME:-postgres}?schema=public&pgbouncer=true
       - REDIS_URL=redis://redis:6379
       - DOCKER_SOCKET=/var/run/docker.sock
+      # Sandbox (ver nota en el servicio backend): imprescindible para que el build
+      # encuentre los archivos del proyecto al montar contenedores hijos.
+      - SANDBOX_DIR=/app/sandbox
+      - SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR}
       - LITELLM_URL=${LITELLM_URL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}

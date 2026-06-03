@@ -95,9 +95,9 @@ export const generationWorker = new Worker<GenerationJobData>(
       await setJobStatus({ jobId, state: "preview", progress: 80, updatedAt: new Date().toISOString() });
 
       const freePort = await findFreePort();
-      const containerPath = `./projects/${clientId}`;
-
-      await startPreviewContainer(clientId, containerPath, freePort);
+      // Las rutas del sandbox (contenedor/host) las resuelve startPreviewContainer
+      // a partir del clientId (ver config/sandbox.ts). El 2º arg queda como legado.
+      await startPreviewContainer(clientId, "", freePort);
 
       const previewUrl = `http://localhost:${freePort}`;
 

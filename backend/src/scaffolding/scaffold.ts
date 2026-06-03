@@ -1,8 +1,7 @@
 import { mkdir, writeFile, cp } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
-
-const PROJECTS_DIR = "./projects";
+import { sandboxPath } from "../config/sandbox.js";
 
 export interface ScaffoldData {
   webType: "corporativa" | "dinamica" | "ecommerce" | string;
@@ -16,7 +15,7 @@ export interface ScaffoldData {
 
 // ── Crea la carpeta base del proyecto (Fallback)
 async function createProjectStructure(clienteId: string, tipo: string) {
-  const base = path.join(PROJECTS_DIR, clienteId);
+  const base = sandboxPath(clienteId);
   const dirs = [
     base,
     `${base}/assets`,
@@ -79,7 +78,7 @@ export async function scaffoldProject(clienteId: string, datos: ScaffoldData): P
 
   console.log(`\n🏗️  Scaffolding: ${clienteId} (${webType})`);
 
-  const base = path.join(PROJECTS_DIR, clienteId);
+  const base = sandboxPath(clienteId);
 
   if (existsSync(base)) {
     console.log(`   ⚠️  Proyecto ya existe — saltando scaffold`);

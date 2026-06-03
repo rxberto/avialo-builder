@@ -3,6 +3,7 @@ import { existsSync, promises as fs } from "fs";
 import path from "path";
 import { addJobLog } from "../queue/logs.js";
 import { config } from "../config/env.js";
+import { sandboxPath, sandboxHostPath } from "../config/sandbox.js";
 
 // Inicialización de Dockerode conectado al Named Pipe de Windows o socket de Linux
 const isWindows = process.platform === "win32";
@@ -66,7 +67,8 @@ export async function runCommandInContainer(
   command: string,
   timeoutMs: number = 120000
 ): Promise<{ success: boolean; stdout: string; stderr: string }> {
-  const absolutePath = path.resolve("./projects", clientId);
+  // Bind para Docker: ruta EN EL HOST (el daemon resuelve binds contra el FS del host).
+  const absolutePath = sandboxHostPath(clientId);
   const Image = "node:20-bookworm-slim";
 
   try {
@@ -125,11 +127,14 @@ export async function runCommandInContainer(
  */
 export async function startPreviewContainer(
   clientId: string,
-  projectPath: string,
+  _projectPath: string,
   port: number
 ): Promise<{ containerId: string; port: number; image: string }> {
   const containerName = `avialo-preview-${clientId}`;
-  const absolutePath = path.resolve(projectPath);
+  // fsPath: ruta que ve el worker (para existsSync/fs.rm).
+  // bindPath: ruta en el host (para los Binds de los contenedores hijos).
+  const fsPath = sandboxPath(clientId);
+  const bindPath = sandboxHostPath(clientId);
 
   addJobLog(clientId, `🐳 Inicializando contenedor Docker: ${containerName}`);
 
@@ -148,7 +153,7 @@ export async function startPreviewContainer(
   }
 
   // Determinar si es un sitio estático (Nginx) o dinámico/NextJS (Node)
-  const isStatic = existsSync(path.join(absolutePath, "index.html")) && !existsSync(path.join(absolutePath, "package.json"));
+  const isStatic = existsSync(path.join(fsPath, "index.html")) && !existsSync(path.join(fsPath, "package.json"));
   
   let Image = isStatic ? "nginx:alpine" : "node:20-bookworm-slim"; // bookworm-slim para evitar fallos OOM y glibc en build
   
@@ -182,7 +187,7 @@ export async function startPreviewContainer(
       name: containerName,
       ExposedPorts,
       HostConfig: {
-        Binds: [`${absolutePath}:/usr/share/nginx/html:ro`],
+        Binds: [`${bindPath}:/usr/share/nginx/html:ro`],
         PortBindings,
         Memory: 128 * 1024 * 1024, // 128MB
       },
@@ -220,7 +225,7 @@ export async function startPreviewContainer(
   let buildCmd = ["sh", "-c", "cd /usr/src/app && npm install && npm run build"];
   let runtimeCmd = ["sh", "-c", "cd /usr/src/app && cp -r public .next/standalone/ 2>/dev/null || true && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js"];
 
-  if (existsSync(path.join(absolutePath, "storefront"))) {
+  if (existsSync(path.join(fsPath, "storefront"))) {
     buildCmd = ["sh", "-c", "cd /usr/src/app/storefront && npm install && npm run build"];
     runtimeCmd = ["sh", "-c", "cd /usr/src/app/storefront && cp -r public .next/standalone/ 2>/dev/null || true && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js"];
   }
@@ -234,7 +239,7 @@ export async function startPreviewContainer(
       `DATABASE_URL=${tenantDbUrl}`,
     ],
     HostConfig: {
-      Binds: [`${absolutePath}:/usr/src/app`],
+      Binds: [`${bindPath}:/usr/src/app`],
       Memory: BUILD_MEMORY_BYTES,
       AutoRemove: true,
     },
@@ -252,9 +257,9 @@ export async function startPreviewContainer(
   // Fase 2: GARBAGE COLLECTION
   addJobLog(clientId, `🧹 [FASE 2] Eliminando node_modules del Sandbox para ahorrar recursos...`);
   try {
-    const modulesPath = existsSync(path.join(absolutePath, "storefront")) 
-      ? path.join(absolutePath, "storefront", "node_modules") 
-      : path.join(absolutePath, "node_modules");
+    const modulesPath = existsSync(path.join(fsPath, "storefront"))
+      ? path.join(fsPath, "storefront", "node_modules")
+      : path.join(fsPath, "node_modules");
     await fs.rm(modulesPath, { recursive: true, force: true });
     addJobLog(clientId, `✅ [FASE 2] Limpieza completada.`);
   } catch (err: any) {
@@ -274,7 +279,7 @@ export async function startPreviewContainer(
       `NEXTAUTH_URL=http://localhost:${port}`
     ],
     HostConfig: {
-      Binds: [`${absolutePath}:/usr/src/app`],
+      Binds: [`${bindPath}:/usr/src/app`],
       PortBindings,
       Memory: RUNTIME_MEMORY_BYTES,
     },

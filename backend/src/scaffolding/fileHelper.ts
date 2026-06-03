@@ -1,13 +1,12 @@
 import { readdir, stat, readFile } from "fs/promises";
 import path from "path";
-
-const PROJECTS_DIR = "./projects";
+import { sandboxPath } from "../config/sandbox.js";
 
 /**
  * Resuelve y valida una ruta dentro del sandbox de forma segura para evitar ataques de Path Traversal
  */
 export function resolveSandboxPath(clientId: string, relativePath: string): string {
-  const base = path.resolve(PROJECTS_DIR, clientId);
+  const base = sandboxPath(clientId);
   const resolved = path.resolve(base, relativePath);
 
   // Seguridad: Validamos que la ruta resultante esté contenida estrictamente en la carpeta del sandbox del cliente
@@ -32,7 +31,7 @@ export async function listSandboxFiles(
   clientId: string,
   dirName: string = ""
 ): Promise<SandboxFileInfo[]> {
-  const sandboxBase = path.resolve(PROJECTS_DIR, clientId);
+  const sandboxBase = sandboxPath(clientId);
   const currentPath = dirName ? path.resolve(sandboxBase, dirName) : sandboxBase;
 
   // Evitar Path Traversal
