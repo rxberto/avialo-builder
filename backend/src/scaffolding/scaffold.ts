@@ -132,23 +132,23 @@ export async function scaffoldProject(clienteId: string, datos: ScaffoldData): P
     await writeFile(path.join(base, "avialo-meta.json"), JSON.stringify(meta, null, 2));
     console.log(`   ✅ Meta guardada`);
 
-    // Inyectar config/business.ts para que la web tenga los datos reales desde el principio
-    if (fullClientData) {
+    // Inyectar config/business.ts SIEMPRE (el layout/páginas dependen de businessConfig).
+    {
       const srcDir = path.join(base, "src");
       const configDir = path.join(srcDir, "config");
-      
+
       if (!existsSync(srcDir)) await mkdir(srcDir, { recursive: true });
       if (!existsSync(configDir)) await mkdir(configDir, { recursive: true });
 
-      const business = fullClientData.businessContext || {};
-      const billing = fullClientData.billingData || {};
-      
-      // Datos combinados: usamos facturación si están, o el contexto
+      const business = fullClientData?.businessContext || {};
+      const billing = fullClientData?.billingData || {};
+
+      // Datos combinados: usamos facturación si están, o el contexto, o los parámetros base.
       const companyName = billing.companyName || business.name || businessName;
       const cif = billing.cif || "Pendiente";
       const phone = business.phone || "+34 900 000 000";
       const email = business.email || `contacto@${dominio}`;
-      const fullAddress = billing.address 
+      const fullAddress = billing.address
         ? `${billing.address}, ${billing.postalCode || ''} ${billing.city || city}, ${billing.country || 'España'}`
         : `${city}, España`;
 
@@ -157,6 +157,7 @@ export const businessConfig = {
   name: ${JSON.stringify(companyName)},
   cif: ${JSON.stringify(cif)},
   sector: ${JSON.stringify(sector)},
+  city: ${JSON.stringify(city)},
   contact: {
     phone: ${JSON.stringify(phone)},
     email: ${JSON.stringify(email)},
@@ -173,7 +174,18 @@ export const businessConfig = {
 };
 `;
       await writeFile(path.join(configDir, "business.ts"), businessTS);
-      console.log(`   ✅ src/config/business.ts inyectado con los datos de facturación y onboarding`);
+      console.log(`   ✅ src/config/business.ts inyectado con los datos del cliente`);
+
+      // Favicon dinámico: cuadro redondeado con el color de marca y la inicial del negocio.
+      // SVG estático (cero riesgo de build); Next usa src/app/icon.svg como favicon.
+      const safeLetter = (companyName.trim()[0] || "A").toUpperCase().replace(/[<>&"']/g, "");
+      const brand = /^#[0-9a-fA-F]{3,8}$/.test(primaryColor || "") ? primaryColor : "#2563eb";
+      const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${brand}"/><text x="32" y="45" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle">${safeLetter}</text></svg>`;
+      const appDir = path.join(srcDir, "app");
+      if (existsSync(appDir)) {
+        await writeFile(path.join(appDir, "icon.svg"), iconSvg);
+        console.log(`   ✅ Favicon src/app/icon.svg generado con la marca`);
+      }
     }
 
     console.log(`   🎉 Scaffold completo → ${base}\n`);
