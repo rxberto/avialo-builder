@@ -1,3 +1,5 @@
+import { existsSync } from "fs";
+import path from "path";
 import { generateCode } from "./client.js";
 import { writeSandboxFile, runSandboxCommand } from "./executor.js";
 import { SYSTEM_PROMPT } from "../prompts/system-base.js";
@@ -6,6 +8,17 @@ import { MODELS } from "../models/router.js";
 import { JobCostTracker } from "./cost.js";
 import { recordJobUsage } from "./usageLog.js";
 import { renderSectorDirectives } from "../prompts/sectorProfiles.js";
+import { sandboxPath } from "../config/sandbox.js";
+
+// Ficheros de configuración que el boilerplate ya trae funcionando. La IA tiende a
+// regenerarlos truncados/rotos (p.ej. next.config.mjs incompleto -> el build ni arranca),
+// así que si ya existen, IGNORAMOS la versión de la IA y conservamos la del boilerplate.
+const PROTECTED_CONFIG = new Set([
+  "next.config.mjs", "next.config.js", "next.config.ts",
+  "package.json", "package-lock.json",
+  "tsconfig.json", "postcss.config.js", "postcss.config.mjs",
+  "tailwind.config.ts", "tailwind.config.js",
+]);
 
 // Elimina secuencias de escape ANSI (colores/control) del output de npm/vite:
 // ESC (27) + "[" + parametros + byte final. Ensucian logs e impiden que el modelo
@@ -86,6 +99,9 @@ export async function runAutocorrectionLoop(
   Ya hemos inyectado automáticamente el archivo 'src/config/business.ts' que exporta \`businessConfig\`. Este archivo contiene todos los datos reales y de facturación del cliente (como su CIF/NIF, teléfono y dirección exactos recabados durante el checkout).
   Por favor, IMPORTA y UTILIZA siempre los datos de \`src/config/business.ts\` (ej. import { businessConfig } from '@/config/business') en el Footer, el Aviso Legal y las páginas de Contacto en lugar de inventar números de teléfono o direcciones aleatorias.
 
+  ⛔ NO MODIFIQUES NI DEVUELVAS ARCHIVOS DE CONFIGURACIÓN: el proyecto ya viene con Next.js 14 + TypeScript + Tailwind CONFIGURADOS Y FUNCIONANDO. NO incluyas en tu respuesta 'next.config.mjs', 'package.json', 'package-lock.json', 'tsconfig.json', 'postcss.config.js' ni 'tailwind.config.ts' (serán ignorados). Usa solo las dependencias ya instaladas. Limítate a archivos de contenido y UI dentro de 'src/app/' y 'src/components/'.
+  📦 FORMATO: devuelve el código de cada archivo EN CRUDO justo tras su cabecera, SIN vallas de markdown (nada de \`\`\` ni \`\`\`tsx) y SIN texto extra antes o después.
+
   TAREA:
   1. Personaliza la página de inicio (Hero con título e imagen ilustrativa, servicios específicos de su sector, sección de testimonios comerciales).
   2. Ajusta el aviso legal, aviso de cookies y sitemaps para consumir el CIF de 'src/config/business.ts'.
@@ -152,13 +168,22 @@ export async function runAutocorrectionLoop(
       }
 
       addJobLog(jobId, `💾 Escribiendo ${fileChanges.length} archivo(s) modificado(s) en el sandbox...`);
+      const writtenChanges: FileChange[] = [];
       for (const change of fileChanges) {
+        const rel = change.relativePath.replace(/^\.?\//, "");
+        // Proteger los ficheros de config del boilerplate (ya funcionan) frente a
+        // versiones rotas/truncadas de la IA.
+        if (PROTECTED_CONFIG.has(rel) && existsSync(path.join(sandboxPath(clientData.clientId), rel))) {
+          addJobLog(jobId, `   ⏭️  Conservando config del boilerplate (ignoro cambio de la IA): ${rel}`);
+          continue;
+        }
         addJobLog(jobId, `   ✍️  Modificando: ${change.relativePath}`);
         await writeSandboxFile(clientData.clientId, change.relativePath, change.content);
+        writtenChanges.push(change);
       }
 
       // Guardar de forma persistente los últimos archivos modificados para retroalimentación
-      lastTouchedFiles = fileChanges;
+      lastTouchedFiles = writtenChanges;
 
       addJobLog(jobId, `🔧 Validando compilación en contenedor aislado ('npm install && npm run build')...`);
 
