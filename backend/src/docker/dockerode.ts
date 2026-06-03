@@ -119,22 +119,41 @@ export async function runCommandInContainer(
 }
 
 /**
+ * Etiquetas de Traefik para enrutar un subdominio HTTPS a un contenedor de preview.
+ * Traefik (provider docker) las descubre por la red avialo-network.
+ */
+function traefikPreviewLabels(clientId: string, host: string, internalPort: number): Record<string, string> {
+  const router = `preview-${clientId}`.replace(/[^a-zA-Z0-9-]/g, "").toLowerCase();
+  return {
+    "traefik.enable": "true",
+    [`traefik.http.routers.${router}.rule`]: "Host(`" + host + "`)",
+    [`traefik.http.routers.${router}.entrypoints`]: "websecure",
+    [`traefik.http.routers.${router}.tls`]: "true",
+    [`traefik.http.services.${router}.loadbalancer.server.port`]: String(internalPort),
+    "traefik.docker.network": "avialo-network",
+  };
+}
+
+/**
  * Arranca un contenedor Docker ligero para previsualizar el sitio web generado.
- * 
- * @param clientId ID del cliente
- * @param projectPath Ruta absoluta de la carpeta del proyecto
- * @param port Puerto libre en el host para enlazar el contenedor
+ *
+ * @param clientId    ID del cliente
+ * @param previewHost Subdominio público (p.ej. "negocio.avialo.app"). Si se pasa, se
+ *                    enruta vía Traefik (HTTPS); si no, se publica en localhost:port (dev).
+ * @param port        Puerto libre en el host (solo se usa en modo localhost/dev)
  */
 export async function startPreviewContainer(
   clientId: string,
-  _projectPath: string,
+  previewHost: string,
   port: number
-): Promise<{ containerId: string; port: number; image: string }> {
+): Promise<{ containerId: string; port: number; image: string; previewUrl: string }> {
   const containerName = `avialo-preview-${clientId}`;
   // fsPath: ruta que ve el worker (para existsSync/fs.rm).
   // bindPath: ruta en el host (para los Binds de los contenedores hijos).
   const fsPath = sandboxPath(clientId);
   const bindPath = sandboxHostPath(clientId);
+  // Modo Traefik (producción) vs localhost (dev) según haya subdominio público.
+  const useTraefik = !!previewHost;
 
   addJobLog(clientId, `🐳 Inicializando contenedor Docker: ${containerName}`);
 
@@ -181,20 +200,28 @@ export async function startPreviewContainer(
 
   if (isStatic) {
     // FLUJO ESTÁTICO (SIMPLE)
-    addJobLog(clientId, `🚀 Creando contenedor NGINX con puerto: ${port}`);
+    addJobLog(clientId, useTraefik
+      ? `🚀 Creando contenedor NGINX enrutado por Traefik a https://${previewHost}`
+      : `🚀 Creando contenedor NGINX con puerto: ${port}`);
     const container = await docker.createContainer({
       Image,
       name: containerName,
       ExposedPorts,
+      ...(useTraefik ? { Labels: traefikPreviewLabels(clientId, previewHost, 80) } : {}),
       HostConfig: {
         Binds: [`${bindPath}:/usr/share/nginx/html:ro`],
-        PortBindings,
         Memory: 128 * 1024 * 1024, // 128MB
+        ...(useTraefik ? { NetworkMode: "avialo-network" } : { PortBindings }),
       },
     });
     await container.start();
     addJobLog(clientId, `✅ Contenedor NGINX iniciado con ID: ${container.id.substring(0, 12)}`);
-    return { containerId: container.id, port, image: Image };
+    return {
+      containerId: container.id,
+      port,
+      image: Image,
+      previewUrl: useTraefik ? `https://${previewHost}` : `http://localhost:${port}`,
+    };
   }
 
   // ── OPTIMIZACIÓN DE CONEXIONES Y POOLING ENTERPRISE ──
@@ -267,21 +294,25 @@ export async function startPreviewContainer(
   }
 
   // Fase 3: RUNTIME CONTAINER (256MB RAM)
-  addJobLog(clientId, `🚀 [FASE 3] Lanzando contenedor Runtime (Límite: 256MB RAM) en puerto ${port}`);
+  const publicUrl = useTraefik ? `https://${previewHost}` : `http://localhost:${port}`;
+  addJobLog(clientId, useTraefik
+    ? `🚀 [FASE 3] Lanzando Runtime enrutado por Traefik a ${publicUrl}`
+    : `🚀 [FASE 3] Lanzando contenedor Runtime (Límite: 256MB RAM) en puerto ${port}`);
   const runtimeContainer = await docker.createContainer({
     Image,
     name: containerName,
     Cmd: runtimeCmd,
     ExposedPorts,
+    ...(useTraefik ? { Labels: traefikPreviewLabels(clientId, previewHost, 3000) } : {}),
     Env: [
       `DATABASE_URL=${tenantDbUrl}`,
       `NEXTAUTH_SECRET=${config.auth.nextauthSecret}`,
-      `NEXTAUTH_URL=http://localhost:${port}`
+      `NEXTAUTH_URL=${publicUrl}`
     ],
     HostConfig: {
       Binds: [`${bindPath}:/usr/src/app`],
-      PortBindings,
       Memory: RUNTIME_MEMORY_BYTES,
+      ...(useTraefik ? { NetworkMode: "avialo-network" } : { PortBindings }),
     },
   });
 
@@ -292,6 +323,7 @@ export async function startPreviewContainer(
     containerId: runtimeContainer.id,
     port,
     image: Image,
+    previewUrl: publicUrl,
   };
 }
 

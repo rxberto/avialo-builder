@@ -95,11 +95,16 @@ export const generationWorker = new Worker<GenerationJobData>(
       await setJobStatus({ jobId, state: "preview", progress: 80, updatedAt: new Date().toISOString() });
 
       const freePort = await findFreePort();
-      // Las rutas del sandbox (contenedor/host) las resuelve startPreviewContainer
-      // a partir del clientId (ver config/sandbox.ts). El 2º arg queda como legado.
-      await startPreviewContainer(clientId, "", freePort);
 
-      const previewUrl = `http://localhost:${freePort}`;
+      // Subdominio público del preview. En producción PREVIEW_DOMAIN_BASE=avialo.app →
+      // se enruta vía Traefik en HTTPS (un iframe http://IP:port sería bloqueado por
+      // contenido mixto en el panel HTTPS). Sin esa env (dev) → localhost:port.
+      const slug = businessName.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+      const previewBase = process.env.PREVIEW_DOMAIN_BASE || "";
+      const previewHost = previewBase ? `${slug}.${previewBase}` : "";
+
+      const preview = await startPreviewContainer(clientId, previewHost, freePort);
+      const previewUrl = preview.previewUrl;
 
       // 4. ESTADO: deployed -> Éxito total
       const finalStatus: JobStatus = {
@@ -121,7 +126,7 @@ export const generationWorker = new Worker<GenerationJobData>(
           where: { id: userId },
           data: {
             siteStatus: "deployed",
-            siteDomain: `${businessName.toLowerCase().replace(/[^a-z0-9]/g, '')}.avialo.app`,
+            siteDomain: previewHost || `${slug}.avialo.app`,
             siteJobId: jobId
           }
         }).catch(err => console.error("⚠️ Error al guardar deployed en DB:", err));
