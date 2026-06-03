@@ -11,19 +11,24 @@ export interface FileChange {
 export function cleanFileContent(raw: string): string {
   let content = raw.trim();
 
-  // Quitar líneas que sean solo marcadores markdown (**, __, ---) al principio y al final.
-  content = content.replace(/^(?:[*_-]{1,3}[ \t]*\n)+/, "");
-  content = content.replace(/(?:\n[ \t]*[*_-]{1,3}[ \t]*)+$/, "");
+  // 1) Si hay una valla de código markdown, quedarnos SOLO con su interior. Esto descarta
+  //    de un plumazo cualquier prosa/encabezado que el modelo ponga antes o después
+  //    (DeepSeek suele escribir "### archivo" + ```tsx ... ``` alrededor del código).
+  const fenced = content.match(/```[a-zA-Z0-9_-]*[ \t]*\n([\s\S]*?)\n?```/);
+  if (fenced) content = fenced[1];
   content = content.trim();
 
-  // Si todo el contenido está envuelto en una valla de código, extraer el interior.
-  const fenced = content.match(/^```[a-zA-Z0-9_-]*[ \t]*\n([\s\S]*?)\n?```[ \t]*$/);
-  if (fenced) return fenced[1].trim();
+  // 2) Quitar líneas de ruido markdown sueltas al principio y al final: encabezados (#..),
+  //    separadores (---, ***), negritas sueltas (**), y vallas residuales (```).
+  const isNoise = (line: string): boolean => {
+    const t = line.trim();
+    return t === "" || /^#{1,6}\s/.test(t) || /^[-*_]{3,}$/.test(t) || /^\*{1,3}$/.test(t) || /^```/.test(t);
+  };
+  const lines = content.split("\n");
+  while (lines.length && isNoise(lines[0])) lines.shift();
+  while (lines.length && isNoise(lines[lines.length - 1])) lines.pop();
 
-  // Vallas de apertura/cierre sueltas (sin la pareja detectable).
-  content = content.replace(/^```[a-zA-Z0-9_-]*[ \t]*\n/, "").replace(/\n?```[ \t]*$/, "");
-
-  return content.trim();
+  return lines.join("\n").trim();
 }
 
 /**

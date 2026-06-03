@@ -32,4 +32,16 @@ body { margin: 0; }
     expect(changes[0].content).toBe('{\n  "name": "gastrorro"\n}');
     expect(() => JSON.parse(changes[0].content)).not.toThrow();
   });
+
+  it("descarta encabezados ### y prosa alrededor del código (caso Navbar)", () => {
+    const out = "[ARCHIVO: src/components/Navbar.tsx]\n### Navbar\n```tsx\nexport const Navbar = () => <nav/>;\n```\n### Siguiente archivo";
+    const changes = parseFileChanges(out);
+    expect(changes[0].content).toBe("export const Navbar = () => <nav/>;");
+  });
+
+  it("quita encabezados markdown finales en contenido sin valla", () => {
+    const out = "[ARCHIVO: a.ts]\nconst a = 1;\n### notas extra";
+    const changes = parseFileChanges(out);
+    expect(changes[0].content).toBe("const a = 1;");
+  });
 });
