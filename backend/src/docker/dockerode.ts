@@ -313,6 +313,11 @@ export async function startPreviewContainer(
     ...(useTraefik ? { Labels: traefikPreviewLabels(clientId, previewHost, 3000) } : {}),
     Env: [
       `DATABASE_URL=${tenantDbUrl}`,
+      // NextAuth v5 lee AUTH_*; mantenemos NEXTAUTH_* por compatibilidad. trustHost es
+      // obligatorio detrás de Traefik o el login da UntrustedHost.
+      `AUTH_SECRET=${config.auth.nextauthSecret}`,
+      `AUTH_TRUST_HOST=true`,
+      `AUTH_URL=${publicUrl}`,
       `NEXTAUTH_SECRET=${config.auth.nextauthSecret}`,
       `NEXTAUTH_URL=${publicUrl}`
     ],

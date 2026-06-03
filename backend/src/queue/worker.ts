@@ -5,10 +5,16 @@ import { addJobLog } from "./logs.js";
 import { setJobStatus, JobStatus } from "./jobState.js";
 import { scaffoldProject } from "../scaffolding/scaffold.js";
 import { startPreviewContainer, prewarmImages } from "../docker/dockerode.js";
-import { createTenantSchema } from "../database/tenant.js";
+import { createTenantSchema, migrateTenantSchema, seedTenantAdmin } from "../database/tenant.js";
 import { runAutocorrectionLoop } from "../agent/loop.js";
 import { prisma } from "../database/client.js";
 import net from "net";
+import { randomBytes } from "crypto";
+
+/** Contraseña temporal legible para el admin del negocio. */
+function tempPassword(): string {
+  return randomBytes(6).toString("base64").replace(/[^a-zA-Z0-9]/g, "").slice(0, 10) + "9!";
+}
 
 // Concurrencia configurable. En un droplet pequeño cada build levanta un contenedor de
 // hasta 2GB, por lo que el valor por defecto es 1 para no provocar OOM.
@@ -58,9 +64,25 @@ export const generationWorker = new Worker<GenerationJobData>(
         }).catch(err => console.error("⚠️ Error al actualizar siteStatus en DB:", err));
       }
 
-      // 1. ESTADO: generating -> Multi-tenant schema & Scaffold
+      // 1. ESTADO: generating -> Multi-tenant schema + TABLAS + admin del negocio
       addJobLog(jobId, `⚙️  [1/4] Creando base de datos multi-tenant...`);
       await createTenantSchema(clientId);
+
+      // Crear las tablas reales (User/Appointment/...) en el esquema del cliente.
+      const migration = await migrateTenantSchema(clientId);
+      if (!migration.success) {
+        throw new Error(`No se pudieron crear las tablas del negocio: ${migration.error}`);
+      }
+      addJobLog(jobId, `🗄️  Base de datos del negocio lista (reservas, usuarios, facturas).`);
+
+      // Sembrar el admin del negocio para que el dueño pueda entrar a su panel /admin.
+      const bizCtx = job.data.fullClientData?.businessContext || {};
+      const adminEmail = (bizCtx.email || `admin@${city.toLowerCase().replace(/[^a-z0-9]/g, "")}.local`).toLowerCase();
+      const adminPass = tempPassword();
+      const seed = await seedTenantAdmin(clientId, { name: `Admin ${businessName}`, email: adminEmail, password: adminPass });
+      if (seed.success) {
+        addJobLog(jobId, `🔑 Acceso al PANEL ADMIN de tu web → entra en /login con: email "${adminEmail}" · contraseña "${adminPass}" (cámbiala luego).`);
+      }
       await setJobStatus({ jobId, state: "generating", progress: 25, updatedAt: new Date().toISOString() });
 
       addJobLog(jobId, `⚙️  [1/4] Ejecutando scaffolding sobre la plantilla del boilerplate...`);
