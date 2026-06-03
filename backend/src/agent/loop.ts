@@ -20,7 +20,12 @@ export const PROTECTED_FILES = new Set([
   // Datos reales del cliente inyectados por el scaffold (no regenerar)
   "src/config/business.ts",
   // Estructura y estilos base: romperlos tumba todo el build
-  "src/app/globals.css", "src/app/layout.tsx", "src/app/CookieBanner.tsx",
+  "src/app/globals.css", "src/app/layout.tsx", "src/app/CookieBanner.tsx", "src/app/SiteHeader.tsx",
+  // BACKEND FUNCIONAL (auth, paneles, reservas): si la IA lo toca, lo rompe.
+  "src/auth.ts", "src/auth.config.ts", "src/lib/db.ts",
+  "src/app/login/page.tsx", "src/app/register/page.tsx",
+  "src/app/admin/page.tsx", "src/app/dashboard/page.tsx", "src/app/dashboard/reservar/page.tsx",
+  "src/app/actions/auth.ts", "src/app/actions/booking.ts",
 ]);
 
 // Elimina secuencias de escape ANSI (colores/control) del output de npm/vite:

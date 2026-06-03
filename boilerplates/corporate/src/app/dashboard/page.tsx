@@ -1,227 +1,100 @@
-import { Calendar, CreditCard, User, Download, Plus, Clock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Calendar, Plus, Clock, CheckCircle, AlertTriangle, LogOut, User } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { auth, signOut } from "@/auth";
+import { db } from "@/lib/db";
 
-export default function ClientDashboard() {
-  // Datos simulados (mocked) para el diseño base de la pyme
-  const citas = [
-    {
-      id: "1",
-      serviceName: "Consultoría Inicial",
-      date: "28 de Mayo, 2026",
-      time: "10:30 H",
-      status: "confirmed",
-      price: 49.99,
-    },
-    {
-      id: "2",
-      serviceName: "Seguimiento de Plan",
-      date: "04 de Junio, 2026",
-      time: "16:00 H",
-      status: "pending",
-      price: 29.99,
-    },
-  ];
+export const dynamic = "force-dynamic";
 
-  const facturas = [
-    {
-      id: "INV-2026-001",
-      amount: 49.99,
-      status: "paid",
-      dueDate: "28/05/2026",
-    },
-    {
-      id: "INV-2026-002",
-      amount: 29.99,
-      status: "unpaid",
-      dueDate: "04/06/2026",
-    },
-  ];
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "confirmed":
-      case "paid":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-            <CheckCircle size={12} /> Confirmado
-          </span>
-        );
-      case "pending":
-      case "unpaid":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-            <Clock size={12} /> Pendiente
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-800 dark:bg-rose-900/30 dark:text-rose-400">
-            <AlertTriangle size={12} /> Cancelado
-          </span>
-        );
-    }
-  };
-
-  return (
-    <div className="flex-1 bg-muted/10 py-10">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Encabezado */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Tu Panel de Cliente</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Bienvenido, [NOMBRE_CLIENTE]. Gestiona tus servicios y citas.
-            </p>
-          </div>
-          <div>
-            <Link
-              href="/dashboard/reservar"
-              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 shadow-md transition-all active:scale-95"
-            >
-              <Plus size={16} /> Solicitar Nueva Cita
-            </Link>
-          </div>
-        </div>
-
-        {/* Grid de Contenido Principal */}
-        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-          {/* Columna Izquierda: Citas Activas */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border pb-4 mb-4">
-                <Calendar className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-foreground">Tus Próximas Citas</h2>
-              </div>
-
-              {citas.length > 0 ? (
-                <div className="space-y-4">
-                  {citas.map((cita) => (
-                    <div
-                      key={cita.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/20 border border-border rounded-2xl gap-4 hover:border-primary/20 transition-all"
-                    >
-                      <div>
-                        <h3 className="font-bold text-foreground">{cita.serviceName}</h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {cita.date} a las {cita.time}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between sm:justify-end gap-6">
-                        <span className="text-sm font-bold text-foreground">{cita.price.toFixed(2)}€</span>
-                        {getStatusBadge(cita.status)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  No tienes citas reservadas actualmente.
-                </p>
-              )}
-            </div>
-
-            {/* Sistema de Reservas Rápido Embed */}
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border pb-4 mb-4">
-                <Plus className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-foreground">Reserva de Servicios Rápida</h2>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Selecciona uno de nuestros servicios profesionales recomendados y agenda un hueco directamente.
-              </p>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {["Asesoría Técnica", "Revisión General", "Consulta Estratégica"].map((serv, idx) => (
-                  <button
-                    key={idx}
-                    className="flex items-center justify-between p-4 border border-border hover:border-primary hover:bg-primary/5 rounded-2xl text-left transition-all active:scale-98"
-                  >
-                    <div>
-                      <h4 className="text-sm font-bold text-foreground">{serv}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">Desde 29.99€</p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-primary" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Columna Derecha: Facturas y Perfil */}
-          <div className="space-y-6">
-            {/* Facturas */}
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border pb-4 mb-4">
-                <CreditCard className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-foreground">Tus Facturas (IVA incl.)</h2>
-              </div>
-
-              {facturas.length > 0 ? (
-                <div className="divide-y divide-border">
-                  {facturas.map((fac) => (
-                    <div key={fac.id} className="py-3 first:pt-0 last:pb-0 flex items-center justify-between gap-4">
-                      <div>
-                        <h4 className="text-sm font-bold text-foreground">{fac.id}</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">Vto: {fac.dueDate}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-foreground">{fac.amount.toFixed(2)}€</span>
-                        <button className="p-2 border border-border hover:border-primary rounded-xl text-muted-foreground hover:text-primary transition-all">
-                          <Download size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No hay facturas disponibles.</p>
-              )}
-            </div>
-
-            {/* Datos del Perfil */}
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border pb-4 mb-4">
-                <User className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-foreground">Tu Perfil</h2>
-              </div>
-              <div className="space-y-3 text-sm">
-                <div>
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Nombre</span>
-                  <p className="font-semibold text-foreground">[NOMBRE_CLIENTE]</p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Email de contacto</span>
-                  <p className="font-semibold text-foreground">[EMAIL_CLIENTE]</p>
-                </div>
-                <div>
-                  <span className="text-xs font-bold text-muted-foreground uppercase">Teléfono</span>
-                  <p className="font-semibold text-foreground">[TELEFONO_CLIENTE]</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+function euro(n: number) {
+  return new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n || 0);
 }
 
-// Icono decorativo simple
-function ArrowRight({ className, size = 16 }: { className?: string; size?: number }) {
+function StatusBadge({ status }: { status: string }) {
+  if (status === "confirmed") return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"><CheckCircle size={12} /> Confirmada</span>;
+  if (status === "cancelled") return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800 dark:bg-red-900/30 dark:text-red-400"><AlertTriangle size={12} /> Cancelada</span>;
+  return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"><Clock size={12} /> Pendiente</span>;
+}
+
+export default async function ClientDashboard() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  // El admin tiene su propia consola.
+  if (session.user.role === "admin") redirect("/admin");
+
+  const userId = session.user.id;
+  const [citas, facturas] = await Promise.all([
+    db.appointment.findMany({ where: { userId }, orderBy: { date: "desc" }, take: 20 }),
+    db.invoice.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 20 }),
+  ]);
+
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
+    <div className="flex-1 bg-muted/10 py-8 sm:py-10">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10"><User className="h-5 w-5 text-primary" /></div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Hola, {session.user.name || "cliente"}</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">Gestiona tus citas y facturas.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link href="/dashboard/reservar" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md hover:bg-primary/90 transition-all active:scale-95">
+              <Plus size={16} /> Reservar cita
+            </Link>
+            <form action={async () => { "use server"; await signOut({ redirectTo: "/" }); }}>
+              <button className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2.5 text-sm font-semibold hover:bg-muted transition-colors"><LogOut size={16} /></button>
+            </form>
+          </div>
+        </div>
+
+        {/* Citas */}
+        <section className="mt-8">
+          <h2 className="flex items-center gap-2 font-bold"><Calendar size={18} className="text-primary" /> Mis citas</h2>
+          <div className="mt-4 space-y-3">
+            {citas.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center">
+                <p className="text-sm text-muted-foreground">Todavía no tienes citas. ¡Reserva la primera!</p>
+                <Link href="/dashboard/reservar" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"><Plus size={16} /> Reservar cita</Link>
+              </div>
+            ) : citas.map((c) => (
+              <div key={c.id} className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold">{c.serviceName}</p>
+                  <p className="text-sm text-muted-foreground">{new Date(c.date).toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" })}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold">{euro(c.price)}</span>
+                  <StatusBadge status={c.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Facturas */}
+        {facturas.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-bold">Mis facturas</h2>
+            <div className="mt-4 space-y-3">
+              {facturas.map((f) => (
+                <div key={f.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+                  <div>
+                    <p className="font-semibold">{f.invoiceNumber}</p>
+                    <p className="text-sm text-muted-foreground">Vence: {new Date(f.dueDate).toLocaleDateString("es-ES")}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold">{euro(f.amount)}</span>
+                    <StatusBadge status={f.status} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
   );
 }

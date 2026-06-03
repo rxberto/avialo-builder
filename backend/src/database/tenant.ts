@@ -107,7 +107,9 @@ export async function migrateTenantSchema(clientId: string): Promise<{ success: 
       return { success: true, schemaName };
     }
     console.log(`🛠️  Migrando tablas en el esquema "${schemaName}"...`);
-    await client.query(`SET search_path TO "${schemaName}";\n${TENANT_DDL}`);
+    // Transacción explícita: con pgbouncer (transaction pooling) garantiza que el SET y todo
+    // el DDL se ejecutan en la MISMA conexión de servidor, y aporta atomicidad (todo o nada).
+    await client.query(`BEGIN;\nSET search_path TO "${schemaName}";\n${TENANT_DDL}\nCOMMIT;`);
     console.log(`✅ Tablas creadas en "${schemaName}".`);
     return { success: true, schemaName };
   } catch (error: any) {
