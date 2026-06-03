@@ -7,14 +7,20 @@ import { JobCostTracker } from "./cost.js";
 import { recordJobUsage } from "./usageLog.js";
 import { renderSectorDirectives } from "../prompts/sectorProfiles.js";
 
-// Ficheros de configuración que el boilerplate ya trae funcionando. La IA tiende a
-// regenerarlos truncados/rotos (p.ej. next.config.mjs incompleto -> el build ni arranca),
-// así que si ya existen, IGNORAMOS la versión de la IA y conservamos la del boilerplate.
-const PROTECTED_CONFIG = new Set([
+// Ficheros que la IA NO debe tocar: el boilerplate ya trae una base de Next.js que compila,
+// y los datos del cliente los inyecta el scaffold. La IA rompe estos archivos una y otra vez
+// (config truncada, globals.css inválido, layout roto, business.ts machacado) impidiendo que
+// el build converja. Los ignoramos SIEMPRE y conservamos los del boilerplate/scaffold.
+const PROTECTED_FILES = new Set([
+  // Configuración del proyecto
   "next.config.mjs", "next.config.js", "next.config.ts",
   "package.json", "package-lock.json",
   "tsconfig.json", "postcss.config.js", "postcss.config.mjs",
   "tailwind.config.ts", "tailwind.config.js",
+  // Datos reales del cliente inyectados por el scaffold (no regenerar)
+  "src/config/business.ts",
+  // Estructura y estilos base: romperlos tumba todo el build
+  "src/app/globals.css", "src/app/layout.tsx", "src/app/CookieBanner.tsx",
 ]);
 
 // Elimina secuencias de escape ANSI (colores/control) del output de npm/vite:
@@ -96,18 +102,33 @@ export async function runAutocorrectionLoop(
   Ya hemos inyectado automáticamente el archivo 'src/config/business.ts' que exporta \`businessConfig\`. Este archivo contiene todos los datos reales y de facturación del cliente (como su CIF/NIF, teléfono y dirección exactos recabados durante el checkout).
   Por favor, IMPORTA y UTILIZA siempre los datos de \`src/config/business.ts\` (ej. import { businessConfig } from '@/config/business') en el Footer, el Aviso Legal y las páginas de Contacto en lugar de inventar números de teléfono o direcciones aleatorias.
 
-  ⛔ NO MODIFIQUES NI DEVUELVAS ARCHIVOS DE CONFIGURACIÓN: el proyecto ya viene con Next.js 14 + TypeScript + Tailwind CONFIGURADOS Y FUNCIONANDO. NO incluyas en tu respuesta 'next.config.mjs', 'package.json', 'package-lock.json', 'tsconfig.json', 'postcss.config.js' ni 'tailwind.config.ts' (serán ignorados). Usa solo las dependencias ya instaladas. Limítate a archivos de contenido y UI dentro de 'src/app/' y 'src/components/'.
-  📦 FORMATO: devuelve el código de cada archivo EN CRUDO justo tras su cabecera, SIN vallas de markdown (nada de \`\`\` ni \`\`\`tsx) y SIN texto extra antes o después.
+  El proyecto YA es un Next.js 14 + TypeScript + Tailwind COMPLETO y que COMPILA (layout, estilos,
+  banner de cookies, login/panel y configuración ya funcionan). Tu trabajo es SOLO personalizar el
+  contenido visible de la página de inicio. Cuantos menos archivos toques, mejor.
 
-  TAREA:
-  1. Personaliza la página de inicio (Hero con título e imagen ilustrativa, servicios específicos de su sector, sección de testimonios comerciales).
-  2. Ajusta el aviso legal, aviso de cookies y sitemaps para consumir el CIF de 'src/config/business.ts'.
-  3. Si es de tipo corporativa con Next.js, escribe archivos TSX/CSS necesarios bajo la carpeta 'src/app/' para darle un estilo modernizado y premium.
-  4. Si es de tipo ecommerce, edita el storefront para amoldar la paleta de colores.
-  
-  Devuelve la lista completa de archivos a modificar utilizando obligatoriamente la cabecera:
-  [ARCHIVO: ruta/relativa/archivo]
-  <código completo>
+  ⛔ PROHIBIDO devolver estos archivos (se ignorarán y solo gastan tiempo): cualquier archivo de
+  configuración (next.config.*, package.json, tsconfig.json, postcss.config.*, tailwind.config.*),
+  'src/config/business.ts', 'src/app/globals.css', 'src/app/layout.tsx' y 'src/app/CookieBanner.tsx'.
+  No crees páginas legales nuevas ni toques login/admin/dashboard.
+
+  ✅ TAREA (haz SOLO esto):
+  1. Reescribe 'src/app/page.tsx' (la home) con un diseño premium para el sector: Hero con titular y
+     subtítulo potentes, sección de servicios propios del sector, y una sección de testimonios.
+  2. Si necesitas trocear en componentes, créalos en 'src/components/' (TSX válido) e impórtalos en
+     page.tsx con el alias '@/components/...'. Importa SOLO componentes que tú mismo crees en esta
+     respuesta (no referencies componentes inexistentes).
+  3. Usa los datos reales con: import { businessConfig } from '@/config/business'. NO inventes datos.
+  4. Aplica el color de marca con clases Tailwind o estilos inline (NO edites globals.css).
+
+  REGLAS DE FORMATO ESTRICTAS:
+  - TypeScript/TSX válido y COMPLETO por archivo (todas las llaves/etiquetas cerradas).
+  - Usa SOLO dependencias ya instaladas (React, next, tailwind, lucide-react).
+  - Devuelve el código EN CRUDO tras la cabecera, SIN vallas markdown (nada de \`\`\`), SIN encabezados
+    (#, ##), SIN negritas (**) y SIN texto antes o después del código.
+
+  Formato de cada archivo (obligatorio):
+  [ARCHIVO: src/app/page.tsx]
+  <código completo del archivo>
   `;
 
   while (attempts < maxAttempts) {
@@ -168,11 +189,11 @@ export async function runAutocorrectionLoop(
       const writtenChanges: FileChange[] = [];
       for (const change of fileChanges) {
         const rel = change.relativePath.replace(/^\.?\//, "");
-        // Bloquear SIEMPRE los ficheros de config: el boilerplate trae los válidos. Si la IA
-        // crea uno nuevo (p.ej. next.config.js junto al next.config.mjs del boilerplate),
-        // Next usaría el de la IA -> sin output:standalone -> no se genera server.js -> crash.
-        if (PROTECTED_CONFIG.has(rel)) {
-          addJobLog(jobId, `   ⏭️  Config protegida del boilerplate (ignoro la versión de la IA): ${rel}`);
+        // Bloquear SIEMPRE los ficheros protegidos: el boilerplate/scaffold trae los válidos.
+        // (p.ej. la IA creando next.config.js sin output:standalone, o un globals.css roto,
+        // tumbaba el build en todos los intentos).
+        if (PROTECTED_FILES.has(rel)) {
+          addJobLog(jobId, `   ⏭️  Protegido (ignoro la versión de la IA): ${rel}`);
           continue;
         }
         // No sobrescribir con un archivo vacío (p.ej. si la IA solo devolvió ruido markdown
