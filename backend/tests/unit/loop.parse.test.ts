@@ -25,4 +25,11 @@ body { margin: 0; }
   it("devuelve vacío cuando no hay cabeceras", () => {
     expect(parseFileChanges("texto sin formato")).toHaveLength(0);
   });
+
+  it("limpia ruido markdown (** + valla) que añade DeepSeek en package.json", () => {
+    const out = '[ARCHIVO: package.json]\n**\n```json\n{\n  "name": "gastrorro"\n}\n```\n**';
+    const changes = parseFileChanges(out);
+    expect(changes[0].content).toBe('{\n  "name": "gastrorro"\n}');
+    expect(() => JSON.parse(changes[0].content)).not.toThrow();
+  });
 });

@@ -4,6 +4,29 @@ export interface FileChange {
 }
 
 /**
+ * Limpia el contenido de un archivo del ruido markdown que algunos modelos (sobre todo
+ * DeepSeek) añaden: vallas de código ```lang ... ``` y líneas sueltas de "**"/"__".
+ * Sin esto, un package.json puede acabar con "**" o "```json" dentro -> JSON inválido.
+ */
+export function cleanFileContent(raw: string): string {
+  let content = raw.trim();
+
+  // Quitar líneas que sean solo marcadores markdown (**, __, ---) al principio y al final.
+  content = content.replace(/^(?:[*_-]{1,3}[ \t]*\n)+/, "");
+  content = content.replace(/(?:\n[ \t]*[*_-]{1,3}[ \t]*)+$/, "");
+  content = content.trim();
+
+  // Si todo el contenido está envuelto en una valla de código, extraer el interior.
+  const fenced = content.match(/^```[a-zA-Z0-9_-]*[ \t]*\n([\s\S]*?)\n?```[ \t]*$/);
+  if (fenced) return fenced[1].trim();
+
+  // Vallas de apertura/cierre sueltas (sin la pareja detectable).
+  content = content.replace(/^```[a-zA-Z0-9_-]*[ \t]*\n/, "").replace(/\n?```[ \t]*$/, "");
+
+  return content.trim();
+}
+
+/**
  * Parsea el output de texto del LLM para extraer los bloques de archivos estructurados.
  * Formato esperado del LLM: [ARCHIVO: ruta/al/archivo.ts] seguido del código completo.
  *
@@ -38,12 +61,7 @@ export function parseFileChanges(llmOutput: string): FileChange[] {
     const start = current.index + headerOffset;
     const end = next ? next.index : llmOutput.length;
 
-    let content = llmOutput.substring(start, end).trim();
-
-    // Limpieza de bloques de código de markdown opcionales que el LLM inyecte por error
-    if (content.startsWith("```")) {
-      content = content.replace(/^```[a-zA-Z0-9-]*\n/, "").replace(/\n```$/, "");
-    }
+    const content = cleanFileContent(llmOutput.substring(start, end));
 
     changes.push({
       relativePath: current.relativePath,
