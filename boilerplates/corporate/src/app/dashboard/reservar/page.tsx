@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Calendar, Clock, CreditCard, ChevronLeft, ShieldCheck, Check } from "lucide-react";
 import Link from "next/link";
 import { createAppointment } from "@/app/actions/booking";
+import { businessConfig } from "@/config/business";
 
-const SERVICIOS = [
-  { name: "Consultoría Inicial", price: 49.99, duration: "45 min" },
-  { name: "Seguimiento de Plan", price: 29.99, duration: "30 min" },
-  { name: "Plan Estratégico Integral", price: 129.99, duration: "90 min" },
-];
+// Servicios reservables del negocio (inyectados por el scaffold según el sector).
+const SERVICIOS = (businessConfig.services && businessConfig.services.length > 0)
+  ? businessConfig.services
+  : [{ name: "Consulta inicial", price: 0, duration: "30 min" }];
 
 const HUECOS = ["09:00", "10:30", "12:00", "16:00", "17:30"];
 

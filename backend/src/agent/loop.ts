@@ -134,7 +134,9 @@ export async function runAutocorrectionLoop(
   4. Si troceas en componentes, créalos en 'src/components/' (TSX válido) e impórtalos con '@/components/...'.
      Importa SOLO componentes que crees en esta misma respuesta (no referencies inexistentes).
   5. Datos reales: import { businessConfig } from '@/config/business' (businessConfig.name, .sector,
-     .contact.phone/email/address). NO inventes datos.
+     .contact.phone/email/address, y businessConfig.services -> lista {name, price, duration} reservables
+     del negocio: úsalos en la sección de servicios para que coincidan con el sistema de reservas).
+     NO inventes datos.
 
   REGLAS DE FORMATO ESTRICTAS:
   - TypeScript/TSX válido y COMPLETO por archivo (todas las llaves/etiquetas cerradas).

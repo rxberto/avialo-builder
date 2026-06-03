@@ -174,7 +174,7 @@ const SECTOR_IMAGES: { keywords: string[]; images: string[] }[] = [
   { keywords: ["clinica", "salud", "dental", "dentista", "medic", "fisio", "psicolog", "veterinari"], images: [U("1576091160550-2173dba999ef"), U("1631217868264-e5b90bb7e133"), U("1612349317150-e413f6a5b16d")] },
   { keywords: ["fontaner", "electric", "taller", "mecanic", "reform", "construc", "obra", "climatiz", "cerrajer"], images: [U("1581578731548-c64695cc6952"), U("1504148455328-c376907d081c"), U("1521791136064-7986c2920216")] },
   { keywords: ["peluquer", "estetic", "belleza", "spa", "barber", "uñas", "manicura"], images: [U("1560066984-138dadb4c035"), U("1521590832167-7bcbfaa6381f"), U("1487412947147-5cebf100ffc2")] },
-  { keywords: ["academia", "formacion", "escuela", "educa", "clases", "autoescuela", "coaching"], images: [U("1523050854058-8df90110c9f1"), U("1503676260728-1c00da094a0b"), U("1513258496099-48168024aec0")] },
+  { keywords: ["academia", "formacion", "escuela", "educa", "clases", "autoescuela", "coaching"], images: [U("1509062522246-3755977927d7"), U("1503676260728-1c00da094a0b"), U("1513258496099-48168024aec0")] },
   { keywords: ["tienda", "comercio", "boutique", "ecommerce", "shop", "moda", "ferreteria"], images: [U("1441986300917-64674bd600d8"), U("1472851294608-062f824d29cc"), U("1483985988355-763728e1935b")] },
   { keywords: ["asesor", "gestor", "abogad", "legal", "consultor", "fiscal", "contab"], images: [U("1521791136064-7986c2920216"), U("1454165804606-c3d57bc86b40"), U("1556761175-5973dc0f32e7")] },
   { keywords: ["inmobiliar", "inmuebl", "piso", "vivienda", "real estate"], images: [U("1560518883-ce09059eeffa"), U("1568605114967-8130f3a36994"), U("1570129477492-45c003edd2be")] },

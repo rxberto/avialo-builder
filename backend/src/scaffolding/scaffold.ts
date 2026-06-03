@@ -13,6 +13,38 @@ export interface ScaffoldData {
   fullClientData?: Record<string, any>;
 }
 
+// Servicios reservables por sector (alimentan el formulario de reservas del cliente).
+const SECTOR_SERVICES: { keywords: string[]; services: { name: string; price: number; duration: string }[] }[] = [
+  { keywords: ["restaurante", "bar", "cafeteria", "hosteler", "comida", "gastro", "pizzeria"], services: [
+    { name: "Reserva de mesa", price: 0, duration: "Indica comensales" }, { name: "Mesa terraza", price: 0, duration: "Sujeto a clima" }, { name: "Evento privado", price: 0, duration: "Te llamamos" } ] },
+  { keywords: ["clinica", "salud", "dental", "dentista", "medic", "fisio", "psicolog", "veterinari"], services: [
+    { name: "Primera consulta", price: 40, duration: "45 min" }, { name: "Revisión", price: 30, duration: "30 min" }, { name: "Tratamiento", price: 60, duration: "60 min" } ] },
+  { keywords: ["fontaner", "electric", "taller", "mecanic", "reform", "construc", "obra", "climatiz", "cerrajer"], services: [
+    { name: "Presupuesto sin compromiso", price: 0, duration: "30 min" }, { name: "Diagnóstico técnico", price: 30, duration: "45 min" }, { name: "Reparación", price: 60, duration: "A valorar" } ] },
+  { keywords: ["peluquer", "estetic", "belleza", "spa", "barber", "uñas", "manicura"], services: [
+    { name: "Corte", price: 15, duration: "30 min" }, { name: "Corte + peinado", price: 25, duration: "45 min" }, { name: "Color", price: 45, duration: "90 min" } ] },
+  { keywords: ["academia", "formacion", "escuela", "educa", "clases", "autoescuela", "coaching"], services: [
+    { name: "Clase de prueba", price: 0, duration: "60 min" }, { name: "Sesión individual", price: 25, duration: "60 min" }, { name: "Asesoramiento", price: 0, duration: "30 min" } ] },
+  { keywords: ["gimnasio", "fitness", "deport", "crossfit", "yoga", "pilates"], services: [
+    { name: "Clase de prueba gratis", price: 0, duration: "60 min" }, { name: "Sesión con entrenador", price: 35, duration: "60 min" }, { name: "Valoración física", price: 0, duration: "30 min" } ] },
+  { keywords: ["asesor", "gestor", "abogad", "legal", "consultor", "fiscal", "contab"], services: [
+    { name: "Primera consulta", price: 0, duration: "30 min" }, { name: "Asesoría", price: 50, duration: "60 min" }, { name: "Gestión completa", price: 90, duration: "A valorar" } ] },
+  { keywords: ["inmobiliar", "inmuebl", "piso", "vivienda", "real estate"], services: [
+    { name: "Valoración gratuita", price: 0, duration: "45 min" }, { name: "Visita de inmueble", price: 0, duration: "30 min" }, { name: "Asesoría de compra/venta", price: 0, duration: "Te llamamos" } ] },
+];
+
+function servicesForSector(sector: string): { name: string; price: number; duration: string }[] {
+  const n = (sector || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  for (const { keywords, services } of SECTOR_SERVICES) {
+    if (keywords.some((k) => n.includes(k))) return services;
+  }
+  return [
+    { name: "Consulta inicial", price: 0, duration: "30 min" },
+    { name: "Servicio estándar", price: 40, duration: "60 min" },
+    { name: "Servicio premium", price: 80, duration: "90 min" },
+  ];
+}
+
 // ── Crea la carpeta base del proyecto (Fallback)
 async function createProjectStructure(clienteId: string, tipo: string) {
   const base = sandboxPath(clienteId);
@@ -170,7 +202,8 @@ export const businessConfig = {
   },
   theme: {
     primaryColor: ${JSON.stringify(primaryColor)}
-  }
+  },
+  services: ${JSON.stringify(servicesForSector(sector))}
 };
 `;
       await writeFile(path.join(configDir, "business.ts"), businessTS);

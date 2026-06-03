@@ -18,4 +18,9 @@ export const businessConfig = {
   theme: {
     primaryColor: "#2563eb",
   },
+  services: [
+    { name: "Consulta inicial", price: 0, duration: "30 min" },
+    { name: "Servicio estándar", price: 40, duration: "60 min" },
+    { name: "Servicio premium", price: 80, duration: "90 min" },
+  ],
 };
