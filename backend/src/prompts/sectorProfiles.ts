@@ -166,17 +166,42 @@ export function getSectorProfile(sector: string | undefined | null): SectorProfi
   return DEFAULT_PROFILE;
 }
 
+// Banco de imágenes (Unsplash CDN, URLs estables) por palabra clave de sector. Se inyectan en
+// el prompt para que la home SIEMPRE tenga fotos reales y acordes, sin pedirlas al usuario.
+const U = (id: string) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1600&q=80`;
+const SECTOR_IMAGES: { keywords: string[]; images: string[] }[] = [
+  { keywords: ["restaurante", "bar", "cafeteria", "hosteler", "comida", "gastro", "pizzeria"], images: [U("1517248135467-4c7edcad34c4"), U("1414235077428-338989a2e8c0"), U("1555396273-367ea4eb4db5")] },
+  { keywords: ["clinica", "salud", "dental", "dentista", "medic", "fisio", "psicolog", "veterinari"], images: [U("1576091160550-2173dba999ef"), U("1631217868264-e5b90bb7e133"), U("1612349317150-e413f6a5b16d")] },
+  { keywords: ["fontaner", "electric", "taller", "mecanic", "reform", "construc", "obra", "climatiz", "cerrajer"], images: [U("1581578731548-c64695cc6952"), U("1504148455328-c376907d081c"), U("1521791136064-7986c2920216")] },
+  { keywords: ["peluquer", "estetic", "belleza", "spa", "barber", "uñas", "manicura"], images: [U("1560066984-138dadb4c035"), U("1521590832167-7bcbfaa6381f"), U("1487412947147-5cebf100ffc2")] },
+  { keywords: ["academia", "formacion", "escuela", "educa", "clases", "autoescuela", "coaching"], images: [U("1523050854058-8df90110c9f1"), U("1503676260728-1c00da094a0b"), U("1513258496099-48168024aec0")] },
+  { keywords: ["tienda", "comercio", "boutique", "ecommerce", "shop", "moda", "ferreteria"], images: [U("1441986300917-64674bd600d8"), U("1472851294608-062f824d29cc"), U("1483985988355-763728e1935b")] },
+  { keywords: ["asesor", "gestor", "abogad", "legal", "consultor", "fiscal", "contab"], images: [U("1521791136064-7986c2920216"), U("1454165804606-c3d57bc86b40"), U("1556761175-5973dc0f32e7")] },
+  { keywords: ["inmobiliar", "inmuebl", "piso", "vivienda", "real estate"], images: [U("1560518883-ce09059eeffa"), U("1568605114967-8130f3a36994"), U("1570129477492-45c003edd2be")] },
+  { keywords: ["gimnasio", "fitness", "deport", "crossfit", "yoga", "pilates"], images: [U("1534438327276-14e5300c3a48"), U("1571019613454-1cb2f99b2d8b"), U("1517836357463-d25dfeac3438")] },
+];
+const DEFAULT_IMAGES = [U("1497366216548-37526070297c"), U("1486406146926-c627a92ad1ab"), U("1600880292203-757bb62b4baf")];
+
+export function getSectorImages(sector: string | undefined | null): string[] {
+  const n = (sector || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  for (const { keywords, images } of SECTOR_IMAGES) {
+    if (keywords.some((k) => n.includes(k))) return images;
+  }
+  return DEFAULT_IMAGES;
+}
+
 /**
  * Renderiza el perfil como bloque de directrices para inyectar en el prompt de la IA.
  */
 export function renderSectorDirectives(sector: string | undefined | null, brandColor?: string): string {
   const p = getSectorProfile(sector);
+  const imgs = getSectorImages(sector);
   return `
 DIRECTRICES DE DISEÑO PARA EL SECTOR "${p.label}" (el cliente no es diseñador: aplica estas buenas prácticas):
-- Paleta: ${p.palette}${brandColor ? ` Color de marca del cliente: ${brandColor} (úsalo como color primario/acento).` : ""}
+- Paleta: usa el color de marca con las clases Tailwind del tema (bg-primary, text-primary, border-primary, ring-primary): YA está configurado con el color del cliente${brandColor ? ` (${brandColor})` : ""}. Complementa con ${p.palette}
 - Estilo visual: ${p.style}
 - Secciones recomendadas en la home (en este orden): ${p.sections.join(" → ")}.
-- Imágenes: ${p.imagery}
+- IMÁGENES REALES (úsalas con <img>, NO next/image): hero -> ${imgs[0]} ; secciones -> ${imgs[1]}${imgs[2] ? `, ${imgs[2]}` : ""}. Pon object-cover y alt descriptivo. ${p.imagery}
 - Tono del texto: ${p.tone}
 - Llamada a la acción principal (debe ser muy visible y repetirse): "${p.primaryCta}".
 Prioriza una primera impresión profesional y orientada a la conversión propia de este sector.`.trim();

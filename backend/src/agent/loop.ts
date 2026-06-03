@@ -119,16 +119,22 @@ export async function runAutocorrectionLoop(
   NO añadas tu propio header, navbar ni footer en page.tsx: el layout ya los pone (saldrían duplicados).
 
   ✅ TAREA (haz SOLO esto):
-  1. Reescribe 'src/app/page.tsx' (la home) con un diseño premium y TOTALMENTE RESPONSIVE (mobile-first:
-     usa clases como px-4 sm:px-6, text-3xl sm:text-5xl, grid-cols-1 md:grid-cols-3, etc.). Incluye:
-     Hero con titular y subtítulo potentes + CTA, sección de servicios del sector, y testimonios.
-     NO repitas el header ni el footer (ya están en el layout); empieza directamente por el <section> del hero.
-  2. Si necesitas trocear en componentes, créalos en 'src/components/' (TSX válido) e impórtalos en
-     page.tsx con el alias '@/components/...'. Importa SOLO componentes que tú mismo crees en esta
-     respuesta (no referencies componentes inexistentes).
-  3. Usa los datos reales con: import { businessConfig } from '@/config/business'. NO inventes datos
-     (nombre: businessConfig.name, teléfono/email/dirección en businessConfig.contact).
-  4. Aplica el color de marca con clases Tailwind o estilos inline (NO edites globals.css).
+  1. Reescribe 'src/app/page.tsx' (la home) con un diseño PREMIUM tipo Lovable/v0 y TOTALMENTE RESPONSIVE
+     (mobile-first: px-4 sm:px-6 lg:px-8, text-3xl sm:text-5xl lg:text-6xl, grid-cols-1 md:grid-cols-3...).
+     Calidad alta: mucho espacio en blanco, jerarquía tipográfica fuerte, tarjetas con rounded-2xl y
+     shadow, gradientes sutiles, badges, iconos de lucide-react, secciones bien separadas (py-16 sm:py-24).
+     Incluye en este orden: HERO impactante (con FOTO de fondo o lateral usando las imágenes reales de
+     las directrices, titular + subtítulo + 2 CTAs), franja de confianza/estadísticas, SERVICIOS del
+     sector (grid de tarjetas con icono), una sección con imagen + texto, TESTIMONIOS, y CTA final.
+     NO repitas header ni footer (ya están en el layout); empieza por el <section> del hero.
+  2. Usa las IMÁGENES REALES indicadas en las directrices con <img ... className="object-cover" /> (NO
+     next/image). Toda imagen con alt descriptivo. Nada de placeholders grises ni "[imagen]".
+  3. Color de marca: usa las clases del tema (bg-primary, text-primary, hover:bg-primary/90,
+     border-primary, from-primary...) — YA están con el color del cliente. NO edites globals.css.
+  4. Si troceas en componentes, créalos en 'src/components/' (TSX válido) e impórtalos con '@/components/...'.
+     Importa SOLO componentes que crees en esta misma respuesta (no referencies inexistentes).
+  5. Datos reales: import { businessConfig } from '@/config/business' (businessConfig.name, .sector,
+     .contact.phone/email/address). NO inventes datos.
 
   REGLAS DE FORMATO ESTRICTAS:
   - TypeScript/TSX válido y COMPLETO por archivo (todas las llaves/etiquetas cerradas).
