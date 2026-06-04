@@ -109,7 +109,7 @@ export default function ReservarCitaPage() {
                     <h4 className="font-bold text-foreground text-sm">{serv.name}</h4>
                     <p className="text-xs text-muted-foreground mt-0.5">Duración estimada: {serv.duration}</p>
                   </div>
-                  <span className="font-extrabold text-foreground">{serv.price.toFixed(2)}€</span>
+                  <span className="font-extrabold text-foreground">{serv.price > 0 ? `${serv.price.toFixed(2)}€` : "Gratis"}</span>
                 </div>
               ))}
             </div>

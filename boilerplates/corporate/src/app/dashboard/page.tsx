@@ -66,7 +66,7 @@ export default async function ClientDashboard() {
                   <p className="text-sm text-muted-foreground">{new Date(c.date).toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" })}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold">{euro(c.price)}</span>
+                  <span className="text-sm font-semibold">{c.price > 0 ? euro(c.price) : "Gratis"}</span>
                   <StatusBadge status={c.status} />
                 </div>
               </div>

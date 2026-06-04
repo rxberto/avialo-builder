@@ -129,6 +129,8 @@ export async function runAutocorrectionLoop(
      NO repitas header ni footer (ya están en el layout); empieza por el <section> del hero.
   2. Usa las IMÁGENES REALES indicadas en las directrices con <img ... className="object-cover" /> (NO
      next/image). Toda imagen con alt descriptivo. Nada de placeholders grises ni "[imagen]".
+     RENDIMIENTO: la imagen del hero con fetchPriority="high"; el RESTO de imágenes con loading="lazy"
+     y decoding="async". No repitas la misma foto en todas las secciones.
   3. Color de marca: usa las clases del tema (bg-primary, text-primary, hover:bg-primary/90,
      border-primary, from-primary...) — YA están con el color del cliente. NO edites globals.css.
   4. Si troceas en componentes, créalos en 'src/components/' (TSX válido) e impórtalos con '@/components/...'.

@@ -90,7 +90,7 @@ export default async function AdminDashboard() {
                       </td>
                       <td className="px-5 py-3">{a.serviceName}</td>
                       <td className="px-5 py-3 whitespace-nowrap">{new Date(a.date).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</td>
-                      <td className="px-5 py-3 whitespace-nowrap">{euro(a.price)}</td>
+                      <td className="px-5 py-3 whitespace-nowrap">{a.price > 0 ? euro(a.price) : "Gratis"}</td>
                       <td className="px-5 py-3">
                         <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">{STATUS_ES[a.status] || a.status}</span>
                       </td>
