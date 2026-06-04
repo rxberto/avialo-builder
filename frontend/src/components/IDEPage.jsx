@@ -7,9 +7,10 @@ import {
   Code, FileCode, Folder, Loader2, FileText,
   ChevronDown, ChevronUp, Sun, Moon, Zap, X,
   Settings2, Monitor, Smartphone, Tablet, Lock,
-  Copy, Activity, Server, Clock, CheckCheck, Search
+  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus
 } from 'lucide-react';
-import { getSandboxFiles, getSandboxFileContent, editJob, getJob } from '../lib/api';
+import { getSandboxFiles, getSandboxFileContent, editJob, getJob, uploadJobImage } from '../lib/api';
+import { downscaleImage } from '../lib/image';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
@@ -234,6 +235,9 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
   /* Chat */
   const [promptText, setPromptText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [attachedImages, setAttachedImages] = useState([]); // [{ dataUrl, name }]
+  const [attachError, setAttachError] = useState('');
+  const imageInputRef = useRef(null);
   const [chatMessages, setChatMessages] = useState([{
     id: 'welcome',
     sender: 'ai',
@@ -310,16 +314,40 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     setTimeout(doReload, 5000);
   };
 
+  /* Adjuntar imágenes al chat (se reducen en el cliente antes de subir) */
+  const handleAttach = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+    setAttachError('');
+    const room = 6 - attachedImages.length;
+    if (room <= 0) { setAttachError('Máximo 6 imágenes por mensaje.'); return; }
+    try {
+      const added = [];
+      for (const file of files.slice(0, room)) {
+        const dataUrl = await downscaleImage(file);
+        added.push({ dataUrl, name: file.name });
+      }
+      setAttachedImages(prev => [...prev, ...added]);
+    } catch (err) {
+      setAttachError(err.message || 'No se pudo cargar la imagen.');
+    }
+  };
+
   const handleSend = async (e) => {
     e?.preventDefault();
-    if (!promptText.trim() || isSending) return;
     const text = promptText.trim();
+    const imagesToUpload = attachedImages;
+    if ((!text && imagesToUpload.length === 0) || isSending) return;
     setPromptText('');
+    setAttachedImages([]);
+    setAttachError('');
     setIsSending(true);
     const aiId = `ai-${Date.now()}`;
 
+    const displayText = text || `He subido ${imagesToUpload.length} imagen(es) para la web.`;
     setChatMessages(prev => [...prev,
-      { id: `u-${Date.now()}`, sender: 'user', text, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
+      { id: `u-${Date.now()}`, sender: 'user', text: imagesToUpload.length ? `${displayText}  📎 ${imagesToUpload.length} imagen(es)` : displayText, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
       { id: aiId, sender: 'ai', text: 'Analizando tu proyecto y aplicando los cambios…', isGenerating: true, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) },
     ]);
     setShowTerminal(true);
@@ -336,7 +364,21 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     };
 
     try {
-      await editJob(jobId, text);
+      // Subir primero las imágenes adjuntas y construir el prompt con sus rutas públicas.
+      let finalPrompt = text;
+      if (imagesToUpload.length) {
+        const urls = [];
+        for (const img of imagesToUpload) {
+          const { url } = await uploadJobImage(jobId, img.dataUrl);
+          urls.push(url);
+        }
+        const imgInstruction = `He subido estas imágenes (rutas públicas ya disponibles en la web; úsalas con <img src="RUTA" className="object-cover" /> y alt descriptivo): ${urls.join(', ')}.`;
+        finalPrompt = text
+          ? `${imgInstruction}\n\nInstrucción: ${text}`
+          : `${imgInstruction} Colócalas de forma destacada donde mejor encajen (hero, galería o secciones), sustituyendo imágenes genéricas si procede.`;
+      }
+
+      await editJob(jobId, finalPrompt);
 
       // Sondeo propio del estado del job hasta que termine (robusto, no depende del SSE).
       // El endpoint de edición pone el estado en 'generating' de forma síncrona antes de
@@ -944,27 +986,64 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                 </div>
               )}
 
+              {/* Miniaturas de imágenes adjuntas */}
+              {attachedImages.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {attachedImages.map((img, i) => (
+                    <div key={i} className="relative group w-12 h-12 rounded-lg overflow-hidden border border-border">
+                      <img src={img.dataUrl} alt={img.name} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setAttachedImages(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Quitar"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {attachError && <p className="text-[10px] text-red-500 font-semibold mb-1.5">{attachError}</p>}
+
               <form onSubmit={handleSend} className="relative">
                 <Textarea
-                  className="w-full min-h-[52px] max-h-[140px] text-[13px] py-3 px-4 pr-12 rounded-2xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500/60 focus-visible:border-violet-500/60 resize-none placeholder:text-muted-foreground/40 leading-relaxed"
+                  className="w-full min-h-[52px] max-h-[140px] text-[13px] py-3 pl-11 pr-12 rounded-2xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500/60 focus-visible:border-violet-500/60 resize-none placeholder:text-muted-foreground/40 leading-relaxed"
                   rows={2}
                   value={promptText}
                   onChange={e => setPromptText(e.target.value)}
                   disabled={isSending || status === 'generating' || status === 'building'}
-                  placeholder={isSending ? 'Compilando cambios…' : 'Describe los cambios que quieres hacer…'}
+                  placeholder={isSending ? 'Compilando cambios…' : 'Describe los cambios o adjunta tus fotos…'}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 />
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  onChange={handleAttach}
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isSending}
+                  title="Adjuntar imágenes de tu negocio"
+                  className="absolute left-2 bottom-2 h-8 w-8 rounded-xl border border-border bg-muted/40 text-muted-foreground hover:text-violet-500 hover:border-violet-500/40 flex items-center justify-center disabled:opacity-30 transition-all cursor-pointer"
+                >
+                  <ImagePlus size={15} />
+                </button>
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={!promptText.trim() || isSending}
+                  disabled={(!promptText.trim() && attachedImages.length === 0) || isSending}
                   className="absolute right-2 bottom-2 h-8 w-8 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm disabled:opacity-30 transition-all cursor-pointer"
                 >
                   {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 </Button>
               </form>
               <p className="text-center text-[9px] text-muted-foreground/40 mt-2">
-                Enter para enviar · Shift+Enter nueva línea
+                Enter para enviar · Shift+Enter nueva línea · 📎 adjunta tus fotos
               </p>
             </div>
           </div>

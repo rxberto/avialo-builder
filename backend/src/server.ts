@@ -14,6 +14,8 @@ import { domainsRouter } from "./routes/domains.js";
 import { emailRouter } from "./routes/email.js";
 import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
+import { saveUserUpload, saveSandboxImage } from "./services/uploads.js";
+import { MAX_PHOTOS_PER_REQUEST } from "./config/uploads.js";
 import { runEditAutocorrectionLoop } from "./agent/editLoop.js";
 import { cleanupUserSite } from "./services/siteCleanup.js";
 import { creditsForPlan, nextCreditsResetDate } from "./config/plans.js";
@@ -515,6 +517,46 @@ app.get("/api/billing/invoices", authenticateToken as any, async (req: AuthReque
   }
 });
 
+// ============================================
+// SUBIDA DE IMÁGENES DEL NEGOCIO — FASE 4
+// ============================================
+
+/**
+ * POST /api/uploads
+ * Recibe las fotos propias del negocio (data URLs base64) durante el onboarding y las
+ * persiste en el almacén del usuario. Devuelve los ids para incluirlos en el onboarding.
+ * Protegido con JWT.
+ */
+app.post("/api/uploads", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  // Aceptamos tanto un array `images` como una sola `image` (data URL base64).
+  const images: unknown[] = Array.isArray(req.body?.images)
+    ? req.body.images
+    : req.body?.image
+      ? [req.body.image]
+      : [];
+
+  if (images.length === 0) {
+    return res.status(400).json({ error: "No se recibió ninguna imagen." });
+  }
+  if (images.length > MAX_PHOTOS_PER_REQUEST) {
+    return res.status(400).json({ error: `Máximo ${MAX_PHOTOS_PER_REQUEST} fotos por subida.` });
+  }
+
+  try {
+    const photos: { id: string }[] = [];
+    for (const img of images) {
+      const saved = await saveUserUpload(req.user.id, img as string);
+      photos.push(saved);
+    }
+    return res.status(201).json({ photos });
+  } catch (error: any) {
+    // Los errores de validación de decodeDataUrlImage llevan un mensaje claro para el usuario.
+    return res.status(400).json({ error: error.message || "No se pudo procesar la imagen." });
+  }
+});
+
 // ENDPOINTS DE TRABAJOS (JOBS) — FASE 2 + 4
 // ============================================
 
@@ -958,6 +1000,33 @@ app.get("/api/jobs/:id/files/content", authenticateToken as any, async (req: Aut
   } catch (error: any) {
     console.error(`❌ Error al leer archivo "${filePath}" del sandbox:`, error);
     return res.status(500).json({ error: `Error al leer archivo "${filePath}".`, details: error.message });
+  }
+});
+
+/**
+ * POST /api/jobs/:id/upload
+ * Sube una imagen al proyecto en vivo del IDE: la escribe en la carpeta pública del sandbox
+ * y devuelve su ruta pública (`/avialo-uploads/<file>`) para que el cliente la mencione en
+ * el siguiente prompt de edición y la IA la use en la web. Protegido con JWT.
+ */
+app.post("/api/jobs/:id/upload", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const jobId = req.params.id;
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  const image = req.body?.image;
+  if (!image) return res.status(400).json({ error: "No se recibió ninguna imagen." });
+
+  try {
+    const { job, status } = await getOwnedJob(jobId, req.user.id);
+    if (!job) return res.status(status).json({ error: `Trabajo con ID "${jobId}" no encontrado.` });
+
+    const clientId = job.data.clientId;
+    if (!clientId) return res.status(400).json({ error: "El trabajo no posee un identificador de cliente válido." });
+
+    const { url } = await saveSandboxImage(clientId, image as string);
+    return res.status(201).json({ url });
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || "No se pudo subir la imagen." });
   }
 });
 

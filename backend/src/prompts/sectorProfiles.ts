@@ -192,16 +192,33 @@ export function getSectorImages(sector: string | undefined | null): string[] {
 
 /**
  * Renderiza el perfil como bloque de directrices para inyectar en el prompt de la IA.
+ *
+ * @param userImages Fotos REALES subidas por el cliente (rutas públicas como
+ *   "/avialo-uploads/x.jpg"). Si las hay, tienen prioridad sobre las de stock por sector;
+ *   las de stock solo rellenan los huecos que falten.
  */
-export function renderSectorDirectives(sector: string | undefined | null, brandColor?: string): string {
+export function renderSectorDirectives(
+  sector: string | undefined | null,
+  brandColor?: string,
+  userImages?: string[]
+): string {
   const p = getSectorProfile(sector);
-  const imgs = getSectorImages(sector);
+  const stock = getSectorImages(sector);
+
+  // Las fotos del propio negocio van primero; completamos con stock hasta tener al menos 3.
+  const own = (userImages || []).filter((u) => typeof u === "string" && u.trim());
+  const imgs = [...own, ...stock].slice(0, Math.max(3, own.length));
+
+  const imageryLine = own.length
+    ? `- IMÁGENES (úsalas con <img>, NO next/image): el cliente ha subido SUS PROPIAS FOTOS reales del negocio — ÚSALAS CON PRIORIDAD y de forma destacada (hero, galería, secciones). Fotos del cliente: ${own.join(", ")}.${imgs.length > own.length ? ` Si necesitas alguna más, completa con: ${imgs.slice(own.length).join(", ")}.` : ""} Pon object-cover y alt descriptivo. No inventes URLs ni uses placeholders.`
+    : `- IMÁGENES REALES (úsalas con <img>, NO next/image): hero -> ${imgs[0]} ; secciones -> ${imgs[1]}${imgs[2] ? `, ${imgs[2]}` : ""}. Pon object-cover y alt descriptivo. ${p.imagery}`;
+
   return `
 DIRECTRICES DE DISEÑO PARA EL SECTOR "${p.label}" (el cliente no es diseñador: aplica estas buenas prácticas):
 - Paleta: usa el color de marca con las clases Tailwind del tema (bg-primary, text-primary, border-primary, ring-primary): YA está configurado con el color del cliente${brandColor ? ` (${brandColor})` : ""}. Complementa con ${p.palette}
 - Estilo visual: ${p.style}
 - Secciones recomendadas en la home (en este orden): ${p.sections.join(" → ")}.
-- IMÁGENES REALES (úsalas con <img>, NO next/image): hero -> ${imgs[0]} ; secciones -> ${imgs[1]}${imgs[2] ? `, ${imgs[2]}` : ""}. Pon object-cover y alt descriptivo. ${p.imagery}
+${imageryLine}
 - Tono del texto: ${p.tone}
 - Llamada a la acción principal (debe ser muy visible y repetirse): "${p.primaryCta}".
 Prioriza una primera impresión profesional y orientada a la conversión propia de este sector.`.trim();

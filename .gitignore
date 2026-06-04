@@ -9,3 +9,8 @@ infra/traefik/acme.json
 
 # Sandboxes generados por la IA
 backend/projects/
+/sandbox/
+
+# Fotos del negocio subidas por los clientes (datos de usuario, nunca versionar)
+/uploads/
+backend/uploads/

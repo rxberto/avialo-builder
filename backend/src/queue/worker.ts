@@ -6,6 +6,7 @@ import { setJobStatus, JobStatus } from "./jobState.js";
 import { scaffoldProject } from "../scaffolding/scaffold.js";
 import { startPreviewContainer, prewarmImages } from "../docker/dockerode.js";
 import { createTenantSchema, migrateTenantSchema, seedTenantAdmin } from "../database/tenant.js";
+import { materializeUserPhotos } from "../services/uploads.js";
 import { runAutocorrectionLoop } from "../agent/loop.js";
 import { prisma } from "../database/client.js";
 import net from "net";
@@ -99,13 +100,29 @@ export const generationWorker = new Worker<GenerationJobData>(
       if (!scaffold.success) {
         throw new Error(scaffold.reason || "Fallo el scaffolding base.");
       }
+
+      // Copiar las fotos propias del negocio (subidas en el onboarding) a la carpeta pública
+      // del proyecto y obtener sus rutas para inyectarlas en el prompt con prioridad.
+      let userImages: string[] = [];
+      const photoIds: string[] = job.data.fullClientData?.businessContext?.photos || [];
+      if (userId && Array.isArray(photoIds) && photoIds.length) {
+        try {
+          userImages = await materializeUserPhotos(userId, clientId, photoIds);
+          if (userImages.length) {
+            addJobLog(jobId, `🖼️  ${userImages.length} foto(s) del negocio añadidas al proyecto.`);
+          }
+        } catch (err: any) {
+          console.error("⚠️ No se pudieron copiar las fotos del cliente:", err);
+        }
+      }
+
       await setJobStatus({ jobId, state: "generating", progress: 40, updatedAt: new Date().toISOString() });
 
       // 2. ESTADO: building -> Invocación real del Agente IA con bucle de autocorrección
       addJobLog(jobId, `⚙️  [2/4] Invocando al agente de IA con bucle de autocorrección...`);
       await setJobStatus({ jobId, state: "building", progress: 40, updatedAt: new Date().toISOString() });
 
-      const agentResult = await runAutocorrectionLoop(jobId, job.data);
+      const agentResult = await runAutocorrectionLoop(jobId, { ...job.data, userImages });
 
       if (!agentResult.success) {
         throw new Error(agentResult.error || "El Agente IA falló tras 5 intentos.");

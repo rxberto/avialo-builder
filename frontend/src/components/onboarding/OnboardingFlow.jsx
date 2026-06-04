@@ -38,6 +38,7 @@ export default function OnboardingFlow({ user, onComplete, onSyncProfile }) {
     email: user?.email || '',
     description: '',
     logoBase64: '',
+    photos: [], // fotos propias del negocio ya subidas: [{ id, preview, name }]
     customDomain: user?.siteDomain || '',
     mainGoal: 'ventas',
     toneOfVoice: 'cercano',
@@ -133,7 +134,9 @@ export default function OnboardingFlow({ user, onComplete, onSyncProfile }) {
           email: datos.email
         },
         description: datos.description || undefined,
-        logoBase64: datos.logoBase64 || undefined
+        logoBase64: datos.logoBase64 || undefined,
+        // Solo enviamos los ids de las fotos ya subidas (no las previews base64).
+        photos: (datos.photos || []).map(p => p.id).filter(Boolean)
       },
       strategy: {
         primaryGoal: datos.mainGoal,

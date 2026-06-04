@@ -79,6 +79,8 @@ services:
       # se montan con la ruta del HOST (SANDBOX_HOST_DIR) porque el daemon vive en el host.
       - SANDBOX_DIR=/app/sandbox
       - SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR}
+      # Almacén de fotos propias del negocio subidas por el cliente (compartido con el worker).
+      - UPLOADS_DIR=/app/uploads
       - PREVIEW_DOMAIN_BASE=${PREVIEW_DOMAIN_BASE}
       - FRONTEND_URL=${FRONTEND_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
@@ -106,6 +108,8 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
+      # Fotos del negocio subidas por los clientes (mismo host dir que el worker).
+      - ../uploads:/app/uploads
       # Boilerplates (Next.js + Tailwind ya configurados) que el scaffold copia por cliente.
       - ../boilerplates:/app/boilerplates:ro
     ports:
@@ -142,6 +146,8 @@ services:
       # encuentre los archivos del proyecto al montar contenedores hijos.
       - SANDBOX_DIR=/app/sandbox
       - SANDBOX_HOST_DIR=${SANDBOX_HOST_DIR}
+      # Almacén de fotos del negocio (mismo host dir que la API, para copiarlas al sandbox).
+      - UPLOADS_DIR=/app/uploads
       # Base de dominio para previews enrutados por Traefik (HTTPS). Vacío = localhost.
       - PREVIEW_DOMAIN_BASE=${PREVIEW_DOMAIN_BASE}
       - LITELLM_URL=${LITELLM_URL}
@@ -165,6 +171,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
+      - ../uploads:/app/uploads
       - ../boilerplates:/app/boilerplates:ro
     depends_on:
       - pgbouncer

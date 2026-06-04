@@ -79,6 +79,40 @@ export async function retryJob(jobId) {
 }
 
 /**
+ * Sube las fotos propias del negocio (data URLs base64) durante el onboarding.
+ * Devuelve { photos: [{ id }] } con los ids para incluirlos en el payload de generación.
+ */
+export async function uploadOnboardingImages(images) {
+  const response = await fetch(`${API_BASE}/api/uploads`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ images }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudieron subir las imágenes.');
+  }
+  return response.json();
+}
+
+/**
+ * Sube una imagen al proyecto en vivo del IDE. Devuelve { url } con la ruta pública
+ * (`/avialo-uploads/<file>`) para referenciarla en el siguiente prompt de edición.
+ */
+export async function uploadJobImage(jobId, image) {
+  const response = await fetch(`${API_BASE}/api/jobs/${jobId}/upload`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ image }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo subir la imagen.');
+  }
+  return response.json();
+}
+
+/**
  * Crea una sesión de suscripción Stripe a través del backend.
  * Protegido con JWT.
  */

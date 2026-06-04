@@ -87,8 +87,13 @@ export async function runAutocorrectionLoop(
   addJobLog(jobId, `🧠 Iniciando bucle de generación de IA para pyme "${clientData.businessName}"`);
 
   // Directrices de diseño según el sector (el cliente no es diseñador → defaults sólidos).
-  const sectorDirectives = renderSectorDirectives(clientData.sector, clientData.primaryColor);
+  // Si el cliente subió sus propias fotos (clientData.userImages), tienen prioridad sobre el stock.
+  const userImages: string[] = Array.isArray(clientData.userImages) ? clientData.userImages : [];
+  const sectorDirectives = renderSectorDirectives(clientData.sector, clientData.primaryColor, userImages);
   addJobLog(jobId, `🎨 Aplicando perfil de diseño para sector "${clientData.sector}".`);
+  if (userImages.length) {
+    addJobLog(jobId, `🖼️  Usando ${userImages.length} foto(s) propia(s) del negocio subidas por el cliente.`);
+  }
 
   // Prompt base para guiar al modelo
   let userPrompt = `

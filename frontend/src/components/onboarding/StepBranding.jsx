@@ -1,12 +1,112 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Type, Moon, Sun, Sparkles, CheckCircle2, Wand2, Settings2, Image as ImageIcon, Zap, MousePointerClick } from 'lucide-react';
+import { Type, Moon, Sun, Sparkles, CheckCircle2, Wand2, Settings2, Image as ImageIcon, Zap, MousePointerClick, Upload, Loader2, X, Camera } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { downscaleImage } from "@/lib/image";
+import { uploadOnboardingImages } from "@/lib/api";
+
+const MAX_BUSINESS_PHOTOS = 8;
+
+/**
+ * Subida de fotos propias del negocio. Reemplazan a las imágenes de stock por sector en la
+ * web generada. Las imágenes se reducen en el cliente y se suben al subirlas (guardando el id).
+ */
+function BusinessPhotosUploader({ photos = [], onChange }) {
+  const inputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSelect = async (e) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = ''; // permitir re-seleccionar el mismo archivo
+    if (!files.length) return;
+    setError('');
+
+    const room = MAX_BUSINESS_PHOTOS - photos.length;
+    if (room <= 0) { setError(`Máximo ${MAX_BUSINESS_PHOTOS} fotos.`); return; }
+
+    setUploading(true);
+    try {
+      const processed = [];
+      for (const file of files.slice(0, room)) {
+        const dataUrl = await downscaleImage(file);
+        processed.push({ dataUrl, name: file.name });
+      }
+      const { photos: saved } = await uploadOnboardingImages(processed.map(p => p.dataUrl));
+      const added = saved.map((s, i) => ({ id: s.id, preview: processed[i].dataUrl, name: processed[i].name }));
+      onChange([...photos, ...added]);
+    } catch (err) {
+      setError(err.message || 'No se pudieron subir las fotos.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = (id) => onChange(photos.filter(p => p.id !== id));
+
+  return (
+    <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm max-w-2xl mx-auto w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-bold uppercase tracking-wider text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+          <Camera size={15} /> Fotos de tu negocio <span className="text-[10px] font-medium text-zinc-400 normal-case tracking-normal">(opcional)</span>
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Sube fotos reales (local, equipo, productos…). La IA las usará en tu web con prioridad sobre las imágenes genéricas. Si no subes ninguna, usaremos fotos profesionales de tu sector.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+          {photos.map((p) => (
+            <div key={p.id} className="relative group aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
+              <img src={p.preview} alt={p.name || 'Foto del negocio'} className="w-full h-full object-cover" />
+              <button
+                type="button"
+                onClick={() => removePhoto(p.id)}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
+                title="Eliminar foto"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+
+          {photos.length < MAX_BUSINESS_PHOTOS && (
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+              className="aspect-square rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center gap-1 text-zinc-400 hover:border-brand hover:text-brand transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              {uploading
+                ? <Loader2 size={18} className="animate-spin" />
+                : <Upload size={18} />}
+              <span className="text-[10px] font-semibold">{uploading ? 'Subiendo…' : 'Añadir'}</span>
+            </button>
+          )}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          multiple
+          className="hidden"
+          onChange={handleSelect}
+        />
+
+        {error && <p className="text-[11px] font-semibold text-destructive">{error}</p>}
+        <p className="text-[10px] text-zinc-400">
+          {photos.length}/{MAX_BUSINESS_PHOTOS} fotos · JPG, PNG o WebP · se optimizan automáticamente
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 // ── Design constants ────────────────────────────────────────────────────────
 const TYPOGRAPHIES = [
@@ -142,6 +242,11 @@ export default function StepBranding({ datos = {}, updateData }) {
           </TabsList>
         </Tabs>
       </div>
+
+      <BusinessPhotosUploader
+        photos={datos.photos || []}
+        onChange={(p) => updateData('photos', p)}
+      />
 
       <AnimatePresence mode="wait">
         {isAuto ? (
