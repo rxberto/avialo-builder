@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   Rocket, ShieldCheck, Zap, CheckCircle2,
-  Loader2, CreditCard, Building2, ShoppingBag, Lock, Building, AlertCircle
+  Loader2, CreditCard, Building2, ShoppingBag, Lock, Building, AlertCircle, X, Apple, Smartphone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -524,35 +524,57 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
 
       {/* ── STRIPE EMBEDDED CHECKOUT MODAL OVERLAY ── */}
       {showCheckoutModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 flex flex-col max-h-[90vh] text-left">
-            <div className="p-6 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-800 dark:text-zinc-200">
-                  Pago Seguro en Avialo
-                </h3>
-              </div>
-              <button 
-                onClick={handleCloseCheckoutModal}
-                className="text-xs font-bold text-zinc-450 hover:text-zinc-750 dark:hover:text-zinc-200 transition-colors uppercase tracking-widest"
-              >
-                Cancelar
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto flex-1 bg-zinc-50 dark:bg-zinc-950 min-h-[350px] flex flex-col justify-center">
-              {/* Spinner while loading */}
-              {!checkoutInstance && (
-                <div className="flex flex-col items-center justify-center gap-4 text-center">
-                  <Loader2 className="animate-spin text-indigo-650" size={32} />
-                  <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                    Cargando pasarela de pago segura...
+        <div className="fixed inset-0 z-[100] flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-zinc-900 w-full sm:max-w-xl flex flex-col h-full sm:h-auto sm:max-h-[92vh] sm:rounded-3xl overflow-hidden shadow-2xl sm:border border-zinc-200 dark:border-zinc-800 text-left animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
+            {/* Cabecera con marca Avialo */}
+            <div className="px-5 py-4 sm:px-6 flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black tracking-tight text-zinc-900 dark:text-white leading-none">Pago seguro</h3>
+                  <p className="text-[10px] text-zinc-450 dark:text-zinc-500 mt-1 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cifrado de extremo a extremo · Avialo × Stripe
                   </p>
                 </div>
+              </div>
+              <button
+                onClick={handleCloseCheckoutModal}
+                aria-label="Cerrar"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Resumen del plan */}
+            <div className="px-5 sm:px-6 py-3 flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/40 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <PlanIcon className="w-4 h-4 text-brand" />
+                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{plan.nombre}</span>
+              </div>
+              <span className="text-sm font-black text-zinc-900 dark:text-white">
+                {plan.precio}€ <span className="text-[10px] font-semibold text-zinc-400">/ mes · IVA incl.</span>
+              </span>
+            </div>
+
+            {/* Pasarela empotrada: scroll propio y sin centrar (evita que se "pille" con iframes altos) */}
+            <div className="relative flex-1 overflow-y-auto bg-white dark:bg-zinc-900 px-3 sm:px-5 py-4">
+              {!checkoutInstance && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center bg-white dark:bg-zinc-900">
+                  <Loader2 className="animate-spin text-brand" size={30} />
+                  <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Cargando pasarela segura…</p>
+                </div>
               )}
-              
-              <div id="checkout-container" className={cn("w-full transition-opacity duration-300", checkoutInstance ? "opacity-100" : "opacity-0")} />
+              <div id="checkout-container" className="w-full min-h-[340px]" />
+            </div>
+
+            {/* Pie de confianza */}
+            <div className="px-5 sm:px-6 py-2.5 border-t border-zinc-150 dark:border-zinc-800 flex items-center justify-center gap-3 shrink-0 text-zinc-400">
+              <span className="flex items-center gap-1 text-[10px] font-semibold"><Apple className="w-3 h-3" /> Apple Pay</span>
+              <span className="flex items-center gap-1 text-[10px] font-semibold"><Smartphone className="w-3 h-3" /> Google Pay</span>
+              <span className="flex items-center gap-1 text-[10px] font-semibold"><ShieldCheck className="w-3 h-3 text-emerald-500" /> Stripe</span>
             </div>
           </div>
         </div>

@@ -4,7 +4,8 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   CreditCard, Loader2, CheckCircle2, AlertTriangle, ArrowUp, ArrowDown, Check,
-  Building2, Zap, ShoppingBag, ExternalLink, Calendar, ShieldCheck, X, RefreshCw, Receipt
+  Building2, Zap, ShoppingBag, ExternalLink, Calendar, ShieldCheck, X, RefreshCw, Receipt,
+  Apple, Smartphone
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -380,23 +381,38 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
 
       {/* ── Checkout embedded (compra inicial / actualizar tarjeta) ── */}
       {checkoutSecret && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-border flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <h3 className="text-sm font-black uppercase tracking-wider">Pago seguro · Stripe</h3>
+        <div className="fixed inset-0 z-[120] flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-card w-full sm:max-w-xl flex flex-col h-full sm:h-auto sm:max-h-[92vh] sm:rounded-3xl overflow-hidden shadow-2xl sm:border border-border animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
+            <div className="px-5 py-4 sm:px-6 flex items-center justify-between border-b border-border shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black tracking-tight leading-none">Pago seguro</h3>
+                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cifrado · Avialo × Stripe
+                  </p>
+                </div>
               </div>
-              <button onClick={closeCheckout} className="text-xs font-bold text-muted-foreground hover:text-foreground uppercase tracking-widest">Cerrar</button>
+              <button onClick={closeCheckout} aria-label="Cerrar"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <div className="p-5 overflow-y-auto flex-1 bg-muted/20 min-h-[350px] flex flex-col justify-center">
+            <div className="relative flex-1 overflow-y-auto bg-card px-3 sm:px-5 py-4">
               {!checkoutInstance && (
-                <div className="flex flex-col items-center justify-center gap-3 text-center">
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-center bg-card">
                   <Loader2 className="animate-spin text-brand" size={28} />
                   <p className="text-xs font-semibold text-muted-foreground">Cargando pasarela segura…</p>
                 </div>
               )}
-              <div id="billing-checkout-container" className={cn('w-full transition-opacity', checkoutInstance ? 'opacity-100' : 'opacity-0')} />
+              <div id="billing-checkout-container" className="w-full min-h-[340px]" />
+            </div>
+            <div className="px-5 sm:px-6 py-2.5 border-t border-border flex items-center justify-center gap-3 shrink-0 text-muted-foreground">
+              <span className="flex items-center gap-1 text-[10px] font-semibold"><Apple className="w-3 h-3" /> Apple Pay</span>
+              <span className="flex items-center gap-1 text-[10px] font-semibold"><Smartphone className="w-3 h-3" /> Google Pay</span>
+              <span className="flex items-center gap-1 text-[10px] font-semibold"><ShieldCheck className="w-3 h-3 text-emerald-500" /> Stripe</span>
             </div>
           </div>
         </div>
