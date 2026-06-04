@@ -21,6 +21,7 @@ import { runEditAutocorrectionLoop } from "./agent/editLoop.js";
 import { streamChat, type ChatMessage } from "./agent/client.js";
 import { buildAssistantSystemPrompt } from "./prompts/assistant.js";
 import { recordJobUsage } from "./agent/usageLog.js";
+import { readSiteConfig, applySiteConfig } from "./services/applyConfig.js";
 import { cleanupUserSite } from "./services/siteCleanup.js";
 import { creditsForPlan, nextCreditsResetDate } from "./config/plans.js";
 import { stripe } from "./config/stripe.js";
@@ -1140,6 +1141,69 @@ app.post("/api/jobs/:id/ask", authenticateToken as any, async (req: AuthRequest,
     }
     try { res.write(`\n\n⚠️ Se interrumpió la respuesta: ${error.message}`); } catch {}
     return res.end();
+  }
+});
+
+/**
+ * GET /api/jobs/:id/config  (FASE 7 — panel de configuración)
+ * Devuelve la configuración editable del sitio + sus capacidades (estática vs dinámica).
+ */
+app.get("/api/jobs/:id/config", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const jobId = req.params.id;
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  const { job, status } = await getOwnedJob(jobId, req.user.id);
+  if (!job) return res.status(status).json({ error: `Trabajo con ID "${jobId}" no encontrado.` });
+
+  const clientId = job.data.clientId;
+  if (!clientId) return res.status(400).json({ error: "El trabajo no posee un identificador de cliente válido." });
+
+  try {
+    const config = await readSiteConfig(clientId, job.data);
+    const siteType = job.data.webType || "corporativa";
+    const dynamic = siteType === "dinamica" || siteType === "ecommerce";
+    return res.json({ config, capabilities: { siteType, dynamic } });
+  } catch (error: any) {
+    return res.status(500).json({ error: "No se pudo leer la configuración.", details: error.message });
+  }
+});
+
+/**
+ * PUT /api/jobs/:id/config  (FASE 7)
+ * Aplica cambios de configuración del cliente de forma DETERMINISTA (sin IA) y recompila.
+ * Responde 202; el IDE sondea el estado del job para recargar el preview.
+ */
+app.put("/api/jobs/:id/config", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const jobId = req.params.id;
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  const patch = req.body?.config;
+  if (!patch || typeof patch !== "object") {
+    return res.status(400).json({ error: "Falta el objeto 'config'." });
+  }
+
+  try {
+    const dbUser = await verifyAndResetCredits(req.user.id);
+    if (!dbUser) return res.status(404).json({ error: "Usuario no encontrado." });
+    if (!dbUser.plan || dbUser.plan === "none") {
+      return res.status(402).json({ error: "Suscripción activa requerida.", code: "SUBSCRIPTION_REQUIRED" });
+    }
+
+    const { job, status } = await getOwnedJob(jobId, req.user.id);
+    if (!job) return res.status(status).json({ error: `Trabajo con ID "${jobId}" no encontrado.` });
+    const clientId = job.data.clientId;
+    if (!clientId) return res.status(400).json({ error: "El trabajo no posee un identificador de cliente válido." });
+
+    // Marcar estado y responder ya; la recompilación corre en segundo plano (no bloquea).
+    await setJobStatus({ jobId, state: "generating", progress: 20, updatedAt: new Date().toISOString() });
+    res.status(202).json({ success: true, message: "Aplicando configuración…" });
+
+    applySiteConfig(jobId, clientId, job.data, patch, req.user.id).catch((err) => {
+      console.error("❌ Fallo aplicando configuración del sitio:", err);
+    });
+    return;
+  } catch (error: any) {
+    if (!res.headersSent) return res.status(500).json({ error: "No se pudo aplicar la configuración.", details: error.message });
   }
 });
 

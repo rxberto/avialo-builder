@@ -23,4 +23,14 @@ export const businessConfig = {
     { name: "Servicio estándar", price: 40, duration: "60 min" },
     { name: "Servicio premium", price: 80, duration: "90 min" },
   ],
+  // SEO editable desde el panel ⚙️ (si vacío, el layout deriva title/description del negocio).
+  seo: {
+    title: "",
+    description: "",
+  },
+  // Formulario de contacto. "formsubmit" envía los mensajes a formsubmit.co/ajax/<email>.
+  forms: {
+    provider: "none" as "none" | "formsubmit",
+    email: "",
+  },
 };

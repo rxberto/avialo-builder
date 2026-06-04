@@ -1,20 +1,50 @@
 "use client";
 
 import { useState } from "react";
-import { Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Send, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { businessConfig } from "@/config/business";
 
 export function ContactForm() {
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const forms = businessConfig.forms;
+  const formsubmitOn = forms?.provider === "formsubmit" && !!forms?.email;
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
     setSending(true);
-    // TODO (backend): enviar a la API real. De momento confirmamos la recepción.
-    setTimeout(() => {
-      setSending(false);
+
+    const fd = new FormData(e.currentTarget);
+    const payload = {
+      nombre: String(fd.get("nombre") || ""),
+      email: String(fd.get("email") || ""),
+      telefono: String(fd.get("telefono") || ""),
+      mensaje: String(fd.get("mensaje") || ""),
+      _subject: `Nuevo mensaje de contacto — ${businessConfig.name}`,
+    };
+
+    try {
+      if (formsubmitOn) {
+        // Envío real al correo del negocio vía FormSubmit (sin backend propio).
+        const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(forms!.email)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error("No se pudo enviar el mensaje. Inténtalo de nuevo.");
+      } else {
+        // Sin proveedor configurado: confirmamos la recepción (demo).
+        await new Promise((r) => setTimeout(r, 600));
+      }
       setSent(true);
-    }, 700);
+    } catch (err: any) {
+      setError(err?.message || "No se pudo enviar el mensaje.");
+    } finally {
+      setSending(false);
+    }
   };
 
   if (sent) {
@@ -51,6 +81,9 @@ export function ContactForm() {
         <textarea id="mensaje" name="mensaje" rows={4} required
           className="mt-1.5 w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" />
       </div>
+      {error && (
+        <p className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" /> {error}</p>
+      )}
       <button type="submit" disabled={sending}
         className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-transform active:scale-[0.98] disabled:opacity-60 sm:w-auto">
         {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

@@ -2,6 +2,7 @@ import { mkdir, writeFile, cp } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { sandboxPath } from "../config/sandbox.js";
+import { defaultBusinessConfig, renderBusinessTs } from "./businessConfig.js";
 
 export interface ScaffoldData {
   webType: "corporativa" | "dinamica" | "ecommerce" | string;
@@ -11,38 +12,6 @@ export interface ScaffoldData {
   primaryColor?: string;
   pages?: string[];
   fullClientData?: Record<string, any>;
-}
-
-// Servicios reservables por sector (alimentan el formulario de reservas del cliente).
-const SECTOR_SERVICES: { keywords: string[]; services: { name: string; price: number; duration: string }[] }[] = [
-  { keywords: ["restaurante", "bar", "cafeteria", "hosteler", "comida", "gastro", "pizzeria"], services: [
-    { name: "Reserva de mesa", price: 0, duration: "Indica comensales" }, { name: "Mesa terraza", price: 0, duration: "Sujeto a clima" }, { name: "Evento privado", price: 0, duration: "Te llamamos" } ] },
-  { keywords: ["clinica", "salud", "dental", "dentista", "medic", "fisio", "psicolog", "veterinari"], services: [
-    { name: "Primera consulta", price: 40, duration: "45 min" }, { name: "Revisión", price: 30, duration: "30 min" }, { name: "Tratamiento", price: 60, duration: "60 min" } ] },
-  { keywords: ["fontaner", "electric", "taller", "mecanic", "reform", "construc", "obra", "climatiz", "cerrajer"], services: [
-    { name: "Presupuesto sin compromiso", price: 0, duration: "30 min" }, { name: "Diagnóstico técnico", price: 30, duration: "45 min" }, { name: "Reparación", price: 60, duration: "A valorar" } ] },
-  { keywords: ["peluquer", "estetic", "belleza", "spa", "barber", "uñas", "manicura"], services: [
-    { name: "Corte", price: 15, duration: "30 min" }, { name: "Corte + peinado", price: 25, duration: "45 min" }, { name: "Color", price: 45, duration: "90 min" } ] },
-  { keywords: ["academia", "formacion", "escuela", "educa", "clases", "autoescuela", "coaching"], services: [
-    { name: "Clase de prueba", price: 0, duration: "60 min" }, { name: "Sesión individual", price: 25, duration: "60 min" }, { name: "Asesoramiento", price: 0, duration: "30 min" } ] },
-  { keywords: ["gimnasio", "fitness", "deport", "crossfit", "yoga", "pilates"], services: [
-    { name: "Clase de prueba gratis", price: 0, duration: "60 min" }, { name: "Sesión con entrenador", price: 35, duration: "60 min" }, { name: "Valoración física", price: 0, duration: "30 min" } ] },
-  { keywords: ["asesor", "gestor", "abogad", "legal", "consultor", "fiscal", "contab"], services: [
-    { name: "Primera consulta", price: 0, duration: "30 min" }, { name: "Asesoría", price: 50, duration: "60 min" }, { name: "Gestión completa", price: 90, duration: "A valorar" } ] },
-  { keywords: ["inmobiliar", "inmuebl", "piso", "vivienda", "real estate"], services: [
-    { name: "Valoración gratuita", price: 0, duration: "45 min" }, { name: "Visita de inmueble", price: 0, duration: "30 min" }, { name: "Asesoría de compra/venta", price: 0, duration: "Te llamamos" } ] },
-];
-
-function servicesForSector(sector: string): { name: string; price: number; duration: string }[] {
-  const n = (sector || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  for (const { keywords, services } of SECTOR_SERVICES) {
-    if (keywords.some((k) => n.includes(k))) return services;
-  }
-  return [
-    { name: "Consulta inicial", price: 0, duration: "30 min" },
-    { name: "Servicio estándar", price: 40, duration: "60 min" },
-    { name: "Servicio premium", price: 80, duration: "90 min" },
-  ];
 }
 
 // ── Crea la carpeta base del proyecto (Fallback)
@@ -172,42 +141,14 @@ export async function scaffoldProject(clienteId: string, datos: ScaffoldData): P
       if (!existsSync(srcDir)) await mkdir(srcDir, { recursive: true });
       if (!existsSync(configDir)) await mkdir(configDir, { recursive: true });
 
-      const business = fullClientData?.businessContext || {};
-      const billing = fullClientData?.billingData || {};
+      // Config inicial del negocio (fuente única para layout/footer/legal/SEO/contacto).
+      const siteConfig = defaultBusinessConfig({ businessName, sector, city, primaryColor, dominio, fullClientData });
+      await writeFile(path.join(configDir, "business.ts"), renderBusinessTs(siteConfig));
+      // Sidecar JSON: fuente de verdad estructurada para el panel ⚙️ del IDE (Fase 7).
+      await writeFile(path.join(base, "avialo.config.json"), JSON.stringify(siteConfig, null, 2));
+      console.log(`   ✅ src/config/business.ts + avialo.config.json inyectados con los datos del cliente`);
 
-      // Datos combinados: usamos facturación si están, o el contexto, o los parámetros base.
-      const companyName = billing.companyName || business.name || businessName;
-      const cif = billing.cif || "Pendiente";
-      const phone = business.phone || "+34 900 000 000";
-      const email = business.email || `contacto@${dominio}`;
-      const fullAddress = billing.address
-        ? `${billing.address}, ${billing.postalCode || ''} ${billing.city || city}, ${billing.country || 'España'}`
-        : `${city}, España`;
-
-      const businessTS = `// Configuración de negocio inyectada automáticamente por Avialo Builder
-export const businessConfig = {
-  name: ${JSON.stringify(companyName)},
-  cif: ${JSON.stringify(cif)},
-  sector: ${JSON.stringify(sector)},
-  city: ${JSON.stringify(city)},
-  contact: {
-    phone: ${JSON.stringify(phone)},
-    email: ${JSON.stringify(email)},
-    address: ${JSON.stringify(fullAddress)}
-  },
-  social: {
-    instagram: ${JSON.stringify(business.instagram || "")},
-    facebook: ${JSON.stringify(business.facebook || "")},
-    linkedin: ${JSON.stringify(business.linkedin || "")}
-  },
-  theme: {
-    primaryColor: ${JSON.stringify(primaryColor)}
-  },
-  services: ${JSON.stringify(servicesForSector(sector))}
-};
-`;
-      await writeFile(path.join(configDir, "business.ts"), businessTS);
-      console.log(`   ✅ src/config/business.ts inyectado con los datos del cliente`);
+      const companyName = siteConfig.name;
 
       // Favicon dinámico: cuadro redondeado con el color de marca y la inicial del negocio.
       // SVG estático (cero riesgo de build); Next usa src/app/icon.svg como favicon.

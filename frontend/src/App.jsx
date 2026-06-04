@@ -35,6 +35,10 @@ function App() {
   const [clientData, setClientData]   = useState(null);
   const [jobId, setJobId]             = useState(null);
   const [jobError, setJobError]       = useState(null);
+  // True solo mientras hay una generación en curso/recién terminada en ESTA sesión.
+  // Sirve para permitir ver la pantalla de éxito en /progress tras crear la web,
+  // pero bloquear la re-entrada a /progress una vez el sitio ya está desplegado.
+  const [generationActive, setGenerationActive] = useState(false);
   const [darkMode, setDarkMode]       = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('theme');
@@ -115,6 +119,20 @@ function App() {
       }
     }
     return activeUser;
+  }, []);
+
+  // Actualiza el usuario en estado Y en localStorage SIN perder el token JWT.
+  // CRÍTICO: updateProfile()/getProfile() NO devuelven el token, así que persistir su
+  // resultado tal cual borraba el token del localStorage → getHeaders() dejaba de enviar
+  // el Authorization y el backend respondía "Token no proporcionado" en el chat IA.
+  const persistUser = useCallback((updated) => {
+    setUser((prev) => {
+      const base = prev || readStoredJSON('avialo_user', null) || {};
+      const merged = { ...base, ...updated };
+      if (!merged.token && base.token) merged.token = base.token;
+      localStorage.setItem('avialo_user', JSON.stringify(merged));
+      return merged;
+    });
   }, []);
 
   useEffect(() => {
@@ -232,6 +250,7 @@ function App() {
     setUser(null);
     setClientData(null);
     setJobId(null);
+    setGenerationActive(false);
     localStorage.removeItem('avialo_user');
     localStorage.removeItem('avialo_plan');
     localStorage.removeItem('avialo_current_site');
@@ -242,6 +261,7 @@ function App() {
   // Al completar Onboarding de la web
   const handleOnboardingComplete = async (onboardingData) => {
     setClientData(onboardingData);
+    setGenerationActive(true);
     navigate('/progress');
     setJobError(null);
 
@@ -317,6 +337,7 @@ function App() {
     navigate('/dashboard');
     setJobId(null);
     setJobError(null);
+    setGenerationActive(false);
   };
 
   // Reintentar una generación fallida: el backend reutiliza los datos del job original.
@@ -326,6 +347,7 @@ function App() {
     try {
       const result = await retryJob(failedJobId);
       setJobId(result.jobId);
+      setGenerationActive(true);
       // Actualizar el sitio almacenado para que el panel apunte al nuevo job.
       const stored = readStoredJSON('avialo_current_site', null);
       if (stored) localStorage.setItem('avialo_current_site', JSON.stringify({ ...stored, jobId: result.jobId }));
@@ -403,10 +425,7 @@ function App() {
 
           <Route path="/google-onboarding" element={
             <RequireAuth user={user} location={location}>
-              <GoogleOnboarding user={user} onUpdateUser={(updated) => {
-                setUser(updated);
-                localStorage.setItem('avialo_user', JSON.stringify(updated));
-              }} />
+              <GoogleOnboarding user={user} onUpdateUser={persistUser} />
             </RequireAuth>
           } />
 
@@ -417,19 +436,19 @@ function App() {
                 onLogout={handleLogout}
                 onCreateNewSite={() => navigate('/onboarding')}
                 onOpenSiteIDE={(site) => {
+                  setGenerationActive(false);
                   setJobId(site.jobId);
                   navigate('/ide');
                 }}
                 onOpenProgress={(jid) => {
                   setJobId(jid);
-                  navigate('/progress');
+                  // Si el sitio ya está desplegado, NO se vuelve a /progress: se abre el IDE.
+                  // (Evita el falso "reinicio" de la generación y que desaparezca la web.)
+                  navigate(user?.siteStatus === 'deployed' ? '/ide' : '/progress');
                 }}
                 onRetrySite={handleRetryGeneration}
                 onDeleteSite={handleDeleteGeneration}
-                onUpdateUser={(updated) => {
-                  setUser(updated);
-                  localStorage.setItem('avialo_user', JSON.stringify(updated));
-                }}
+                onUpdateUser={persistUser}
                 onAddNotification={handleAddNotification}
               />
             </RequireAuth>
@@ -443,12 +462,9 @@ function App() {
 
           <Route path="/settings" element={
             <RequireAuth user={user} location={location}>
-              <SettingsPage 
-                user={user} 
-                onUpdateUser={(updated) => {
-                  setUser(updated);
-                  localStorage.setItem('avialo_user', JSON.stringify(updated));
-                }}
+              <SettingsPage
+                user={user}
+                onUpdateUser={persistUser}
                 onAddNotification={handleAddNotification}
               />
             </RequireAuth>
@@ -466,16 +482,22 @@ function App() {
 
           <Route path="/progress" element={
             <RequireAuth user={user} location={location}>
-              <JobProgressPage
-                jobId={jobId}
-                clientData={clientData}
-                error={jobError}
-                onReset={handleReset}
-                onRetry={handleRetryGeneration}
-                onDelete={handleDeleteGeneration}
-                onSyncProfile={() => syncProfile()}
-                onAddNotification={handleAddNotification}
-              />
+              {/* Una vez la web está desplegada, /progress queda bloqueado (salvo que haya
+                  una generación activa en esta sesión). El usuario va directo al IDE. */}
+              {user?.siteStatus === 'deployed' && !generationActive ? (
+                <Navigate to="/ide" replace />
+              ) : (
+                <JobProgressPage
+                  jobId={jobId}
+                  clientData={clientData}
+                  error={jobError}
+                  onReset={handleReset}
+                  onRetry={handleRetryGeneration}
+                  onDelete={handleDeleteGeneration}
+                  onSyncProfile={() => syncProfile()}
+                  onAddNotification={handleAddNotification}
+                />
+              )}
             </RequireAuth>
           } />
 
@@ -486,7 +508,7 @@ function App() {
                 user={user}
                 onReset={handleReset}
                 onSyncProfile={syncProfile}
-                onUpdateUser={setUser}
+                onUpdateUser={persistUser}
                 darkMode={darkMode}
                 toggleTheme={toggleTheme}
               />

@@ -301,6 +301,35 @@ export async function editJob(jobId, prompt) {
 }
 
 /**
+ * Lee la configuración editable del sitio (datos, SEO, formulario) y sus capacidades.
+ */
+export async function getSiteConfig(jobId) {
+  const response = await fetch(`${API_BASE}/api/jobs/${jobId}/config`, { headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo cargar la configuración.');
+  }
+  return response.json();
+}
+
+/**
+ * Aplica cambios de configuración del sitio (determinista). Responde 202; el sitio se recompila
+ * en segundo plano (sondea el estado del job para saber cuándo está listo).
+ */
+export async function updateSiteConfig(jobId, config) {
+  const response = await fetch(`${API_BASE}/api/jobs/${jobId}/config`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({ config }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo guardar la configuración.');
+  }
+  return response.json();
+}
+
+/**
  * Modo Asistente del IDE: hace una pregunta sobre la web y recibe la respuesta en STREAMING.
  * Llama a onToken(chunk) por cada fragmento de texto. Devuelve el texto completo al terminar.
  * @param {string} jobId

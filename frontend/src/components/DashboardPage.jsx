@@ -668,13 +668,17 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                           <Eye className="w-4 h-4" />
                           Abrir IDE / Chat IA
                         </Button>
+                        {/* La web ya está desplegada: en vez de volver a /progress (que
+                            mostraba un falso "reinicio" y hacía desaparecer la web),
+                            abrimos la web publicada en una pestaña nueva. */}
                         <Button
                           variant="outline"
-                          onClick={() => onOpenProgress(site.jobId)}
+                          onClick={() => site.dominio && window.open(`http://${site.dominio}`, '_blank', 'noopener')}
+                          disabled={!site.dominio}
                           className="gap-2 rounded-full border-border hover:bg-muted/80 h-11"
                         >
-                          <Terminal className="w-4 h-4" />
-                          Ver Consola de Logs
+                          <ExternalLink className="w-4 h-4" />
+                          Ver web publicada
                         </Button>
                       </div>
                     )}

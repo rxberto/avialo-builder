@@ -7,10 +7,11 @@ import {
   Code, FileCode, Folder, Loader2, FileText,
   ChevronDown, ChevronUp, Sun, Moon, Zap, X,
   Settings2, Monitor, Smartphone, Tablet, Lock,
-  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus, MessageSquare, Wrench
+  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus, MessageSquare, Wrench, Cog
 } from 'lucide-react';
 import { getSandboxFiles, getSandboxFileContent, editJob, getJob, uploadJobImage, streamAssistant } from '../lib/api';
 import { downscaleImage } from '../lib/image';
+import SettingsModal from './SettingsModal';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Progress } from './ui/progress';
@@ -168,6 +169,15 @@ const INITIAL_DB = {
 export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateUser, darkMode, toggleTheme }) {
   const { logs, status, progress, previewUrl } = useJobSSE(jobId);
 
+  /* URL efectiva del preview: si el SSE aún no ha entregado previewUrl pero el sitio ya
+     está desplegado, caemos al dominio publicado para que la web NO desaparezca al
+     reentrar al IDE (antes quedaba en blanco "Conectando con el contenedor…"). */
+  const isLive = status === 'deployed' || user?.siteStatus === 'deployed';
+  const effectivePreviewUrl = previewUrl || (isLive && user?.siteDomain ? `http://${user.siteDomain}` : null);
+
+  /* Panel de configuración (Fase 7) */
+  const [showSettings, setShowSettings] = useState(false);
+
   /* Tutorial colapsable */
   const [showTutorial, setShowTutorial] = useState(() => localStorage.getItem('avialo_hide_ide_tutorial') !== 'true');
   const handleHideTutorial = () => {
@@ -308,7 +318,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
   const reloadPreview = () => {
     const doReload = () => {
       if (!iframeRef.current) return;
-      const base = (previewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
+      const base = (effectivePreviewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
       if (base) iframeRef.current.src = `${base}?t=${Date.now()}`;
     };
     setTimeout(doReload, 1500);
@@ -528,13 +538,22 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
             >
               <Settings2 size={13} /> Avanzado
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 h-8 rounded-lg font-semibold text-[11px] cursor-pointer px-3 text-muted-foreground hover:text-foreground hover:bg-muted/60"
+              onClick={() => setShowSettings(true)}
+              title="Configurar datos, SEO y formulario de tu web"
+            >
+              <Cog size={13} /> Configurar
+            </Button>
             <a
-              href={previewUrl || '#'}
+              href={effectivePreviewUrl || '#'}
               target="_blank"
               rel="noreferrer"
               className={cn(
                 'h-8 w-8 rounded-lg border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors',
-                !previewUrl && 'pointer-events-none opacity-35'
+                !effectivePreviewUrl && 'pointer-events-none opacity-35'
               )}
               title="Abrir en nueva pestaña"
             >
@@ -800,9 +819,9 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                     </div>
 
                     {/* Abrir en nueva pestaña */}
-                    {previewUrl && (
+                    {effectivePreviewUrl && (
                       <a
-                        href={previewUrl}
+                        href={effectivePreviewUrl}
                         target="_blank"
                         rel="noreferrer"
                         className="flex items-center justify-center gap-2 w-full py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-500 text-[11px] font-bold hover:bg-violet-500/20 transition-colors cursor-pointer"
@@ -1216,10 +1235,10 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                   minHeight: '100%',
                 }}
               >
-                {previewUrl ? (
+                {effectivePreviewUrl ? (
                   <iframe
                     ref={iframeRef}
-                    src={previewUrl}
+                    src={effectivePreviewUrl}
                     title="Preview"
                     className="w-full h-full border-none"
                     style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
@@ -1270,6 +1289,17 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
       {/* ══════════════════════════════════════
           MODALS
       ══════════════════════════════════════ */}
+
+      {/* Panel de configuración (datos, SEO, formulario) */}
+      <AnimatePresence>
+        {showSettings && (
+          <SettingsModal
+            jobId={jobId}
+            onClose={() => setShowSettings(false)}
+            onReloadPreview={reloadPreview}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Visor de código */}
       <AnimatePresence>

@@ -7,8 +7,9 @@ import { SiteHeader } from "./SiteHeader";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const siteTitle = `${businessConfig.name} | ${businessConfig.sector}`;
-const siteDescription = `${businessConfig.name}${businessConfig.city ? ` en ${businessConfig.city}` : ""}. ${businessConfig.sector} de confianza. Contacta o reserva online.`;
+// El cliente puede fijar title/description desde el panel ⚙️; si no, se derivan del negocio.
+const siteTitle = businessConfig.seo?.title?.trim() || `${businessConfig.name} | ${businessConfig.sector}`;
+const siteDescription = businessConfig.seo?.description?.trim() || `${businessConfig.name}${businessConfig.city ? ` en ${businessConfig.city}` : ""}. ${businessConfig.sector} de confianza. Contacta o reserva online.`;
 
 // Convierte el color de marca (hex) a canales HSL "H S% L%" para alimentar el token --primary
 // de Tailwind (bg-primary = hsl(var(--primary))). Así TODA la web usa el color del cliente.
