@@ -149,7 +149,7 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
     setConfirmCancel(false);
     try {
       await cancelSubscription();
-      toast.success('Cancelación programada', { description: 'Mantienes el acceso hasta el final del periodo.' });
+      toast.success('Cancelación programada', { description: `Mantienes el acceso hasta el ${fmtDate(sub?.currentPeriodEnd)}. No habrá más cobros.` });
       await load();
     } catch (e) { setError(e.message); } finally { setAction(null); }
   };
@@ -368,9 +368,14 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
               <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-500" /></div>
               <h3 className="text-base font-bold">¿Cancelar tu suscripción?</h3>
             </div>
-            <p className="text-sm text-muted-foreground mb-5">
-              Mantendrás el acceso hasta el {fmtDate(sub?.currentPeriodEnd)}. Después, tu plan se desactivará. Podrás reanudarla antes de esa fecha.
-            </p>
+            <div className="text-sm text-muted-foreground mb-5 space-y-2">
+              <p>
+                No se corta nada hoy. Seguirás con <strong className="text-foreground">acceso completo a tu plan hasta el {fmtDate(sub?.currentPeriodEnd)}</strong>, el final del periodo que ya tienes pagado.
+              </p>
+              <p>
+                Ese día el servicio se desactivará y <strong className="text-foreground">no se te volverá a cobrar</strong>. Puedes reanudarla en cualquier momento antes de esa fecha.
+              </p>
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setConfirmCancel(false)} className="rounded-xl text-xs font-semibold">Mantener plan</Button>
               <Button onClick={handleCancel} className="rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white">Sí, cancelar</Button>
