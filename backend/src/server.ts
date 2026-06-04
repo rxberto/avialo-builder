@@ -504,7 +504,19 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
     // Stripe. En modo suscripción, Checkout crea el Customer al completar el pago y lo
     // recibimos en el webhook checkout.session.completed (que persiste stripeCustomerId).
     // Solo reutilizamos un customer si YA existe (de un pago anterior correcto).
-    const customerId = dbUser.stripeCustomerId || undefined;
+    let customerId = dbUser.stripeCustomerId || undefined;
+    // El stripeCustomerId guardado puede ser inválido en el modo actual: creado en TEST y
+    // ahora usamos claves LIVE (o al revés), o borrado en el Dashboard. Si no se puede
+    // recuperar (o está borrado), lo ignoramos y dejamos que Checkout cree uno nuevo al pagar.
+    if (customerId) {
+      try {
+        const existingCustomer = await stripe.customers.retrieve(customerId);
+        if ((existingCustomer as any)?.deleted) customerId = undefined;
+      } catch {
+        console.warn(`⚠️ [CHECKOUT] stripeCustomerId "${customerId}" no válido en este modo. Se ignora.`);
+        customerId = undefined;
+      }
+    }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       // dahlia (2026-03-25) renombró el ui_mode: "embedded" → "embedded_page" (mismo modo
