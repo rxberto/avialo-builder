@@ -170,8 +170,11 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         setTimeout(async () => {
           try {
             const stripe = await stripePromise;
-            const checkout = await stripe.initEmbeddedCheckout({
-              clientSecret: session.clientSecret,
+            // Stripe.js (API dahlia) reemplazó initEmbeddedCheckout() por
+            // createEmbeddedCheckoutPage({ fetchClientSecret }). Como ya tenemos el
+            // client_secret de la sesión creada en el backend, lo devolvemos directamente.
+            const checkout = await stripe.createEmbeddedCheckoutPage({
+              fetchClientSecret: async () => session.clientSecret,
             });
             checkout.mount('#checkout-container');
             setCheckoutInstance(checkout);

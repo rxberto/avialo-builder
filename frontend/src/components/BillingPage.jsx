@@ -94,7 +94,8 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
     setTimeout(async () => {
       try {
         const stripe = await stripePromise;
-        const checkout = await stripe.initEmbeddedCheckout({ clientSecret });
+        // Stripe.js (API dahlia): initEmbeddedCheckout() → createEmbeddedCheckoutPage({ fetchClientSecret }).
+        const checkout = await stripe.createEmbeddedCheckoutPage({ fetchClientSecret: async () => clientSecret });
         checkout.mount('#billing-checkout-container');
         setCheckoutInstance(checkout);
       } catch (e) {
