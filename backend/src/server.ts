@@ -505,7 +505,9 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
     }
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      ui_mode: "embedded" as any,
+      // dahlia (2026-03-25) renombró el ui_mode: "embedded" → "embedded_page" (mismo modo
+      // de página embebida con client_secret + initEmbeddedCheckout en el front).
+      ui_mode: "embedded_page" as any,
       // NO pasamos payment_method_types: dejamos que Stripe muestre los métodos elegibles.
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
@@ -758,7 +760,9 @@ app.post("/api/billing/update-payment-method", authenticateToken as any, async (
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "setup",
-      ui_mode: "embedded" as any,
+      // dahlia (2026-03-25) renombró el ui_mode: "embedded" → "embedded_page" (mismo modo
+      // de página embebida con client_secret + initEmbeddedCheckout en el front).
+      ui_mode: "embedded_page" as any,
       customer: dbUser.stripeCustomerId,
       return_url: `${process.env.FRONTEND_URL || "http://localhost:5173"}/billing?card=updated&session_id={CHECKOUT_SESSION_ID}`,
       metadata: { userId: req.user.id.toString() },
