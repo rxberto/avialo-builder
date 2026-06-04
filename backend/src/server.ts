@@ -16,7 +16,11 @@ import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
 import { saveUserUpload, saveSandboxImage } from "./services/uploads.js";
 import { MAX_PHOTOS_PER_REQUEST } from "./config/uploads.js";
+import { runSiteAudit } from "./services/performanceAudit.js";
 import { runEditAutocorrectionLoop } from "./agent/editLoop.js";
+import { streamChat, type ChatMessage } from "./agent/client.js";
+import { buildAssistantSystemPrompt } from "./prompts/assistant.js";
+import { recordJobUsage } from "./agent/usageLog.js";
 import { cleanupUserSite } from "./services/siteCleanup.js";
 import { creditsForPlan, nextCreditsResetDate } from "./config/plans.js";
 import { stripe } from "./config/stripe.js";
@@ -514,6 +518,40 @@ app.get("/api/billing/invoices", authenticateToken as any, async (req: AuthReque
   } catch (error: any) {
     console.error("❌ Error recuperando facturas reales de Stripe:", error);
     return res.status(500).json({ error: "Error al recuperar facturas.", details: error.message });
+  }
+});
+
+// ============================================
+// AUDITORÍA DE RENDIMIENTO REAL — FASE 5
+// ============================================
+
+/**
+ * GET /api/site/audit
+ * Devuelve métricas REALES de rendimiento/SEO del sitio desplegado del usuario (PageSpeed
+ * Insights). Si no hay sitio desplegado o no es accesible, responde { available:false }.
+ * ?refresh=1 ignora la caché. Protegido con JWT.
+ */
+app.get("/api/site/audit", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  try {
+    const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!dbUser) return res.status(404).json({ error: "Usuario no encontrado." });
+
+    if (dbUser.siteStatus !== "deployed" || !dbUser.siteDomain) {
+      return res.json({ available: false, reason: "no_site" });
+    }
+
+    // El dominio guardado es p.ej. "negocio.avialo.app" → auditamos su versión HTTPS.
+    const domain = dbUser.siteDomain.replace(/^https?:\/\//, "");
+    const url = `https://${domain}`;
+    const refresh = req.query.refresh === "1" || req.query.refresh === "true";
+
+    const scores = await runSiteAudit(url, refresh);
+    return res.json({ available: true, scores });
+  } catch (error: any) {
+    // No es un 500 "duro": el front muestra un estado de "no disponible" con el motivo.
+    return res.json({ available: false, reason: "audit_failed", message: error.message });
   }
 });
 
@@ -1031,6 +1069,81 @@ app.post("/api/jobs/:id/upload", authenticateToken as any, async (req: AuthReque
 });
 
 /**
+ * POST /api/jobs/:id/ask  (FASE 6 — modo Asistente)
+ * Responde preguntas del cliente sobre SU web en STREAMING de tokens (sin Docker/build).
+ * Cuerpo: { message, history?: [{role,content}] }. Protegido con JWT.
+ */
+app.post("/api/jobs/:id/ask", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  const jobId = req.params.id;
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+
+  const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+  if (!message) return res.status(400).json({ error: "Falta el mensaje." });
+
+  // Historial conversacional (saneado y acotado a los últimos 10 turnos).
+  const rawHistory = Array.isArray(req.body?.history) ? req.body.history : [];
+  const history: ChatMessage[] = rawHistory
+    .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+    .slice(-10)
+    .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+
+  try {
+    const dbUser = await verifyAndResetCredits(req.user.id);
+    if (!dbUser) return res.status(404).json({ error: "Usuario no encontrado." });
+    if (!dbUser.plan || dbUser.plan === "none") {
+      return res.status(402).json({ error: "Suscripción activa requerida.", code: "SUBSCRIPTION_REQUIRED" });
+    }
+    if (dbUser.aiCredits < 1) {
+      return res.status(402).json({ error: "Créditos IA agotados.", code: "INSUFFICIENT_CREDITS" });
+    }
+
+    const { job, status } = await getOwnedJob(jobId, req.user.id);
+    if (!job) return res.status(status).json({ error: `Trabajo con ID "${jobId}" no encontrado.` });
+
+    const system = buildAssistantSystemPrompt({
+      businessName: job.data.businessName || dbUser.siteName || undefined,
+      sector: job.data.sector,
+      city: job.data.city,
+      siteType: job.data.webType || dbUser.siteType || undefined,
+      siteDomain: dbUser.siteDomain || undefined,
+      plan: dbUser.plan,
+    });
+
+    // Cabeceras de streaming. X-Accel-Buffering:no evita que proxies (Traefik/nginx) lo bufericen.
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Access-Control-Allow-Credentials", "true");
+      res.setHeader("Vary", "Origin");
+    }
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("X-Accel-Buffering", "no");
+    // Nota: no hacemos flushHeaders() a propósito — así, si el proveedor falla ANTES del
+    // primer token, headersSent sigue false y devolvemos un JSON 500 limpio (el catch lo hace).
+
+    const messages: ChatMessage[] = [...history, { role: "user", content: message }];
+
+    await streamChat(
+      system,
+      messages,
+      (chunk) => { res.write(chunk); },
+      1024,
+      (u) => { recordJobUsage({ jobId, userId: req.user!.id, kind: "edit", ...u }); }
+    );
+
+    return res.end();
+  } catch (error: any) {
+    // Si aún no enviamos cabeceras de streaming, respondemos JSON; si ya empezó, cerramos.
+    if (!res.headersSent) {
+      return res.status(500).json({ error: error.message || "No se pudo procesar la pregunta." });
+    }
+    try { res.write(`\n\n⚠️ Se interrumpió la respuesta: ${error.message}`); } catch {}
+    return res.end();
+  }
+});
+
+/**
  * POST /api/jobs/:id/edit
  * Inicia el proceso asíncrono de edición por IA de un sitio web.
  */
@@ -1143,23 +1256,15 @@ async function runBackgroundCreditsReset() {
 
     for (const u of usersToReset) {
       const plan = u.plan || "none";
-      const maxCredits = {
-        none: 50,
-        basic: 50,
-        corporativa: 50,
-        pro: 200,
-        dinamica: 200,
-        ecommerce: 500
-      }[plan] || 50;
-
-      const nextResetDate = new Date();
-      nextResetDate.setDate(nextResetDate.getDate() + 30);
+      // Fuente única: creditsForPlan (antes había un mapa duplicado con valores distintos
+      // a los de activación, así que el reseteo mensual daba MENOS créditos de los debidos).
+      const maxCredits = creditsForPlan(plan);
 
       await prisma.user.update({
         where: { id: u.id },
         data: {
           aiCredits: maxCredits,
-          creditsResetDate: nextResetDate
+          creditsResetDate: nextCreditsResetDate()
         }
       });
       console.log(`🔄 [CRON INTERNO] Créditos reseteados para el usuario ${u.email} al máximo del plan "${plan}": ${maxCredits} créditos.`);

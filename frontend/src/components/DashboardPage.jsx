@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { updateProfile, getRealInvoices, createBillingPortalSession } from '@/lib/api';
+import { updateProfile, getRealInvoices, createBillingPortalSession, getSiteAudit } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG = {
@@ -51,6 +51,31 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
   const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+
+  // Auditoría de rendimiento REAL (PageSpeed Insights). Antes el dashboard mostraba un 94 fijo.
+  const [audit, setAudit] = useState(null);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const loadAudit = async (refresh = false) => {
+    setAuditLoading(true);
+    try {
+      setAudit(await getSiteAudit(refresh));
+    } catch (e) {
+      setAudit({ available: false, reason: 'audit_failed', message: e.message });
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.siteStatus === 'deployed') loadAudit(false);
+    else setAudit({ available: false, reason: 'no_site' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.siteStatus, user?.siteDomain]);
+
+  // 0..100 → color (verde >=90, ámbar >=50, rojo); null → neutro.
+  const scoreClass = (s) =>
+    s == null ? 'text-muted-foreground' : s >= 90 ? 'text-emerald-500' : s >= 50 ? 'text-amber-500' : 'text-red-500';
 
   const handleUpdatePlan = async (newPlan) => {
     setIsUpdatingPlan(true);
@@ -509,27 +534,65 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                   </CardHeader>
 
                   <CardContent className="space-y-6">
-                    {/* Visual mockup / status placeholder */}
-                    <div className="relative rounded-2xl border border-border/40 bg-zinc-900/5 dark:bg-zinc-900/40 p-1 overflow-hidden h-40 flex items-center justify-center group">
+                    {/* Auditoría de rendimiento REAL (PageSpeed Insights) */}
+                    <div className="relative rounded-2xl border border-border/40 bg-zinc-900/5 dark:bg-zinc-900/40 p-4 overflow-hidden min-h-40 flex items-center justify-center group">
                       <div className="absolute inset-0 bg-gradient-to-tr from-brand/5 via-transparent to-brand-accent/5 pointer-events-none" />
-                      
-                      {/* Circular performance gauge */}
-                      <div className="flex items-center gap-8 z-10">
-                        <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-                          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                            <path className="text-border/20" strokeWidth="2.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                            <path className="text-brand-success animate-pulse-glow" strokeDasharray="94, 100" strokeWidth="2.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                          </svg>
-                          <div className="absolute text-center">
-                            <span className="text-lg font-extrabold text-foreground leading-none">94</span>
-                            <span className="text-[8px] text-muted-foreground block -mt-1">Puntuación</span>
+
+                      {auditLoading && !audit?.available ? (
+                        <div className="flex items-center gap-3 z-10 text-muted-foreground">
+                          <Loader2 className="w-5 h-5 animate-spin text-brand" />
+                          <span className="text-sm font-medium">Midiendo rendimiento real…</span>
+                        </div>
+                      ) : audit?.available ? (
+                        <div className="flex items-center gap-6 z-10 w-full justify-center flex-wrap">
+                          {/* Gauge de rendimiento */}
+                          <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                              <path className="text-border/20" strokeWidth="2.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                              <path className={cn(scoreClass(audit.scores.performance))} strokeDasharray={`${audit.scores.performance ?? 0}, 100`} strokeWidth="2.5" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div className="absolute text-center">
+                              <span className="text-lg font-extrabold text-foreground leading-none">{audit.scores.performance ?? '—'}</span>
+                              <span className="text-[8px] text-muted-foreground block -mt-1">Rendimiento</span>
+                            </div>
+                          </div>
+                          {/* Sub-scores + métricas reales */}
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {[['SEO', audit.scores.seo], ['Accesib.', audit.scores.accessibility], ['Buenas prác.', audit.scores.bestPractices]].map(([label, val]) => (
+                                <span key={label} className="text-[10px] font-bold px-2 py-0.5 rounded-full border border-border/50 bg-muted/40">
+                                  {label}: <span className={scoreClass(val)}>{val ?? '—'}</span>
+                                </span>
+                              ))}
+                            </div>
+                            {audit.scores.metrics?.lcp && (
+                              <p className="text-[11px] text-muted-foreground">
+                                LCP {audit.scores.metrics.lcp}{audit.scores.metrics.cls ? ` · CLS ${audit.scores.metrics.cls}` : ''}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-3">
+                              <button onClick={() => loadAudit(true)} disabled={auditLoading} className="text-[10px] font-bold text-brand hover:underline flex items-center gap-1 disabled:opacity-50">
+                                <RefreshCw className={cn('w-3 h-3', auditLoading && 'animate-spin')} /> {auditLoading ? 'Midiendo…' : 'Re-medir'}
+                              </button>
+                              <span className="text-[9px] text-muted-foreground/60">Datos reales · PageSpeed (Google)</span>
+                            </div>
                           </div>
                         </div>
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-bold text-foreground">Rendimiento Web Enterprise</h4>
-                          <p className="text-xs text-muted-foreground max-w-xs">Tu sitio cuenta con un SEO optimizado para producción, metadatos y sitemaps integrados con máxima velocidad de carga Next.js.</p>
+                      ) : (
+                        <div className="z-10 text-center px-4">
+                          <BarChart3 className="w-6 h-6 text-muted-foreground/50 mx-auto mb-2" />
+                          <p className="text-sm font-semibold text-foreground">
+                            {audit?.reason === 'no_site'
+                              ? 'Publica tu web para medir su rendimiento real.'
+                              : 'No se pudo medir el rendimiento ahora mismo.'}
+                          </p>
+                          {audit?.reason !== 'no_site' && (
+                            <button onClick={() => loadAudit(true)} disabled={auditLoading} className="mt-2 text-[11px] font-bold text-brand hover:underline flex items-center gap-1 mx-auto disabled:opacity-50">
+                              <RefreshCw className={cn('w-3 h-3', auditLoading && 'animate-spin')} /> Reintentar
+                            </button>
+                          )}
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     {/* Tech stats and settings summary */}

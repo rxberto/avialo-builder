@@ -7,9 +7,9 @@ import {
   Code, FileCode, Folder, Loader2, FileText,
   ChevronDown, ChevronUp, Sun, Moon, Zap, X,
   Settings2, Monitor, Smartphone, Tablet, Lock,
-  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus
+  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus, MessageSquare, Wrench
 } from 'lucide-react';
-import { getSandboxFiles, getSandboxFileContent, editJob, getJob, uploadJobImage } from '../lib/api';
+import { getSandboxFiles, getSandboxFileContent, editJob, getJob, uploadJobImage, streamAssistant } from '../lib/api';
 import { downscaleImage } from '../lib/image';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -238,6 +238,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
   const [attachedImages, setAttachedImages] = useState([]); // [{ dataUrl, name }]
   const [attachError, setAttachError] = useState('');
   const imageInputRef = useRef(null);
+  const [chatMode, setChatMode] = useState('assistant'); // 'assistant' (preguntas) | 'dev' (cambios)
   const [chatMessages, setChatMessages] = useState([{
     id: 'welcome',
     sender: 'ai',
@@ -334,9 +335,47 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     }
   };
 
+  /* Modo Asistente: pregunta en streaming, sin Docker/build (respuesta tipo chatbot real). */
+  const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleAsk = async (text) => {
+    const aiId = `ai-${Date.now()}`;
+    // Historial ANTES de añadir el turno nuevo (sin welcome ni placeholders en curso).
+    const history = chatMessages
+      .filter(m => m.id !== 'welcome' && !m.isGenerating && m.text)
+      .slice(-8)
+      .map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+
+    setChatMessages(prev => [...prev,
+      { id: `u-${Date.now()}`, sender: 'user', text, timestamp: now() },
+      { id: aiId, sender: 'ai', text: '', isGenerating: true, timestamp: now() },
+    ]);
+    setIsSending(true);
+    try {
+      await streamAssistant(jobId, text, history, (chunk) => {
+        setChatMessages(prev => prev.map(m => m.id === aiId ? { ...m, text: (m.text || '') + chunk, isGenerating: false } : m));
+      });
+      if (onUpdateUser && user) onUpdateUser({ ...user, aiCredits: Math.max(0, (user.aiCredits ?? 0) - 1) });
+      if (onSyncProfile) onSyncProfile();
+    } catch (err) {
+      setChatMessages(prev => prev.map(m => m.id === aiId ? { ...m, text: `❌ ${err.message}`, isGenerating: false } : m));
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const handleSend = async (e) => {
     e?.preventDefault();
     const text = promptText.trim();
+
+    // ── Modo Asistente (preguntas rápidas en streaming) ──
+    if (chatMode === 'assistant') {
+      if (!text || isSending) return;
+      setPromptText('');
+      await handleAsk(text);
+      return;
+    }
+
+    // ── Modo Desarrollo (edición real de código + build) ──
     const imagesToUpload = attachedImages;
     if ((!text && imagesToUpload.length === 0) || isSending) return;
     setPromptText('');
@@ -417,6 +456,21 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     setDbData(prev => ({ ...prev, [selectedTable]: prev[selectedTable].filter(r => r.id !== id) }));
 
   const filteredFiles = files.filter(f => !fileSearch || f.name.toLowerCase().includes(fileSearch.toLowerCase()));
+
+  /* Sugerencias del chat según el modo activo */
+  const suggestions = chatMode === 'assistant'
+    ? [
+        { icon: '🔑', title: 'Panel admin', desc: '¿Cómo entro al panel de administración de mi web?' },
+        { icon: '📅', title: 'Ver reservas', desc: '¿Dónde veo las reservas y los clientes?' },
+        { icon: '👤', title: 'Crear cuenta', desc: '¿Cómo doy de alta una cuenta de cliente?' },
+        { icon: '✏️', title: 'Editar la web', desc: '¿Cómo cambio textos o colores de mi web?' },
+      ]
+    : [
+        { icon: '➕', title: 'Nueva sección',  desc: 'Añade una sección de FAQ debajo de los servicios.' },
+        { icon: '🎨', title: 'Cambiar diseño', desc: 'Cambia a paleta oscura y corporativa.' },
+        { icon: '✍️', title: 'Editar textos',  desc: 'Reescribe el hero para mayor conversión.' },
+        { icon: '⚡', title: 'Añadir función', desc: 'Inserta formulario con Nombre, Email y Teléfono.' },
+      ];
 
   /* Tabs del panel avanzado */
   const advancedTabs = [
@@ -875,12 +929,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                       )}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {[
-                        { icon: '➕', title: 'Nueva sección',  desc: 'Añade una sección de FAQ debajo de los servicios.' },
-                        { icon: '🎨', title: 'Cambiar diseño', desc: 'Cambia a paleta oscura y corporativa.' },
-                        { icon: '✍️', title: 'Editar textos',  desc: 'Reescribe el hero para mayor conversión.' },
-                        { icon: '⚡', title: 'Añadir función', desc: 'Inserta formulario con Nombre, Email y Teléfono.' },
-                      ].map((s, i) => (
+                      {suggestions.map((s, i) => (
                         <button
                           key={i}
                           onClick={() => setPromptText(s.desc)}
@@ -956,6 +1005,30 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
 
             {/* Composer — input de chat */}
             <div className="p-3 border-t border-border bg-card shrink-0">
+              {/* Selector de modo: Asistente (preguntas) vs Desarrollo (cambios) */}
+              <div className="flex items-center gap-1 mb-2.5 p-1 rounded-xl bg-muted/40 border border-border/60">
+                {[
+                  { id: 'assistant', label: 'Asistente', Icon: MessageSquare, hint: 'Preguntas rápidas' },
+                  { id: 'dev', label: 'Desarrollo', Icon: Wrench, hint: 'Cambiar la web' },
+                ].map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setChatMode(m.id)}
+                    disabled={isSending}
+                    title={m.hint}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[11px] font-bold transition-all disabled:opacity-50 cursor-pointer',
+                      chatMode === m.id
+                        ? 'bg-card text-violet-500 shadow-sm border border-violet-500/20'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <m.Icon size={12} /> {m.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Barra de créditos */}
               <div className="flex items-center justify-between mb-1.5">
                 <span className="flex items-center gap-1 text-[9px] font-extrabold text-muted-foreground uppercase tracking-wider">
@@ -986,8 +1059,8 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                 </div>
               )}
 
-              {/* Miniaturas de imágenes adjuntas */}
-              {attachedImages.length > 0 && (
+              {/* Miniaturas de imágenes adjuntas (solo en modo Desarrollo) */}
+              {chatMode === 'dev' && attachedImages.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-2">
                   {attachedImages.map((img, i) => (
                     <div key={i} className="relative group w-12 h-12 rounded-lg overflow-hidden border border-border">
@@ -1004,46 +1077,61 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                   ))}
                 </div>
               )}
-              {attachError && <p className="text-[10px] text-red-500 font-semibold mb-1.5">{attachError}</p>}
+              {chatMode === 'dev' && attachError && <p className="text-[10px] text-red-500 font-semibold mb-1.5">{attachError}</p>}
 
               <form onSubmit={handleSend} className="relative">
                 <Textarea
-                  className="w-full min-h-[52px] max-h-[140px] text-[13px] py-3 pl-11 pr-12 rounded-2xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500/60 focus-visible:border-violet-500/60 resize-none placeholder:text-muted-foreground/40 leading-relaxed"
+                  className={cn(
+                    'w-full min-h-[52px] max-h-[140px] text-[13px] py-3 pr-12 rounded-2xl border border-border bg-muted/30 focus-visible:ring-1 focus-visible:ring-violet-500/60 focus-visible:border-violet-500/60 resize-none placeholder:text-muted-foreground/40 leading-relaxed',
+                    chatMode === 'dev' ? 'pl-11' : 'pl-4'
+                  )}
                   rows={2}
                   value={promptText}
                   onChange={e => setPromptText(e.target.value)}
-                  disabled={isSending || status === 'generating' || status === 'building'}
-                  placeholder={isSending ? 'Compilando cambios…' : 'Describe los cambios o adjunta tus fotos…'}
+                  disabled={isSending || (chatMode === 'dev' && (status === 'generating' || status === 'building'))}
+                  placeholder={
+                    isSending
+                      ? (chatMode === 'assistant' ? 'Pensando…' : 'Compilando cambios…')
+                      : (chatMode === 'assistant'
+                          ? 'Pregúntame: cómo entro al panel, dónde veo las reservas…'
+                          : 'Describe los cambios o adjunta tus fotos…')
+                  }
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
                 />
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  className="hidden"
-                  onChange={handleAttach}
-                />
-                <button
-                  type="button"
-                  onClick={() => imageInputRef.current?.click()}
-                  disabled={isSending}
-                  title="Adjuntar imágenes de tu negocio"
-                  className="absolute left-2 bottom-2 h-8 w-8 rounded-xl border border-border bg-muted/40 text-muted-foreground hover:text-violet-500 hover:border-violet-500/40 flex items-center justify-center disabled:opacity-30 transition-all cursor-pointer"
-                >
-                  <ImagePlus size={15} />
-                </button>
+                {chatMode === 'dev' && (
+                  <>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      className="hidden"
+                      onChange={handleAttach}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isSending}
+                      title="Adjuntar imágenes de tu negocio"
+                      className="absolute left-2 bottom-2 h-8 w-8 rounded-xl border border-border bg-muted/40 text-muted-foreground hover:text-violet-500 hover:border-violet-500/40 flex items-center justify-center disabled:opacity-30 transition-all cursor-pointer"
+                    >
+                      <ImagePlus size={15} />
+                    </button>
+                  </>
+                )}
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={(!promptText.trim() && attachedImages.length === 0) || isSending}
+                  disabled={(!promptText.trim() && (chatMode === 'assistant' || attachedImages.length === 0)) || isSending}
                   className="absolute right-2 bottom-2 h-8 w-8 rounded-xl bg-violet-600 hover:bg-violet-700 text-white shadow-sm disabled:opacity-30 transition-all cursor-pointer"
                 >
                   {isSending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 </Button>
               </form>
               <p className="text-center text-[9px] text-muted-foreground/40 mt-2">
-                Enter para enviar · Shift+Enter nueva línea · 📎 adjunta tus fotos
+                {chatMode === 'assistant'
+                  ? 'Modo Asistente · respuestas al instante · no modifica tu web'
+                  : 'Modo Desarrollo · aplica cambios reales · 📎 adjunta tus fotos'}
               </p>
             </div>
           </div>

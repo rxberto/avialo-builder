@@ -16,6 +16,33 @@ export const PLAN_CREDITS: Record<string, number> = {
 export const DEFAULT_PLAN_CREDITS = 50;
 
 /**
+ * Catálogo canónico de planes ASIGNABLES (los que el admin puede dar y que coinciden con
+ * los productos facturables del checkout). `basic`/`pro` siguen existiendo en PLAN_CREDITS
+ * como alias legacy para usuarios antiguos, pero ya no se asignan desde el panel.
+ */
+export interface PlanInfo {
+  id: string;
+  label: string;
+  credits: number;
+  billable: boolean;
+}
+
+export const PLAN_CATALOG: PlanInfo[] = [
+  { id: "none",        label: "Sin plan",            credits: PLAN_CREDITS.none,        billable: false },
+  { id: "corporativa", label: "Corporativa (Basic)", credits: PLAN_CREDITS.corporativa, billable: true },
+  { id: "dinamica",    label: "Dinámica (Pro)",      credits: PLAN_CREDITS.dinamica,    billable: true },
+  { id: "ecommerce",   label: "Ecommerce",           credits: PLAN_CREDITS.ecommerce,   billable: true },
+];
+
+/** Ids de planes que el panel admin puede asignar a un usuario. */
+export const ASSIGNABLE_PLAN_IDS = PLAN_CATALOG.map((p) => p.id);
+
+/** Valida que un plan sea uno de los asignables canónicos. */
+export function isAssignablePlan(plan?: string | null): boolean {
+  return !!plan && ASSIGNABLE_PLAN_IDS.includes(plan);
+}
+
+/**
  * Devuelve los créditos mensuales correspondientes a un plan.
  */
 export function creditsForPlan(plan?: string | null): number {

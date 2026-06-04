@@ -79,6 +79,22 @@ export async function retryJob(jobId) {
 }
 
 /**
+ * Obtiene la auditoría REAL de rendimiento/SEO del sitio desplegado (PageSpeed Insights).
+ * Devuelve { available: false, reason } si no hay sitio o no es accesible.
+ * @param {boolean} refresh fuerza re-medir ignorando la caché del backend
+ */
+export async function getSiteAudit(refresh = false) {
+  const response = await fetch(`${API_BASE}/api/site/audit${refresh ? '?refresh=1' : ''}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo obtener la auditoría.');
+  }
+  return response.json();
+}
+
+/**
  * Sube las fotos propias del negocio (data URLs base64) durante el onboarding.
  * Devuelve { photos: [{ id }] } con los ids para incluirlos en el payload de generación.
  */
@@ -282,6 +298,37 @@ export async function editJob(jobId, prompt) {
     throw new Error(err.error || 'Error al iniciar edición.');
   }
   return response.json();
+}
+
+/**
+ * Modo Asistente del IDE: hace una pregunta sobre la web y recibe la respuesta en STREAMING.
+ * Llama a onToken(chunk) por cada fragmento de texto. Devuelve el texto completo al terminar.
+ * @param {string} jobId
+ * @param {string} message
+ * @param {Array<{role:'user'|'assistant',content:string}>} history
+ * @param {(chunk:string)=>void} onToken
+ */
+export async function streamAssistant(jobId, message, history, onToken) {
+  const response = await fetch(`${API_BASE}/api/jobs/${jobId}/ask`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ message, history }),
+  });
+  if (!response.ok || !response.body) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || `Error HTTP ${response.status}`);
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let full = '';
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    if (chunk) { full += chunk; onToken(chunk); }
+  }
+  return full;
 }
 
 /**

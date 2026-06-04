@@ -193,6 +193,181 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 type ProviderName = "claude" | "gemini" | "deepseek" | "openai" | "openrouter";
 
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+/**
+ * Chat conversacional con STREAMING de tokens (para el modo Asistente del IDE). A diferencia
+ * de generateCode (full-string, multi-archivo), esto emite el texto token a token vía onToken
+ * para una experiencia tipo chatbot real. Usa el proveedor primario (LLM_PRIMARY) con cascada
+ * de respaldo. Devuelve el texto completo al terminar.
+ */
+export async function streamChat(
+  system: string,
+  messages: ChatMessage[],
+  onToken: (chunk: string) => void,
+  maxTokens: number = 1024,
+  onUsage?: OnUsage
+): Promise<string> {
+  const available = {
+    claude: !!anthropicClient,
+    gemini: !!googleClient,
+    deepseek: !!deepseekClient,
+    openai: !!openAIClient,
+    openrouter: !!openRouterClient,
+  };
+
+  const primary = config.llm.primary || "deepseek";
+  const baseOrder: ProviderName[] = ["deepseek", "claude", "gemini", "openai", "openrouter"];
+  const chain = [primary, ...baseOrder].filter(
+    (p, i, arr): p is ProviderName => arr.indexOf(p) === i && available[p as ProviderName]
+  );
+  if (chain.length === 0) {
+    throw new Error("❌ Ningún proveedor de IA está configurado (faltan las API keys).");
+  }
+
+  const openRouterModel = process.env.OPENROUTER_MODEL || "deepseek/deepseek-chat-v3.1:free";
+  const oaiModelFor: Partial<Record<ProviderName, string>> = {
+    deepseek: config.deepseek.model,
+    openai: "gpt-4o",
+    openrouter: openRouterModel,
+  };
+  const oaiClientFor: Partial<Record<ProviderName, OpenAI>> = {
+    deepseek: deepseekClient!,
+    openai: openAIClient!,
+    openrouter: openRouterClient!,
+  };
+
+  const errors: string[] = [];
+  for (const provider of chain) {
+    try {
+      // Garantizamos que el consumo se reporte SIEMPRE: si el proveedor no devuelve `usage`
+      // en streaming (varía entre APIs), estimamos por longitud para no dejar la acción gratis.
+      let usageEmitted = false;
+      const wrappedUsage: OnUsage | undefined = onUsage
+        ? (u) => { usageEmitted = true; onUsage(u); }
+        : undefined;
+
+      let full: string;
+      let modelUsed: string;
+      if (provider === "claude") {
+        modelUsed = MODELS.CLAUDE;
+        full = await streamClaude(system, messages, maxTokens, onToken, wrappedUsage);
+      } else if (provider === "gemini") {
+        modelUsed = MODELS.GEMINI;
+        full = await streamGemini(system, messages, maxTokens, onToken, wrappedUsage);
+      } else {
+        // OpenAI-compatibles (deepseek / openai / openrouter)
+        modelUsed = oaiModelFor[provider]!;
+        full = await streamOpenAICompatible(oaiClientFor[provider]!, modelUsed, system, messages, maxTokens, onToken, wrappedUsage);
+      }
+
+      if (onUsage && !usageEmitted) {
+        const inputChars = system.length + messages.reduce((n, m) => n + m.content.length, 0);
+        onUsage({ model: modelUsed, inputTokens: Math.ceil(inputChars / 4), outputTokens: Math.ceil(full.length / 4) });
+      }
+      return full;
+    } catch (err: any) {
+      const msg = err?.message || "error desconocido";
+      console.warn(`⚠️ Streaming ${provider.toUpperCase()} falló: ${msg}. Probando siguiente...`);
+      errors.push(`${provider}: ${msg}`);
+    }
+  }
+  throw new Error(`❌ Todos los modelos fallaron en cascada (chat). ${errors.join(" | ")}`);
+}
+
+async function streamOpenAICompatible(
+  client: OpenAI,
+  model: string,
+  system: string,
+  messages: ChatMessage[],
+  maxTokens: number,
+  onToken: (c: string) => void,
+  onUsage?: OnUsage
+): Promise<string> {
+  const stream = await client.chat.completions.create({
+    model,
+    max_tokens: maxTokens,
+    stream: true,
+    stream_options: { include_usage: true },
+    messages: [{ role: "system", content: system }, ...messages],
+  } as any);
+
+  let full = "";
+  for await (const chunk of stream as any) {
+    const delta = chunk.choices?.[0]?.delta?.content;
+    if (delta) {
+      full += delta;
+      onToken(delta);
+    }
+    if (chunk.usage && onUsage) {
+      onUsage({ model, inputTokens: chunk.usage.prompt_tokens ?? 0, outputTokens: chunk.usage.completion_tokens ?? 0 });
+    }
+  }
+  if (!full) throw new Error("Respuesta de chat vacía.");
+  return full;
+}
+
+async function streamClaude(
+  system: string,
+  messages: ChatMessage[],
+  maxTokens: number,
+  onToken: (c: string) => void,
+  onUsage?: OnUsage
+): Promise<string> {
+  if (!anthropicClient) throw new Error("Cliente de Anthropic no inicializado.");
+  const stream = anthropicClient.messages.stream({
+    model: MODELS.CLAUDE,
+    max_tokens: maxTokens,
+    system,
+    messages: messages.map((m) => ({ role: m.role, content: m.content })),
+  });
+
+  let full = "";
+  stream.on("text", (t: string) => {
+    full += t;
+    onToken(t);
+  });
+  const finalMsg = await stream.finalMessage();
+  if (onUsage && finalMsg.usage) {
+    onUsage({ model: MODELS.CLAUDE, inputTokens: finalMsg.usage.input_tokens ?? 0, outputTokens: finalMsg.usage.output_tokens ?? 0 });
+  }
+  if (!full) throw new Error("Respuesta de chat vacía.");
+  return full;
+}
+
+async function streamGemini(
+  system: string,
+  messages: ChatMessage[],
+  maxTokens: number,
+  onToken: (c: string) => void,
+  onUsage?: OnUsage
+): Promise<string> {
+  if (!googleClient) throw new Error("Cliente de Gemini no inicializado.");
+  const model = googleClient.getGenerativeModel({ model: MODELS.GEMINI, systemInstruction: system });
+  const result = await model.generateContentStream({
+    contents: messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+    generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
+  });
+
+  let full = "";
+  for await (const chunk of result.stream) {
+    const t = chunk.text();
+    if (t) {
+      full += t;
+      onToken(t);
+    }
+  }
+  const resp = await result.response;
+  if (onUsage && resp.usageMetadata) {
+    onUsage({ model: MODELS.GEMINI, inputTokens: resp.usageMetadata.promptTokenCount ?? 0, outputTokens: resp.usageMetadata.candidatesTokenCount ?? 0 });
+  }
+  if (!full) throw new Error("Respuesta de chat vacía.");
+  return full;
+}
+
 /**
  * Llama al API de Anthropic. El modelId procede del router (MODELS.CLAUDE).
  */

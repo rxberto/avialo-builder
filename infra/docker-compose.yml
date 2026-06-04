@@ -82,6 +82,9 @@ services:
       # Almacén de fotos propias del negocio subidas por el cliente (compartido con el worker).
       - UPLOADS_DIR=/app/uploads
       - PREVIEW_DOMAIN_BASE=${PREVIEW_DOMAIN_BASE}
+      # Auditoría de rendimiento real (PageSpeed Insights). Opcional: vacío funciona con cuota
+      # limitada por IP; con clave sube el límite.
+      - PAGESPEED_API_KEY=${PAGESPEED_API_KEY}
       - FRONTEND_URL=${FRONTEND_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
       - LITELLM_URL=${LITELLM_URL}

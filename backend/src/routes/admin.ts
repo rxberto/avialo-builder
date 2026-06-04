@@ -3,6 +3,7 @@ import { prisma } from '../database/client.js';
 import { authenticateToken, AuthRequest } from './auth.js';
 import { stripe } from '../config/stripe.js';
 import { cleanupUserSite } from '../services/siteCleanup.js';
+import { PLAN_CATALOG, isAssignablePlan, creditsForPlan, nextCreditsResetDate } from '../config/plans.js';
 
 export const adminRouter = Router();
 
@@ -37,6 +38,11 @@ adminRouter.get('/usage', authenticateToken, requireAdmin, async (_req: Request,
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }
+});
+
+// GET /api/admin/plans — catálogo canónico de planes asignables (para el desplegable del panel)
+adminRouter.get('/plans', authenticateToken, requireAdmin, async (_req: Request, res: Response) => {
+  res.json({ plans: PLAN_CATALOG });
 });
 
 // GET /api/admin/users — lista todos los usuarios
@@ -152,6 +158,33 @@ adminRouter.patch('/users/:id/credits', authenticateToken, requireAdmin, async (
   }
 });
 
+// PATCH /api/admin/users/:id/plan — cambia el plan de un usuario existente
+// (p.ej. habilitar el plan "ecommerce"). Ajusta créditos al cupo del plan y reinicia el ciclo.
+adminRouter.patch('/users/:id/plan', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<any> => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+
+  const { plan } = req.body;
+  if (!isAssignablePlan(plan)) {
+    return res.status(400).json({ error: `Plan no válido. Usa uno de: ${PLAN_CATALOG.map((p) => p.id).join(', ')}` });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'Usuario no encontrado' });
+
+    const credits = creditsForPlan(plan);
+    const updated = await prisma.user.update({
+      where: { id },
+      data: { plan, aiCredits: credits, creditsResetDate: nextCreditsResetDate() },
+    });
+
+    res.json({ success: true, message: `Plan de "${user.email}" → ${plan} (${credits} créditos).`, user: updated });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // POST /api/admin/users — crear un nuevo usuario desde el panel admin
 adminRouter.post('/users', authenticateToken, requireAdmin, async (req: Request, res: Response): Promise<any> => {
   const { name, email, password, plan, aiCredits, profession } = req.body;
@@ -159,6 +192,9 @@ adminRouter.post('/users', authenticateToken, requireAdmin, async (req: Request,
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'name, email y password son obligatorios' });
   }
+
+  // El plan debe ser uno de los canónicos asignables (o ninguno → 'none').
+  const finalPlan = plan && isAssignablePlan(plan) ? plan : 'none';
 
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -172,8 +208,10 @@ adminRouter.post('/users', authenticateToken, requireAdmin, async (req: Request,
         name,
         email,
         passwordHash,
-        plan: plan || 'none',
-        aiCredits: typeof aiCredits === 'number' ? aiCredits : 50,
+        plan: finalPlan,
+        // Si no se pasan créditos explícitos, usar el cupo del plan (fuente única).
+        aiCredits: typeof aiCredits === 'number' ? aiCredits : creditsForPlan(finalPlan),
+        creditsResetDate: nextCreditsResetDate(),
         profession: profession || '',
         role: 'user',
         siteName: null,

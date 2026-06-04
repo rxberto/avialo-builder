@@ -14,7 +14,14 @@ function authHeaders() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` };
 }
 
-const PLAN_OPTIONS = ['none', 'basic', 'pro', 'enterprise'];
+// Planes canónicos (coinciden con los productos facturables). Se rellena desde el backend
+// (/api/admin/plans); esto es solo el fallback si la petición falla.
+const FALLBACK_PLANS = [
+  { id: 'none', label: 'Sin plan' },
+  { id: 'corporativa', label: 'Corporativa (Basic)' },
+  { id: 'dinamica', label: 'Dinámica (Pro)' },
+  { id: 'ecommerce', label: 'Ecommerce' },
+];
 
 export default function AdminPage({ user, onLogout }) {
   const navigate = useNavigate();
@@ -32,10 +39,12 @@ export default function AdminPage({ user, onLogout }) {
   const [editCredits, setEditCredits] = useState({});
   const [confirmModal, setConfirmModal] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [plans, setPlans] = useState(FALLBACK_PLANS);
   const [createForm, setCreateForm] = useState({
-    name: '', email: '', password: '', plan: 'pro', aiCredits: 1500, profession: ''
+    name: '', email: '', password: '', plan: 'dinamica', aiCredits: 1500, profession: ''
   });
   const [creating, setCreating] = useState(false);
+  const [planSaving, setPlanSaving] = useState({}); // { [userId]: true } mientras se guarda
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -58,6 +67,37 @@ export default function AdminPage({ user, onLogout }) {
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  // Cargar el catálogo canónico de planes (fallback al constante si falla).
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/admin/plans`, { headers: authHeaders() });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.plans) && data.plans.length) setPlans(data.plans);
+        }
+      } catch { /* mantener fallback */ }
+    })();
+  }, []);
+
+  const handleUpdatePlan = async (userId, newPlan, userName) => {
+    setPlanSaving(prev => ({ ...prev, [userId]: true }));
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/users/${userId}/plan`, {
+        method: 'PATCH', headers: authHeaders(),
+        body: JSON.stringify({ plan: newPlan }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      showToast(`🎯 Plan de "${userName}" → ${newPlan}`);
+      fetchUsers();
+    } catch (e) {
+      showToast(`❌ ${e.message}`, 'error');
+    } finally {
+      setPlanSaving(prev => { const n = { ...prev }; delete n[userId]; return n; });
+    }
+  };
 
   const handleConfirm = async () => {
     const { type, userId, userName } = confirmModal;
@@ -132,17 +172,6 @@ export default function AdminPage({ user, onLogout }) {
     u.name?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   );
-
-  const planBadge = (plan) => {
-    const colors = { pro: '#10b981', none: '#6b7280', basic: '#3b82f6', enterprise: '#8b5cf6', admin: '#ef4444' };
-    return (
-      <span style={{
-        background: colors[plan] || '#6b7280', color: '#fff',
-        padding: '2px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 700,
-        letterSpacing: '0.05em', textTransform: 'uppercase',
-      }}>{plan || 'none'}</span>
-    );
-  };
 
   const statusBadge = (status) => {
     const map = {
@@ -272,7 +301,7 @@ export default function AdminPage({ user, onLogout }) {
                   <label style={labelStyle}>Plan</label>
                   <select style={{ ...inputStyle, cursor: 'pointer' }} value={createForm.plan}
                     onChange={e => setCreateForm(p => ({ ...p, plan: e.target.value }))}>
-                    {PLAN_OPTIONS.map(p => <option key={p} value={p}>{p}</option>)}
+                    {plans.map(p => <option key={p.id} value={p.id}>{p.label || p.id}</option>)}
                   </select>
                 </div>
                 <div>
@@ -383,7 +412,7 @@ export default function AdminPage({ user, onLogout }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '14px', marginBottom: '24px' }}>
             {[
               { label: 'Total', val: users.length, icon: '👥', color: '#6366f1' },
-              { label: 'Plan Pro', val: users.filter(u => u.plan === 'pro').length, icon: '⭐', color: '#f59e0b' },
+              { label: 'Con plan', val: users.filter(u => u.plan && u.plan !== 'none').length, icon: '⭐', color: '#f59e0b' },
               { label: 'Con web', val: users.filter(u => u.siteStatus === 'deployed').length, icon: '🌐', color: '#10b981' },
               { label: 'Sin plan', val: users.filter(u => !u.plan || u.plan === 'none').length, icon: '🔒', color: '#6b7280' },
             ].map(s => (
@@ -420,7 +449,7 @@ export default function AdminPage({ user, onLogout }) {
             <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', overflow: 'hidden' }}>
               {/* TH */}
               <div style={{
-                display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 80px 85px 90px 140px 170px',
+                display: 'grid', gridTemplateColumns: '1.2fr 1.5fr 150px 85px 90px 140px 170px',
                 padding: '12px 20px', background: 'rgba(255,255,255,0.04)',
                 borderBottom: '1px solid rgba(255,255,255,0.07)',
                 fontSize: '11px', fontWeight: 700, color: '#6b7280', letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -432,7 +461,7 @@ export default function AdminPage({ user, onLogout }) {
                 <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No hay usuarios.</div>
               ) : filtered.map((u, i) => (
                 <div key={u.id} style={{
-                  display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 80px 85px 90px 140px 170px',
+                  display: 'grid', gridTemplateColumns: '1.2fr 1.5fr 150px 85px 90px 140px 170px',
                   padding: '14px 20px', borderBottom: i < filtered.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
                   alignItems: 'center', transition: 'background 0.15s',
                 }}
@@ -443,7 +472,25 @@ export default function AdminPage({ user, onLogout }) {
                     <div style={{ fontSize: '11px', color: '#6b7280' }}>#{u.id}</div>
                   </div>
                   <div style={{ fontSize: '13px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.email}</div>
-                  <div>{planBadge(u.plan)}</div>
+                  {/* Plan editable: cambiarlo habilita el plan y ajusta los créditos */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <select
+                      value={plans.some(p => p.id === u.plan) ? u.plan : (u.plan || 'none')}
+                      disabled={planSaving[u.id]}
+                      onChange={e => handleUpdatePlan(u.id, e.target.value, u.name)}
+                      style={{
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '8px', padding: '5px 8px', color: '#e5e7eb', fontSize: '12px',
+                        outline: 'none', cursor: planSaving[u.id] ? 'wait' : 'pointer', width: '100%',
+                      }}
+                    >
+                      {/* Si el usuario tiene un plan legacy (basic/pro), lo mostramos para no perderlo */}
+                      {!plans.some(p => p.id === u.plan) && u.plan && u.plan !== 'none' && (
+                        <option value={u.plan}>{u.plan} (legacy)</option>
+                      )}
+                      {plans.map(p => <option key={p.id} value={p.id}>{p.label || p.id}</option>)}
+                    </select>
+                  </div>
                   <div style={{ fontWeight: 700, fontSize: '16px', color: u.aiCredits < 500 ? '#ef4444' : '#10b981' }}>{u.aiCredits}</div>
                   <div>{statusBadge(u.siteStatus)}</div>
 
