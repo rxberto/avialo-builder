@@ -509,12 +509,22 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
     // ahora usamos claves LIVE (o al revés), o borrado en el Dashboard. Si no se puede
     // recuperar (o está borrado), lo ignoramos y dejamos que Checkout cree uno nuevo al pagar.
     if (customerId) {
+      let validCustomer = true;
       try {
         const existingCustomer = await stripe.customers.retrieve(customerId);
-        if ((existingCustomer as any)?.deleted) customerId = undefined;
+        if ((existingCustomer as any)?.deleted) validCustomer = false;
       } catch {
-        console.warn(`⚠️ [CHECKOUT] stripeCustomerId "${customerId}" no válido en este modo. Se ignora.`);
+        validCustomer = false;
+      }
+      if (!validCustomer) {
+        console.warn(`⚠️ [CHECKOUT] stripeCustomerId "${customerId}" no válido en este modo. Se limpia.`);
         customerId = undefined;
+        // Autocurativo: borramos el ID obsoleto (y la suscripción asociada, también inválida)
+        // para que no vuelva a romper checkout/webhook/billing.
+        await prisma.user.update({
+          where: { id: req.user.id },
+          data: { stripeCustomerId: null, stripeSubscriptionId: null },
+        }).catch(() => {});
       }
     }
 
