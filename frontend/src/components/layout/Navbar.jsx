@@ -154,8 +154,10 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
   const getPlanBadge = (plan) => {
     switch (plan?.toLowerCase()) {
       case 'basic':
+      case 'corporativa':
         return <Badge variant="secondary" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px] py-0 px-2 font-semibold">Plan Basic</Badge>;
       case 'pro':
+      case 'dinamica':
         return <Badge variant="secondary" className="bg-brand/10 text-brand border-brand/20 text-[10px] py-0 px-2 font-semibold animate-pulse-glow">Plan Pro</Badge>;
       case 'ecommerce':
         return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px] py-0 px-2 font-semibold">Plan Ecommerce</Badge>;
@@ -382,6 +384,9 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                           <button onClick={(e) => handleNavClick(e, 'dashboard')} className="flex w-full items-center gap-2.5 px-4 py-2 text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground">
                             <LayoutDashboard size={15} className="text-brand/80" /> Mi Panel de Control
                           </button>
+                          <button onClick={(e) => handleNavClick(e, 'billing')} className="flex w-full items-center gap-2.5 px-4 py-2 text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground">
+                            <CreditCard size={15} className="text-emerald-500/80" /> Facturación
+                          </button>
                           <button onClick={(e) => handleNavClick(e, 'settings')} className="flex w-full items-center gap-2.5 px-4 py-2 text-muted-foreground transition-all hover:bg-muted/40 hover:text-foreground">
                             <Settings size={15} className="text-brand-accent/80" /> Ajustes de Cuenta
                           </button>
@@ -578,6 +583,10 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                 <div className="flex flex-col gap-2">
                   <button onClick={(e) => handleNavClick(e, 'dashboard')} className={cn('flex items-center justify-between rounded-xl border p-3.5 font-semibold transition-all', isActive('/dashboard') ? 'border-border/80 bg-muted text-foreground' : 'border-transparent text-muted-foreground')}>
                     <span className="flex items-center gap-2.5"><LayoutDashboard size={16} className="text-brand" /> Panel de Control</span>
+                    <ChevronDown size={14} className="-rotate-90 text-muted-foreground" />
+                  </button>
+                  <button onClick={(e) => handleNavClick(e, 'billing')} className={cn('flex items-center justify-between rounded-xl border p-3.5 font-semibold transition-all', isActive('/billing') ? 'border-border/80 bg-muted text-foreground' : 'border-transparent text-muted-foreground')}>
+                    <span className="flex items-center gap-2.5"><CreditCard size={16} className="text-emerald-500" /> Facturación</span>
                     <ChevronDown size={14} className="-rotate-90 text-muted-foreground" />
                   </button>
                   <button onClick={(e) => handleNavClick(e, 'settings')} className={cn('flex items-center justify-between rounded-xl border p-3.5 font-semibold transition-all', isActive('/settings') ? 'border-border/80 bg-muted text-foreground' : 'border-transparent text-muted-foreground')}>

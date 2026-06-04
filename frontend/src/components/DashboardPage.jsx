@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { updateProfile, getRealInvoices, createBillingPortalSession, getSiteAudit } from '@/lib/api';
+import { updateProfile, getRealInvoices, createBillingPortalSession, getSiteAudit, getSubscription } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG = {
@@ -38,7 +38,7 @@ const STATUS_CONFIG = {
   },
 };
 
-export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenSiteIDE, onOpenProgress, onRetrySite, onDeleteSite, onUpdateUser, onAddNotification }) {
+export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenSiteIDE, onOpenProgress, onRetrySite, onDeleteSite, onUpdateUser, onAddNotification, onOpenBilling }) {
   const [siteActionLoading, setSiteActionLoading] = useState(null); // 'retry' | 'delete' | null
   const site = user.siteStatus && user.siteStatus !== 'none' ? {
     businessName: user.siteName,
@@ -72,6 +72,17 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
     else setAudit({ available: false, reason: 'no_site' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.siteStatus, user?.siteDomain]);
+
+  // Estado real de la suscripción (para mostrar la próxima renovación, no un dato fijo).
+  const [subscription, setSubscription] = useState(null);
+  useEffect(() => {
+    let active = true;
+    getSubscription().then((s) => { if (active) setSubscription(s); }).catch(() => {});
+    return () => { active = false; };
+  }, [user?.plan]);
+  const nextRenewalLabel = subscription?.currentPeriodEnd
+    ? new Date(subscription.currentPeriodEnd).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
 
   // 0..100 → color (verde >=90, ámbar >=50, rojo); null → neutro.
   const scoreClass = (s) =>
@@ -711,7 +722,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                       { label: 'Suscripción', value: planDetails.name, highlight: true },
                       { label: 'Importe mensual', value: planDetails.price },
                       { label: 'Capacidad de Edición', value: planDetails.limit, textMuted: true },
-                      { label: 'Próxima Factura', value: '25 Jun 2026', icon: <Calendar className="w-3 h-3 text-muted-foreground" /> },
+                      { label: subscription?.cancelAtPeriodEnd ? 'Acceso hasta' : 'Próxima Factura', value: nextRenewalLabel, icon: <Calendar className="w-3 h-3 text-muted-foreground" /> },
                     ].map(({ label, value, highlight, textMuted, icon }, i) => (
                       <div key={i} className="flex justify-between items-center text-xs">
                         <span className="text-muted-foreground">{label}</span>
@@ -748,17 +759,17 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                       variant="outline"
                       size="sm"
                       className="flex-1 text-[10px] font-bold rounded-full py-4 h-8 border-border hover:bg-muted/80 cursor-pointer"
-                      onClick={() => setShowUpgradeModal(true)}
+                      onClick={() => (onOpenBilling ? onOpenBilling() : setShowUpgradeModal(true))}
                     >
-                      Mejorar Plan
+                      Cambiar Plan
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="text-[10px] font-semibold text-muted-foreground hover:text-brand-accent rounded-full py-4 h-8 cursor-pointer"
-                      onClick={() => setShowManageModal(true)}
+                      onClick={() => (onOpenBilling ? onOpenBilling() : setShowManageModal(true))}
                     >
-                      Gestionar
+                      Facturación
                     </Button>
                   </div>
                 </CardContent>

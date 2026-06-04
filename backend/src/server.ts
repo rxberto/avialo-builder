@@ -23,8 +23,8 @@ import { buildAssistantSystemPrompt } from "./prompts/assistant.js";
 import { recordJobUsage } from "./agent/usageLog.js";
 import { readSiteConfig, applySiteConfig } from "./services/applyConfig.js";
 import { cleanupUserSite } from "./services/siteCleanup.js";
-import { creditsForPlan, nextCreditsResetDate } from "./config/plans.js";
-import { stripe } from "./config/stripe.js";
+import { creditsForPlan, nextCreditsResetDate, isAssignablePlan } from "./config/plans.js";
+import { stripe, priceIdForPlan, planFromPriceId, PLAN_MONTHLY_AMOUNT } from "./config/stripe.js";
 import { redisConnection } from "./config/redis.js";
 import { initObservability, logger, captureError } from "./config/observability.js";
 import { pinoHttp } from "pino-http";
@@ -115,8 +115,11 @@ async function applySubscriptionState(params: {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   plan: string; // "none" para revocar, o el webType para activar
+  // Si es false, activa/cambia el plan SIN resetear los créditos (para evitar regalar
+  // créditos en eventos subscription.updated incidentales donde el plan no cambia).
+  resetCredits?: boolean;
 }): Promise<void> {
-  const { userId, stripeCustomerId, stripeSubscriptionId, plan } = params;
+  const { userId, stripeCustomerId, stripeSubscriptionId, plan, resetCredits = true } = params;
 
   // Localizar al usuario por id explícito, por customer o por subscription
   const where = userId
@@ -139,13 +142,42 @@ async function applySubscriptionState(params: {
   if (plan === "none") {
     // Revocación: no tocamos créditos, solo bloqueamos el acceso al gating de plan
     console.log("🔒 [STRIPE] Revocando plan (suscripción no activa).");
-  } else {
+  } else if (resetCredits) {
     data.aiCredits = creditsForPlan(plan);
     data.creditsResetDate = nextCreditsResetDate();
     console.log(`✅ [STRIPE] Activando plan "${plan}" con ${data.aiCredits} créditos.`);
+  } else {
+    console.log(`ℹ️ [STRIPE] Sincronizando plan "${plan}" sin tocar créditos (sin cambio de plan).`);
   }
 
   await prisma.user.updateMany({ where: where as any, data: data as any });
+}
+
+/**
+ * Fija como predeterminado el método de pago capturado en una sesión de Checkout en modo `setup`.
+ * Lo aplica al customer (facturas futuras) y a su suscripción activa (cobros de la suscripción).
+ */
+async function setDefaultPaymentMethodFromSetup(
+  session: Stripe.Checkout.Session,
+  customerId?: string
+): Promise<void> {
+  if (!stripe || !customerId) return;
+  const setupIntentId = typeof session.setup_intent === "string" ? session.setup_intent : session.setup_intent?.id;
+  if (!setupIntentId) return;
+
+  const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+  const pm = typeof setupIntent.payment_method === "string"
+    ? setupIntent.payment_method
+    : setupIntent.payment_method?.id;
+  if (!pm) return;
+
+  await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pm } });
+
+  const user = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
+  if (user?.stripeSubscriptionId) {
+    await stripe.subscriptions.update(user.stripeSubscriptionId, { default_payment_method: pm }).catch(() => {});
+  }
+  console.log(`💳 [STRIPE] Método de pago predeterminado actualizado para customer ${customerId}.`);
 }
 
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req: Request, res: Response): Promise<any> => {
@@ -176,11 +208,20 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+        const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
+
+        if (session.mode === "setup") {
+          // Actualización del método de pago: fijar la nueva tarjeta como predeterminada.
+          await setDefaultPaymentMethodFromSetup(session, customerId);
+          break;
+        }
+
+        // mode === "subscription": activación del plan tras la compra inicial.
         const userId = session.metadata?.userId ? parseInt(session.metadata.userId, 10) : undefined;
         const plan = session.metadata?.webType || "dinamica";
         await applySubscriptionState({
           userId: Number.isNaN(userId as number) ? undefined : userId,
-          stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id,
+          stripeCustomerId: customerId,
           stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : session.subscription?.id,
           plan,
         });
@@ -189,14 +230,30 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
 
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
+        const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
         const activeStates = ["active", "trialing"];
-        if (!activeStates.includes(sub.status)) {
-          // past_due, unpaid, canceled, incomplete_expired => revocar acceso
-          await applySubscriptionState({
-            stripeCustomerId: typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
-            stripeSubscriptionId: sub.id,
-            plan: "none",
-          });
+        if (activeStates.includes(sub.status)) {
+          // Activa: derivar el plan del precio actual (cubre upgrades/downgrades vía change-plan).
+          const priceId = sub.items?.data?.[0]?.price?.id;
+          const plan = planFromPriceId(priceId);
+          if (plan) {
+            // Solo reseteamos créditos si el plan REALMENTE cambia (evita regalar créditos
+            // en eventos subscription.updated incidentales). El reseteo por renovación lo
+            // gestiona invoice.paid.
+            const existing = await prisma.user.findFirst({ where: { stripeSubscriptionId: sub.id } });
+            const planChanged = !existing || existing.plan !== plan;
+            await applySubscriptionState({
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: sub.id,
+              plan,
+              resetCredits: planChanged,
+            });
+          } else {
+            console.warn(`⚠️ [STRIPE] subscription.updated activa con price desconocido (${priceId}). Sin cambio de plan.`);
+          }
+        } else {
+          // past_due/unpaid/canceled/incomplete_expired => revocar acceso al gating de plan.
+          await applySubscriptionState({ stripeCustomerId: customerId, stripeSubscriptionId: sub.id, plan: "none" });
         }
         break;
       }
@@ -211,12 +268,28 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
         break;
       }
 
-      case "invoice.payment_failed": {
+      case "invoice.paid": {
+        // Renovación mensual: reponer los créditos del plan vigente. Solo en el ciclo de
+        // renovación (no en la factura inicial, que ya activó checkout.session.completed).
         const invoice = event.data.object as Stripe.Invoice;
-        await applySubscriptionState({
-          stripeCustomerId: typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id,
-          plan: "none",
-        });
+        if (invoice.billing_reason === "subscription_cycle") {
+          // El price del line item vive en `price` (API antigua) o en `pricing.price_details.price`.
+          const line: any = invoice.lines?.data?.[0];
+          const priceId: string | undefined = line?.price?.id ?? line?.pricing?.price_details?.price;
+          const plan = planFromPriceId(priceId);
+          const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+          if (plan) {
+            await applySubscriptionState({ stripeCustomerId: customerId, plan });
+          }
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        // No revocamos aquí: Stripe reintenta (dunning). El acceso se revoca solo cuando la
+        // suscripción pase a past_due/unpaid/canceled vía customer.subscription.updated/deleted.
+        const invoice = event.data.object as Stripe.Invoice;
+        console.warn(`⚠️ [STRIPE] Pago de factura fallido (${invoice.id}). En reintento/dunning; sin revocar todavía.`);
         break;
       }
 
@@ -355,23 +428,9 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
     return res.status(401).json({ error: "No autorizado." });
   }
 
-  const webType: string = clientData?.websiteArchitecture?.type || "dinamica";
-  
-  // Precios mensuales recurrentes
-  const PRICES_MONTHLY: Record<string, number> = {
-    corporativa: 2900,  // Basic: 29€ al mes
-    dinamica:    5900,  // Pro: 59€ al mes
-    ecommerce:   11900, // Ecommerce: 119€ al mes
-  };
-  
-  const precioEnCentimos = PRICES_MONTHLY[webType] ?? 5900;
-  
-  const PRODUCT_NAMES: Record<string, string> = {
-    corporativa: "Plan SaaS Avialo Basic",
-    dinamica:    "Plan SaaS Avialo Pro",
-    ecommerce:   "Plan SaaS Avialo Ecommerce",
-  };
-  const nombreProducto = PRODUCT_NAMES[webType] ?? "Plan SaaS Avialo Pro";
+  // Solo planes facturables canónicos. Si llega algo raro, caemos a "dinamica".
+  let webType: string = clientData?.websiteArchitecture?.type || "dinamica";
+  if (!["corporativa", "dinamica", "ecommerce"].includes(webType)) webType = "dinamica";
 
   // Sin Stripe configurado: en PRODUCCIÓN es un error duro (jamás simular un pago).
   // En desarrollo se permite un flujo de prueba explícito.
@@ -398,6 +457,13 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       return res.status(404).json({ error: "Usuario no encontrado." });
     }
 
+    // Price ID fijo del plan (creado con `npm run stripe:setup`). Sin él no se puede cobrar.
+    const priceId = priceIdForPlan(webType);
+    if (!priceId) {
+      console.error(`❌ [CHECKOUT] Price ID no configurado para el plan "${webType}". Ejecuta 'npm run stripe:setup'.`);
+      return res.status(503).json({ error: "El sistema de pago no está configurado correctamente. Inténtalo más tarde." });
+    }
+
     let customerId = dbUser.stripeCustomerId || undefined;
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -413,21 +479,9 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
     }
 
     const session = await stripe.checkout.sessions.create({
-      ui_mode: 'embedded' as any,
-      line_items: [{
-        price_data: {
-          currency: "eur",
-          product_data: {
-            name: nombreProducto,
-            description: `Suscripción mensual B2B. Alojamiento e IA para 1 sitio activo completo para la empresa: ${billingData?.companyName || "tu empresa"} (CIF: ${billingData?.cif || "N/A"})`,
-          },
-          unit_amount: precioEnCentimos,
-          recurring: {
-            interval: "month",
-          },
-        },
-        quantity: 1,
-      }],
+      ui_mode: "embedded" as any,
+      // NO pasamos payment_method_types: dejamos que Stripe muestre los métodos elegibles.
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       customer: customerId, // Reutilización del customer (sin customer_email para no duplicar)
       return_url: successUrl || `${process.env.FRONTEND_URL || "http://localhost:5173"}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -519,6 +573,189 @@ app.get("/api/billing/invoices", authenticateToken as any, async (req: AuthReque
   } catch (error: any) {
     console.error("❌ Error recuperando facturas reales de Stripe:", error);
     return res.status(500).json({ error: "Error al recuperar facturas.", details: error.message });
+  }
+});
+
+/**
+ * GET /api/billing/subscription
+ * Estado REAL de la suscripción del usuario (leído en vivo de Stripe). Protegido con JWT.
+ */
+app.get("/api/billing/subscription", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!dbUser?.stripeSubscriptionId) {
+    return res.json({ active: false, plan: dbUser?.plan || "none" });
+  }
+
+  try {
+    const sub = await stripe.subscriptions.retrieve(dbUser.stripeSubscriptionId, {
+      expand: ["default_payment_method", "items.data.price"],
+    });
+    const item = sub.items?.data?.[0];
+    const price = item?.price;
+    const plan = planFromPriceId(price?.id) || dbUser.plan || "none";
+
+    const pmObj: any = sub.default_payment_method;
+    const paymentMethod = pmObj && typeof pmObj !== "string" && pmObj.card
+      ? { brand: pmObj.card.brand, last4: pmObj.card.last4 }
+      : null;
+
+    // current_period_end vive en la suscripción o (en API recientes) en el item.
+    const periodEnd = (sub as any).current_period_end ?? (item as any)?.current_period_end ?? null;
+
+    return res.json({
+      active: ["active", "trialing", "past_due"].includes(sub.status),
+      plan,
+      status: sub.status,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      currentPeriodEnd: periodEnd ? periodEnd * 1000 : null,
+      amount: price?.unit_amount ?? PLAN_MONTHLY_AMOUNT[plan] ?? null,
+      currency: price?.currency || "eur",
+      interval: price?.recurring?.interval || "month",
+      paymentMethod,
+    });
+  } catch (error: any) {
+    // La suscripción ya no existe en Stripe (borrada) → reflejar sin suscripción.
+    console.warn("⚠️ [BILLING] No se pudo recuperar la suscripción:", error.message);
+    return res.json({ active: false, plan: dbUser.plan || "none" });
+  }
+});
+
+/**
+ * POST /api/billing/change-plan  { plan }
+ * Cambia de plan in-app con prorrateo. El webhook subscription.updated reconcilia plan+créditos.
+ * Si el usuario no tiene suscripción activa, responde 409 { needsCheckout } para abrir Checkout.
+ */
+app.post("/api/billing/change-plan", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const { plan } = req.body || {};
+  if (!isAssignablePlan(plan) || plan === "none") {
+    return res.status(400).json({ error: "Plan no válido." });
+  }
+  const priceId = priceIdForPlan(plan);
+  if (!priceId) return res.status(503).json({ error: "Ese plan no está disponible para cobro." });
+
+  const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!dbUser?.stripeSubscriptionId) {
+    return res.status(409).json({ error: "No tienes una suscripción activa.", needsCheckout: true });
+  }
+
+  try {
+    const sub = await stripe.subscriptions.retrieve(dbUser.stripeSubscriptionId);
+    if (["canceled", "incomplete_expired"].includes(sub.status)) {
+      return res.status(409).json({ error: "Tu suscripción no está activa.", needsCheckout: true });
+    }
+    const item = sub.items?.data?.[0];
+    if (!item?.id) return res.status(409).json({ error: "Suscripción sin línea facturable.", needsCheckout: true });
+    if (item.price?.id === priceId) return res.status(400).json({ error: "Ya tienes ese plan." });
+
+    await stripe.subscriptions.update(dbUser.stripeSubscriptionId, {
+      items: [{ id: item.id, price: priceId }],
+      proration_behavior: "create_prorations",
+      cancel_at_period_end: false, // si estaba marcada para cancelar, la reactivamos al cambiar
+    });
+    return res.json({ success: true, plan });
+  } catch (error: any) {
+    console.error("❌ [BILLING] Error al cambiar de plan:", error);
+    return res.status(500).json({ error: "No se pudo cambiar de plan.", details: error.message });
+  }
+});
+
+/**
+ * POST /api/billing/cancel — programa la cancelación al final del periodo (mantiene acceso).
+ */
+app.post("/api/billing/cancel", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!dbUser?.stripeSubscriptionId) return res.status(400).json({ error: "No tienes una suscripción activa." });
+
+  try {
+    await stripe.subscriptions.update(dbUser.stripeSubscriptionId, { cancel_at_period_end: true });
+    return res.json({ success: true, cancelAtPeriodEnd: true });
+  } catch (error: any) {
+    console.error("❌ [BILLING] Error al cancelar:", error);
+    return res.status(500).json({ error: "No se pudo cancelar la suscripción.", details: error.message });
+  }
+});
+
+/**
+ * POST /api/billing/resume — deshace una cancelación programada.
+ */
+app.post("/api/billing/resume", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!dbUser?.stripeSubscriptionId) return res.status(400).json({ error: "No tienes una suscripción." });
+
+  try {
+    await stripe.subscriptions.update(dbUser.stripeSubscriptionId, { cancel_at_period_end: false });
+    return res.json({ success: true, cancelAtPeriodEnd: false });
+  } catch (error: any) {
+    console.error("❌ [BILLING] Error al reanudar:", error);
+    return res.status(500).json({ error: "No se pudo reanudar la suscripción.", details: error.message });
+  }
+});
+
+/**
+ * POST /api/billing/update-payment-method
+ * Crea una sesión de Checkout en modo `setup` (embedded) para capturar una nueva tarjeta.
+ * El webhook checkout.session.completed (mode=setup) la fija como predeterminada.
+ */
+app.post("/api/billing/update-payment-method", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!dbUser?.stripeCustomerId) return res.status(400).json({ error: "No tienes un perfil de facturación todavía." });
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "setup",
+      ui_mode: "embedded" as any,
+      customer: dbUser.stripeCustomerId,
+      return_url: `${process.env.FRONTEND_URL || "http://localhost:5173"}/billing?card=updated&session_id={CHECKOUT_SESSION_ID}`,
+      metadata: { userId: req.user.id.toString() },
+    });
+    return res.json({ clientSecret: session.client_secret });
+  } catch (error: any) {
+    console.error("❌ [BILLING] Error al iniciar actualización de tarjeta:", error);
+    return res.status(500).json({ error: "No se pudo iniciar la actualización de la tarjeta.", details: error.message });
+  }
+});
+
+/**
+ * GET /api/billing/verify-session?session_id=...
+ * Verifica en servidor el resultado de una sesión de Checkout (sin confiar en el cliente).
+ * Solo devuelve datos si la sesión pertenece al usuario autenticado.
+ */
+app.get("/api/billing/verify-session", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const sessionId = String(req.query.session_id || "");
+  if (!sessionId.startsWith("cs_")) return res.status(400).json({ error: "session_id no válido." });
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.metadata?.userId !== String(req.user.id)) {
+      return res.status(403).json({ error: "Esta sesión no pertenece a tu cuenta." });
+    }
+    return res.json({
+      paid: session.payment_status === "paid" || session.status === "complete",
+      plan: session.metadata?.webType || null,
+      status: session.status,
+      mode: session.mode,
+    });
+  } catch (error: any) {
+    console.error("❌ [BILLING] Error al verificar la sesión:", error);
+    return res.status(500).json({ error: "No se pudo verificar la sesión." });
   }
 });
 

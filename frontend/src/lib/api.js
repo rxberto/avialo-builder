@@ -175,6 +175,80 @@ export async function getRealInvoices() {
   return response.json();
 }
 
+/**
+ * Estado REAL de la suscripción del usuario (leído en vivo de Stripe).
+ * Devuelve { active, plan, status, currentPeriodEnd, cancelAtPeriodEnd, amount, currency, interval, paymentMethod }.
+ */
+export async function getSubscription() {
+  const response = await fetch(`${API_BASE}/api/billing/subscription`, { headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo cargar la suscripción.');
+  }
+  return response.json();
+}
+
+/**
+ * Cambia de plan in-app (con prorrateo). Si no hay suscripción activa, el backend responde 409
+ * con { needsCheckout: true }; en ese caso lanzamos un error con esa marca para que la UI abra Checkout.
+ */
+export async function changePlan(plan) {
+  const response = await fetch(`${API_BASE}/api/billing/change-plan`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ plan }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data.error || 'No se pudo cambiar de plan.');
+    error.needsCheckout = !!data.needsCheckout;
+    throw error;
+  }
+  return data;
+}
+
+/** Programa la cancelación de la suscripción al final del periodo (mantiene acceso hasta entonces). */
+export async function cancelSubscription() {
+  const response = await fetch(`${API_BASE}/api/billing/cancel`, { method: 'POST', headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo cancelar la suscripción.');
+  }
+  return response.json();
+}
+
+/** Reanuda una suscripción marcada para cancelar. */
+export async function resumeSubscription() {
+  const response = await fetch(`${API_BASE}/api/billing/resume`, { method: 'POST', headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo reanudar la suscripción.');
+  }
+  return response.json();
+}
+
+/** Inicia la actualización de la tarjeta: devuelve { clientSecret } para montar Checkout (setup) embedded. */
+export async function updatePaymentMethod() {
+  const response = await fetch(`${API_BASE}/api/billing/update-payment-method`, { method: 'POST', headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo iniciar la actualización de la tarjeta.');
+  }
+  return response.json();
+}
+
+/** Verifica en servidor el resultado de una sesión de Checkout. Devuelve { paid, plan, status, mode }. */
+export async function verifyCheckoutSession(sessionId) {
+  const response = await fetch(`${API_BASE}/api/billing/verify-session?session_id=${encodeURIComponent(sessionId)}`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo verificar el pago.');
+  }
+  return response.json();
+}
+
 // ============================================
 // SERVICIOS DE AUTENTICACIÓN REAL (NUEVO)
 // ============================================

@@ -18,7 +18,8 @@ const GoogleOnboarding = lazy(() => import('./components/GoogleOnboarding'));
 const SettingsPage = lazy(() => import('./components/SettingsPage'));
 const AdminPage = lazy(() => import('./components/AdminPage'));
 const IAInfoPage = lazy(() => import('./components/IAInfoPage'));
-import { createJob, getProfile, updateProfile, retryJob, deleteJob } from './lib/api';
+const BillingPage = lazy(() => import('./components/BillingPage'));
+import { createJob, getProfile, updateProfile, retryJob, deleteJob, verifyCheckoutSession } from './lib/api';
 import { readStoredJSON } from './lib/utils';
 
 // Fallback mientras se descarga el chunk de una ruta diferida
@@ -143,24 +144,24 @@ function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const payment = params.get('payment');
-    const selectedPlan = localStorage.getItem('avialo_selected_plan');
 
     if (payment === 'success' && user) {
-      const plan = selectedPlan || 'pro';
-      const updatedUser = { ...user, plan };
-      setUser(updatedUser);
-      localStorage.setItem('avialo_user', JSON.stringify(updatedUser));
-      localStorage.setItem('avialo_plan', plan);
+      // SEGURIDAD: NUNCA fijamos el plan desde el cliente. El plan REAL lo activa el webhook
+      // de Stripe (checkout.session.completed). Aquí solo verificamos la sesión en servidor
+      // y re-sincronizamos el perfil hasta reflejar el plan activado por el webhook.
+      const sessionId = params.get('session_id');
       localStorage.removeItem('avialo_selected_plan');
-      
-      // Guardar de forma persistente en la base de datos de PostgreSQL real
-      updateProfile({ plan }).then((updatedProfile) => {
-        // Sincronizar inmediatamente para obtener el balance y fecha de reinicio calculada
-        setUser(prev => ({ ...prev, ...updatedProfile }));
-        localStorage.setItem('avialo_user', JSON.stringify({ ...updatedUser, ...updatedProfile }));
-      }).catch(err => console.error('⚠️ Error al registrar plan real de Stripe en la base de datos:', err));
-      
       window.history.replaceState({}, '', window.location.pathname);
+
+      (async () => {
+        try { if (sessionId) await verifyCheckoutSession(sessionId); } catch { /* verificación best-effort */ }
+        for (let i = 0; i < 5; i++) {
+          const synced = await syncProfile();
+          if (synced?.plan && synced.plan !== 'none') break;
+          await new Promise((r) => setTimeout(r, 2500));
+        }
+      })();
+
       navigate('/dashboard');
     } else if (payment === 'cancel') {
       window.history.replaceState({}, '', window.location.pathname);
@@ -448,6 +449,7 @@ function App() {
                 }}
                 onRetrySite={handleRetryGeneration}
                 onDeleteSite={handleDeleteGeneration}
+                onOpenBilling={() => navigate('/billing')}
                 onUpdateUser={persistUser}
                 onAddNotification={handleAddNotification}
               />
@@ -465,6 +467,16 @@ function App() {
               <SettingsPage
                 user={user}
                 onUpdateUser={persistUser}
+                onAddNotification={handleAddNotification}
+              />
+            </RequireAuth>
+          } />
+
+          <Route path="/billing" element={
+            <RequireAuth user={user} location={location}>
+              <BillingPage
+                user={user}
+                onSyncProfile={syncProfile}
                 onAddNotification={handleAddNotification}
               />
             </RequireAuth>
