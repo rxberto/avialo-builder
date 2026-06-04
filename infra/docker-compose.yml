@@ -102,6 +102,9 @@ services:
       - STRIPE_PRICE_CORPORATIVA=${STRIPE_PRICE_CORPORATIVA}
       - STRIPE_PRICE_DINAMICA=${STRIPE_PRICE_DINAMICA}
       - STRIPE_PRICE_ECOMMERCE=${STRIPE_PRICE_ECOMMERCE}
+      # IVA automático (Stripe Tax). Precios IVA incluido. Activar solo cuando Stripe Tax
+      # esté configurado en el Dashboard (registro fiscal España); si no, dejar sin definir.
+      - STRIPE_AUTOMATIC_TAX=${STRIPE_AUTOMATIC_TAX}
       - JWT_SECRET=${JWT_SECRET}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NODE_ENV=production

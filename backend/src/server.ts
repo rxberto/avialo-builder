@@ -24,7 +24,7 @@ import { recordJobUsage } from "./agent/usageLog.js";
 import { readSiteConfig, applySiteConfig } from "./services/applyConfig.js";
 import { cleanupUserSite } from "./services/siteCleanup.js";
 import { creditsForPlan, nextCreditsResetDate, isAssignablePlan } from "./config/plans.js";
-import { stripe, priceIdForPlan, planFromPriceId, PLAN_MONTHLY_AMOUNT } from "./config/stripe.js";
+import { stripe, priceIdForPlan, planFromPriceId, PLAN_MONTHLY_AMOUNT, STRIPE_AUTOMATIC_TAX } from "./config/stripe.js";
 import { redisConnection } from "./config/redis.js";
 import { initObservability, logger, captureError } from "./config/observability.js";
 import { pinoHttp } from "pino-http";
@@ -118,17 +118,19 @@ async function applySubscriptionState(params: {
   // Si es false, activa/cambia el plan SIN resetear los créditos (para evitar regalar
   // créditos en eventos subscription.updated incidentales donde el plan no cambia).
   resetCredits?: boolean;
+  // Si es true, borra el stripeSubscriptionId del usuario (al eliminarse la suscripción).
+  clearSubscriptionId?: boolean;
 }): Promise<void> {
-  const { userId, stripeCustomerId, stripeSubscriptionId, plan, resetCredits = true } = params;
+  const { userId, stripeCustomerId, stripeSubscriptionId, plan, resetCredits = true, clearSubscriptionId = false } = params;
 
-  // Localizar al usuario por id explícito, por customer o por subscription
-  const where = userId
-    ? { id: userId }
-    : stripeSubscriptionId
-      ? { stripeSubscriptionId }
-      : stripeCustomerId
-        ? { stripeCustomerId }
-        : null;
+  // Localizar al usuario. Por id explícito si lo hay; si no, por subscription O customer
+  // (con OR) para ser robustos al ORDEN de llegada de los eventos: si subscription.updated
+  // llega antes de checkout.session.completed, el usuario aún no tiene el subscriptionId
+  // enlazado y solo casa por customerId.
+  const orClauses: Array<Record<string, string>> = [];
+  if (stripeSubscriptionId) orClauses.push({ stripeSubscriptionId });
+  if (stripeCustomerId) orClauses.push({ stripeCustomerId });
+  const where = userId ? { id: userId } : orClauses.length ? { OR: orClauses } : null;
 
   if (!where) {
     console.warn("⚠️ [STRIPE] Evento sin identificador de usuario resoluble. Ignorado.");
@@ -138,6 +140,7 @@ async function applySubscriptionState(params: {
   const data: Record<string, unknown> = { plan };
   if (stripeCustomerId) data.stripeCustomerId = stripeCustomerId;
   if (stripeSubscriptionId) data.stripeSubscriptionId = stripeSubscriptionId;
+  if (clearSubscriptionId) data.stripeSubscriptionId = null;
 
   if (plan === "none") {
     // Revocación: no tocamos créditos, solo bloqueamos el acceso al gating de plan
@@ -231,15 +234,19 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-        const activeStates = ["active", "trialing"];
-        if (activeStates.includes(sub.status)) {
-          // Activa: derivar el plan del precio actual (cubre upgrades/downgrades vía change-plan).
+        // Mantenemos el acceso mientras Stripe da por buena/recuperable la suscripción.
+        // `past_due` = pago de renovación fallido pero EN reintento (dunning): conservamos el
+        // acceso para no expulsar al cliente por un fallo transitorio de tarjeta. La revocación
+        // solo llega en estados terminales (unpaid/canceled/incomplete_expired).
+        const keepAccess = ["active", "trialing", "past_due"].includes(sub.status);
+        if (keepAccess) {
+          // Derivar el plan del precio actual (cubre upgrades/downgrades vía change-plan).
           const priceId = sub.items?.data?.[0]?.price?.id;
           const plan = planFromPriceId(priceId);
           if (plan) {
             // Solo reseteamos créditos si el plan REALMENTE cambia (evita regalar créditos
-            // en eventos subscription.updated incidentales). El reseteo por renovación lo
-            // gestiona invoice.paid.
+            // en eventos subscription.updated incidentales, p. ej. al pasar a past_due). El
+            // reseteo por renovación lo gestiona invoice.paid.
             const existing = await prisma.user.findFirst({ where: { stripeSubscriptionId: sub.id } });
             const planChanged = !existing || existing.plan !== plan;
             await applySubscriptionState({
@@ -252,7 +259,7 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
             console.warn(`⚠️ [STRIPE] subscription.updated activa con price desconocido (${priceId}). Sin cambio de plan.`);
           }
         } else {
-          // past_due/unpaid/canceled/incomplete_expired => revocar acceso al gating de plan.
+          // unpaid/canceled/incomplete_expired/incomplete => revocar acceso al gating de plan.
           await applySubscriptionState({ stripeCustomerId: customerId, stripeSubscriptionId: sub.id, plan: "none" });
         }
         break;
@@ -264,6 +271,7 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
           stripeCustomerId: typeof sub.customer === "string" ? sub.customer : sub.customer?.id,
           stripeSubscriptionId: sub.id,
           plan: "none",
+          clearSubscriptionId: true,
         });
         break;
       }
@@ -457,6 +465,24 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       return res.status(404).json({ error: "Usuario no encontrado." });
     }
 
+    // SEGURIDAD DE COBRO: si el usuario ya tiene una suscripción vigente, NO abrimos un
+    // segundo Checkout (evita doble suscripción / doble cobro). Para upgrades/downgrades
+    // se usa /api/billing/change-plan (prorrateo). Si la suscripción ya no existe o está
+    // cerrada en Stripe, seguimos y dejamos que contrate una nueva.
+    if (dbUser.stripeSubscriptionId) {
+      try {
+        const existingSub = await stripe.subscriptions.retrieve(dbUser.stripeSubscriptionId);
+        if (["active", "trialing", "past_due"].includes(existingSub.status)) {
+          return res.status(409).json({
+            error: "Ya tienes una suscripción activa. Cambia de plan desde Facturación.",
+            alreadySubscribed: true,
+          });
+        }
+      } catch {
+        // La suscripción ya no existe en Stripe: continuar y permitir contratar una nueva.
+      }
+    }
+
     // Price ID fijo del plan (creado con `npm run stripe:setup`). Sin él no se puede cobrar.
     const priceId = priceIdForPlan(webType);
     if (!priceId) {
@@ -478,7 +504,7 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       }).catch((err: any) => console.error("⚠️ No se pudo persistir stripeCustomerId:", err));
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       ui_mode: "embedded" as any,
       // NO pasamos payment_method_types: dejamos que Stripe muestre los métodos elegibles.
       line_items: [{ price: priceId, quantity: 1 }],
@@ -491,7 +517,19 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
         companyName: billingData?.companyName ?? "",
         cif: billingData?.cif ?? "",
       },
-    });
+    };
+
+    // IVA automático (Stripe Tax). Los precios son IVA incluido; Stripe desglosa el 21% en la
+    // factura. Requiere dirección del cliente (la recogemos) y, para B2B, el NIF/CIF (reverse
+    // charge intracomunitario). Solo cuando STRIPE_AUTOMATIC_TAX=true para no romper el cobro.
+    if (STRIPE_AUTOMATIC_TAX) {
+      sessionParams.automatic_tax = { enabled: true };
+      sessionParams.billing_address_collection = "required";
+      sessionParams.customer_update = { address: "auto", name: "auto" };
+      sessionParams.tax_id_collection = { enabled: true };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     console.log(`💳 Sesión de suscripción Stripe creada (Embedded): ${session.id}`);
     return res.json({ sessionId: session.id, clientSecret: session.client_secret });
@@ -657,6 +695,8 @@ app.post("/api/billing/change-plan", authenticateToken as any, async (req: AuthR
       items: [{ id: item.id, price: priceId }],
       proration_behavior: "create_prorations",
       cancel_at_period_end: false, // si estaba marcada para cancelar, la reactivamos al cambiar
+      // El IVA del prorrateo y de las renovaciones se calcula con Stripe Tax (precios IVA incluido).
+      ...(STRIPE_AUTOMATIC_TAX ? { automatic_tax: { enabled: true } } : {}),
     });
     return res.json({ success: true, plan });
   } catch (error: any) {

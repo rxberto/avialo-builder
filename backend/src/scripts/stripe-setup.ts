@@ -39,8 +39,13 @@ async function main(): Promise<void> {
     const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
     let price = existing.data[0];
 
-    if (price && price.unit_amount === amount && price.recurring?.interval === "month") {
-      console.log(`✓ ${plan}: precio ya existe (${price.id}) — reutilizado.`);
+    if (
+      price &&
+      price.unit_amount === amount &&
+      price.recurring?.interval === "month" &&
+      price.tax_behavior === "inclusive"
+    ) {
+      console.log(`✓ ${plan}: precio ya existe IVA incluido (${price.id}) — reutilizado.`);
     } else {
       // 2) Reutilizar producto del precio previo o crear uno nuevo.
       let productId =
@@ -55,16 +60,19 @@ async function main(): Promise<void> {
       }
 
       // 3) Crear el precio recurrente mensual en EUR y moverle el lookup_key.
+      //    tax_behavior "inclusive": el importe (29/59/119€) es IVA INCLUIDO; con Stripe Tax
+      //    activado, el 21% se desglosa en la factura (base + IVA = total mostrado).
       price = await stripe.prices.create({
         product: productId,
         currency: "eur",
         unit_amount: amount,
         recurring: { interval: "month" },
+        tax_behavior: "inclusive",
         lookup_key: lookupKey,
         transfer_lookup_key: true,
         metadata: { avialo_plan: plan },
       });
-      console.log(`＋ ${plan}: precio creado (${price.id}, ${(amount / 100).toFixed(2)}€/mes).`);
+      console.log(`＋ ${plan}: precio creado IVA incluido (${price.id}, ${(amount / 100).toFixed(2)}€/mes).`);
     }
 
     out.push(`${PLAN_ENV_NAME[plan]}=${price.id}`);

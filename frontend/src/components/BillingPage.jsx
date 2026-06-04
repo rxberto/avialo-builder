@@ -289,7 +289,7 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
                       <h3 className="text-sm font-bold uppercase tracking-wide">{meta.label}</h3>
                       <div className="flex items-baseline gap-1 mt-1 mb-3">
                         <span className="text-2xl font-black">{meta.price}€</span>
-                        <span className="text-[10px] text-muted-foreground">/ mes + IVA</span>
+                        <span className="text-[10px] text-muted-foreground">/ mes · IVA incl.</span>
                       </div>
                       <ul className="space-y-1.5 mb-5 flex-1">
                         {meta.features.map((f) => (

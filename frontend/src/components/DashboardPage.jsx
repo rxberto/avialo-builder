@@ -1049,7 +1049,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
 
                         <div className="flex items-baseline gap-1.5 py-2 border-t border-b border-zinc-200 dark:border-zinc-800/60">
                           <span className="text-3xl font-black text-zinc-900 dark:text-white">{p.price}</span>
-                          <span className="text-[10px] text-zinc-500 dark:text-zinc-405">/ mes + IVA</span>
+                          <span className="text-[10px] text-zinc-500 dark:text-zinc-405">/ mes · IVA incl.</span>
                         </div>
 
                         <ul className="space-y-2 text-[10px] font-semibold text-zinc-700 dark:text-zinc-355">

@@ -69,3 +69,19 @@ export function planFromPriceId(priceId?: string | null): string | null {
 export function allPricesConfigured(): boolean {
   return Object.keys(PLAN_PRICE_ENV).every((plan) => !!priceIdForPlan(plan));
 }
+
+// ============================================
+// IVA / IMPUESTOS
+// ============================================
+// Los precios de Avialo son IVA INCLUIDO: el importe que ve el cliente (29/59/119€) es el
+// TOTAL y el 21% de IVA va dentro (tax_behavior "inclusive"). Cuando STRIPE_AUTOMATIC_TAX=true,
+// Stripe Tax calcula y desglosa ese IVA en las facturas (base imponible + 21%), que es lo que
+// exige una factura real española.
+//
+// REQUISITOS para activarlo (en el Dashboard de Stripe, una sola vez):
+//   1) Activar Stripe Tax y registrar la obligación fiscal de España.
+//   2) Que los Price tengan tax_behavior "inclusive" (los crea así `npm run stripe:setup`).
+//   3) Se recoge la dirección del cliente en el Checkout (necesaria para calcular el IVA).
+// Por defecto DESACTIVADO: así, si Stripe Tax aún no está configurado, el cobro no se rompe
+// (se cobra el importe íntegro como hasta ahora) y se activa con la variable cuando todo esté listo.
+export const STRIPE_AUTOMATIC_TAX = process.env.STRIPE_AUTOMATIC_TAX === "true";
