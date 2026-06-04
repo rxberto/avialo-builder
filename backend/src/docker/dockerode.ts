@@ -218,6 +218,9 @@ export async function startPreviewContainer(
       HostConfig: {
         Binds: [`${bindPath}:/usr/share/nginx/html:ro`],
         Memory: 128 * 1024 * 1024, // 128MB
+        // Auto-recuperación: si el contenedor cae (OOM/crash) Docker lo levanta de nuevo,
+        // para que el preview no quede muerto y haya que regenerar.
+        RestartPolicy: { Name: "unless-stopped" },
         ...(useTraefik ? { NetworkMode: "avialo-network" } : { PortBindings }),
       },
     });
@@ -324,6 +327,9 @@ export async function startPreviewContainer(
     HostConfig: {
       Binds: [`${bindPath}:/usr/src/app`],
       Memory: RUNTIME_MEMORY_BYTES,
+      // Auto-recuperación: el runtime de Next.js (256MB) es ajustado y puede caer por OOM.
+      // Con unless-stopped Docker lo reinicia solo en vez de dejar el preview caído.
+      RestartPolicy: { Name: "unless-stopped" },
       ...(useTraefik ? { NetworkMode: "avialo-network" } : { PortBindings }),
     },
   });

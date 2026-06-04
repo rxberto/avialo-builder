@@ -175,6 +175,11 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
   const isLive = status === 'deployed' || user?.siteStatus === 'deployed';
   const effectivePreviewUrl = previewUrl || (isLive && user?.siteDomain ? `http://${user.siteDomain}` : null);
 
+  /* Estado de carga del iframe del preview (para auto-recuperar arranques en frío). */
+  const [previewLoaded, setPreviewLoaded] = useState(false);
+  const [warmAttempt, setWarmAttempt] = useState(0);
+  const MAX_WARM_ATTEMPTS = 3;
+
   /* Panel de configuración (Fase 7) */
   const [showSettings, setShowSettings] = useState(false);
 
@@ -316,6 +321,8 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
   /* Recarga el iframe del preview (con cache-bust). Reintenta un par de veces porque el
      contenedor recién reiniciado tarda unos segundos en aceptar conexiones. */
   const reloadPreview = () => {
+    setPreviewLoaded(false);
+    setWarmAttempt(0);
     const doReload = () => {
       if (!iframeRef.current) return;
       const base = (effectivePreviewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
@@ -324,6 +331,27 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
     setTimeout(doReload, 1500);
     setTimeout(doReload, 5000);
   };
+
+  /* Al cambiar la URL efectiva (nueva web / nuevo contenedor) reseteamos el rastreo de carga. */
+  useEffect(() => {
+    setPreviewLoaded(false);
+    setWarmAttempt(0);
+  }, [effectivePreviewUrl]);
+
+  /* Auto-recuperación de arranque en frío del preview.
+     Síntoma: al entrar al IDE el iframe a veces "cuelga" (el contenedor recién despierto no
+     acepta la primera conexión) y no carga hasta salir y volver a entrar. Si el iframe no
+     dispara onLoad en ~6s, lo recargamos con cache-bust (hasta 3 veces). En el caso normal
+     (carga rápida) onLoad llega antes y NO se recarga nada, así que no degrada la experiencia. */
+  useEffect(() => {
+    if (!effectivePreviewUrl || previewLoaded || warmAttempt >= MAX_WARM_ATTEMPTS) return;
+    const base = effectivePreviewUrl.split('#')[0].split('?')[0];
+    const t = setTimeout(() => {
+      if (iframeRef.current && base) iframeRef.current.src = `${base}?t=${Date.now()}`;
+      setWarmAttempt((a) => a + 1);
+    }, 6000);
+    return () => clearTimeout(t);
+  }, [effectivePreviewUrl, previewLoaded, warmAttempt]);
 
   /* Adjuntar imágenes al chat (se reducen en el cliente antes de subir) */
   const handleAttach = async (e) => {
@@ -1216,8 +1244,13 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                 <button
                   // Reasignar src a sí mismo fuerza la recarga del iframe; funciona
                   // también con previews cross-origin (contentWindow.reload lanzaría error).
-                  // eslint-disable-next-line no-self-assign
-                  onClick={() => { if (iframeRef.current) iframeRef.current.src = iframeRef.current.src; }}
+                  onClick={() => {
+                    if (!iframeRef.current) return;
+                    setPreviewLoaded(false);
+                    setWarmAttempt(0);
+                    const base = (effectivePreviewUrl || iframeRef.current.src || '').split('#')[0].split('?')[0];
+                    if (base) iframeRef.current.src = `${base}?t=${Date.now()}`;
+                  }}
                   className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer ml-0.5"
                   title="Refrescar"
                 >
@@ -1240,6 +1273,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                     ref={iframeRef}
                     src={effectivePreviewUrl}
                     title="Preview"
+                    onLoad={() => setPreviewLoaded(true)}
                     className="w-full h-full border-none"
                     style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
                   />
@@ -1250,6 +1284,26 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                     <div className="text-xs mt-1.5 text-muted-foreground">Esto puede tardar unos segundos</div>
                   </div>
                 )}
+
+                {/* Overlay de "calentando" mientras el iframe aún no ha cargado (arranque en
+                    frío del contenedor). Se oculta en cuanto carga o si nos rendimos. */}
+                <AnimatePresence>
+                  {effectivePreviewUrl && !previewLoaded && warmAttempt < MAX_WARM_ATTEMPTS && status !== 'building' && status !== 'generating' && (
+                    <motion.div
+                      key="warming"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-background/95 flex flex-col items-center justify-center z-10 backdrop-blur-sm"
+                    >
+                      <Globe size={32} className="mb-3 text-violet-500 animate-pulse" />
+                      <div className="text-sm font-semibold text-foreground">Cargando tu web…</div>
+                      <div className="text-xs mt-1.5 text-muted-foreground">
+                        {warmAttempt > 0 ? 'Despertando el contenedor, un momento…' : 'Esto puede tardar unos segundos'}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Overlay de compilación */}
                 <AnimatePresence>
