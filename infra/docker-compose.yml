@@ -98,6 +98,10 @@ services:
       - LLM_PRIMARY=${LLM_PRIMARY}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      # Price IDs de los planes (los genera `npm run stripe:setup` o se copian del Dashboard).
+      - STRIPE_PRICE_CORPORATIVA=${STRIPE_PRICE_CORPORATIVA}
+      - STRIPE_PRICE_DINAMICA=${STRIPE_PRICE_DINAMICA}
+      - STRIPE_PRICE_ECOMMERCE=${STRIPE_PRICE_ECOMMERCE}
       - JWT_SECRET=${JWT_SECRET}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NODE_ENV=production
