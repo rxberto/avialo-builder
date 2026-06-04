@@ -59,6 +59,14 @@ const PLANES = {
   },
 };
 
+// Normaliza un NIF/CIF/NIE español: mayúsculas y SIN guiones, espacios ni puntos (ej: B12345678).
+const normalizeNif = (v) => (v || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+// Valida NIF (8 dígitos + letra), NIE (X/Y/Z + 7 dígitos + letra) o CIF (letra + 7 dígitos + dígito/letra).
+const isValidNif = (v) => {
+  const s = normalizeNif(v);
+  return /^[0-9]{8}[A-Z]$/.test(s) || /^[XYZ][0-9]{7}[A-Z]$/.test(s) || /^[A-Z][0-9]{7}[0-9A-Z]$/.test(s);
+};
+
 export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -121,14 +129,20 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
       setError('Por favor, completa todos los datos de facturación de tu empresa.');
       return;
     }
+    // El NIF/CIF debe ir sin guiones ni espacios (ej: B12345678).
+    if (!isValidNif(cif)) {
+      setShowValidationErrors(true);
+      setError('El NIF/CIF no es válido. Escríbelo sin guiones ni espacios (ej: B12345678).');
+      return;
+    }
 
     setLoading(true);
     setError(null);
     try {
       if (onPreRedirect) onPreRedirect();
-      
-      // Guardar datos de facturación localmente
-      const billingData = { companyName, cif, address, city, postalCode, country };
+
+      // Guardar datos de facturación localmente (NIF/CIF normalizado, sin guiones)
+      const billingData = { companyName, cif: normalizeNif(cif), address, city, postalCode, country };
       localStorage.setItem('avialo_billing_data', JSON.stringify(billingData));
 
       const session = await createCheckoutSession({
@@ -296,11 +310,12 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
                   <input
                     type="text"
                     value={cif}
-                    onChange={(e) => handleFieldChange(setCif, 'cif', e.target.value)}
-                    placeholder="B-12345678"
+                    onChange={(e) => handleFieldChange(setCif, 'cif', normalizeNif(e.target.value))}
+                    placeholder="B12345678"
+                    maxLength={9}
                     className={cn(
-                      "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
-                      showValidationErrors && !cif ? "border-destructive ring-2 ring-destructive/20 bg-destructive/5" : "border-zinc-200 dark:border-zinc-850"
+                      "w-full bg-zinc-50 dark:bg-zinc-950 border rounded-xl px-3.5 py-3 text-xs font-semibold uppercase tracking-wider focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none transition-all",
+                      showValidationErrors && (!cif || !isValidNif(cif)) ? "border-destructive ring-2 ring-destructive/20 bg-destructive/5" : "border-zinc-200 dark:border-zinc-850"
                     )}
                   />
                 </div>

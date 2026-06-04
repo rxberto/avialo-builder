@@ -228,6 +228,15 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
           stripeSubscriptionId: typeof session.subscription === "string" ? session.subscription : session.subscription?.id,
           plan,
         });
+
+        // El Customer lo crea Checkout al completar el pago (ya no se pre-crea). Le añadimos
+        // el nombre fiscal y el NIF/CIF de la empresa (best-effort) para facturas correctas.
+        if (customerId && (session.metadata?.companyName || session.metadata?.cif)) {
+          await stripe.customers.update(customerId, {
+            name: session.metadata?.companyName || undefined,
+            metadata: { userId: session.metadata?.userId ?? "", cif: session.metadata?.cif ?? "" },
+          }).catch((e: any) => console.warn("⚠️ [STRIPE] No se pudo completar datos del customer:", e.message));
+        }
         break;
       }
 
@@ -490,19 +499,12 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       return res.status(503).json({ error: "El sistema de pago no está configurado correctamente. Inténtalo más tarde." });
     }
 
-    let customerId = dbUser.stripeCustomerId || undefined;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: req.user.email,
-        name: billingData?.companyName || dbUser.name || undefined,
-        metadata: { userId: req.user.id.toString(), cif: billingData?.cif ?? "" },
-      });
-      customerId = customer.id;
-      await prisma.user.update({
-        where: { id: req.user.id },
-        data: { stripeCustomerId: customerId },
-      }).catch((err: any) => console.error("⚠️ No se pudo persistir stripeCustomerId:", err));
-    }
+    // El cliente de Stripe se crea SOLO cuando el pago se completa. NO lo pre-creamos aquí:
+    // así, si el usuario abre el Checkout pero no paga, no queda ningún cliente "fantasma" en
+    // Stripe. En modo suscripción, Checkout crea el Customer al completar el pago y lo
+    // recibimos en el webhook checkout.session.completed (que persiste stripeCustomerId).
+    // Solo reutilizamos un customer si YA existe (de un pago anterior correcto).
+    const customerId = dbUser.stripeCustomerId || undefined;
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       // dahlia (2026-03-25) renombró el ui_mode: "embedded" → "embedded_page" (mismo modo
@@ -511,7 +513,6 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       // NO pasamos payment_method_types: dejamos que Stripe muestre los métodos elegibles.
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      customer: customerId, // Reutilización del customer (sin customer_email para no duplicar)
       return_url: successUrl || `${process.env.FRONTEND_URL || "http://localhost:5173"}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         userId: req.user.id.toString(),
@@ -521,14 +522,24 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       },
     };
 
+    if (customerId) {
+      // Cliente ya existente (pago previo): reutilizarlo para no duplicar.
+      sessionParams.customer = customerId;
+    } else {
+      // Cliente nuevo: prerelleno el email; Stripe crea el Customer al completar el pago.
+      sessionParams.customer_email = req.user.email;
+    }
+
     // IVA automático (Stripe Tax). Los precios son IVA incluido; Stripe desglosa el 21% en la
     // factura. Requiere dirección del cliente (la recogemos) y, para B2B, el NIF/CIF (reverse
     // charge intracomunitario). Solo cuando STRIPE_AUTOMATIC_TAX=true para no romper el cobro.
     if (STRIPE_AUTOMATIC_TAX) {
       sessionParams.automatic_tax = { enabled: true };
       sessionParams.billing_address_collection = "required";
-      sessionParams.customer_update = { address: "auto", name: "auto" };
       sessionParams.tax_id_collection = { enabled: true };
+      // customer_update solo aplica a un customer ya existente; si es nuevo, Stripe lo crea
+      // con la dirección recogida en el Checkout.
+      if (customerId) sessionParams.customer_update = { address: "auto", name: "auto" };
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
