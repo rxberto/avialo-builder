@@ -183,6 +183,23 @@ async function setDefaultPaymentMethodFromSetup(
   console.log(`💳 [STRIPE] Método de pago predeterminado actualizado para customer ${customerId}.`);
 }
 
+/**
+ * Convierte un nombre de país (o código) al ISO-3166-1 alpha-2 que espera Stripe.
+ * Devuelve undefined si no se reconoce (mejor no enviar país que enviar uno inválido).
+ */
+function countryToIso(name?: string): string | undefined {
+  if (!name) return undefined;
+  const k = name.trim().toLowerCase();
+  const map: Record<string, string> = {
+    "españa": "ES", "espana": "ES", "spain": "ES",
+    "portugal": "PT", "francia": "FR", "france": "FR",
+    "andorra": "AD", "italia": "IT", "italy": "IT",
+  };
+  if (map[k]) return map[k];
+  if (/^[a-z]{2}$/.test(k)) return k.toUpperCase();
+  return undefined;
+}
+
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async (req: Request, res: Response): Promise<any> => {
   if (!stripe || !stripeWebhookSecret) {
     console.error("❌ [STRIPE] Webhook recibido pero Stripe/STRIPE_WEBHOOK_SECRET no está configurado.");
@@ -307,6 +324,23 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
         // suscripción pase a past_due/unpaid/canceled vía customer.subscription.updated/deleted.
         const invoice = event.data.object as Stripe.Invoice;
         console.warn(`⚠️ [STRIPE] Pago de factura fallido (${invoice.id}). En reintento/dunning; sin revocar todavía.`);
+        break;
+      }
+
+      case "setup_intent.succeeded": {
+        // Tarjeta capturada con nuestro panel (actualizar método de pago). La fijamos como
+        // predeterminada del cliente y de su suscripción. Robusto incluso si hubo 3DS/redirección.
+        const si = event.data.object as Stripe.SetupIntent;
+        const customerId = typeof si.customer === "string" ? si.customer : si.customer?.id;
+        const pm = typeof si.payment_method === "string" ? si.payment_method : si.payment_method?.id;
+        if (customerId && pm) {
+          await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: pm } }).catch(() => {});
+          const u = await prisma.user.findFirst({ where: { stripeCustomerId: customerId } });
+          if (u?.stripeSubscriptionId) {
+            await stripe.subscriptions.update(u.stripeSubscriptionId, { default_payment_method: pm }).catch(() => {});
+          }
+          console.log(`💳 [STRIPE] (setup_intent) tarjeta predeterminada fijada para customer ${customerId}.`);
+        }
         break;
       }
 
@@ -435,11 +469,12 @@ app.post("/chat", authenticateToken as any, async (req: Request, res: Response):
 
 /**
  * POST /api/checkout
- * Crea una sesión de suscripción mensual recurrente B2B en Stripe y devuelve la URL de checkout.
- * Protegido con autenticación por token JWT.
+ * Crea una suscripción mensual B2B en Stripe (payment_behavior=default_incomplete) y devuelve el
+ * client_secret del PaymentIntent de la primera factura para confirmarlo con NUESTRO panel de pago
+ * (Payment Element + Express Checkout). Stripe actúa solo de pasarela. Protegido con JWT.
  */
 app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
-  const { clientData, billingData, successUrl, cancelUrl } = req.body;
+  const { clientData, billingData } = req.body;
 
   if (!req.user) {
     return res.status(401).json({ error: "No autorizado." });
@@ -487,6 +522,11 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
             alreadySubscribed: true,
           });
         }
+        // Suscripción previa incompleta (intento abandonado): la cancelamos para no acumular
+        // suscripciones "incomplete" colgando del cliente antes de crear la nueva.
+        if (existingSub.status === "incomplete") {
+          await stripe.subscriptions.cancel(dbUser.stripeSubscriptionId).catch(() => {});
+        }
       } catch {
         // La suscripción ya no existe en Stripe: continuar y permitir contratar una nueva.
       }
@@ -499,15 +539,15 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       return res.status(503).json({ error: "El sistema de pago no está configurado correctamente. Inténtalo más tarde." });
     }
 
-    // El cliente de Stripe se crea SOLO cuando el pago se completa. NO lo pre-creamos aquí:
-    // así, si el usuario abre el Checkout pero no paga, no queda ningún cliente "fantasma" en
-    // Stripe. En modo suscripción, Checkout crea el Customer al completar el pago y lo
-    // recibimos en el webhook checkout.session.completed (que persiste stripeCustomerId).
-    // Solo reutilizamos un customer si YA existe (de un pago anterior correcto).
+    // PASARELA PROPIA: creamos una suscripción `default_incomplete` y devolvemos el
+    // client_secret del PaymentIntent de la primera factura. El front lo confirma con
+    // nuestro propio formulario (Stripe Payment Element + Express Checkout para Apple/Google
+    // Pay). Stripe actúa SOLO de pasarela; la UI es nuestra. El plan lo activa el webhook
+    // (customer.subscription.updated incomplete→active) tras el pago correcto.
     let customerId = dbUser.stripeCustomerId || undefined;
     // El stripeCustomerId guardado puede ser inválido en el modo actual: creado en TEST y
     // ahora usamos claves LIVE (o al revés), o borrado en el Dashboard. Si no se puede
-    // recuperar (o está borrado), lo ignoramos y dejamos que Checkout cree uno nuevo al pagar.
+    // recuperar (o está borrado), lo ignoramos y creamos uno nuevo (autocurativo).
     if (customerId) {
       let validCustomer = true;
       try {
@@ -519,8 +559,6 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       if (!validCustomer) {
         console.warn(`⚠️ [CHECKOUT] stripeCustomerId "${customerId}" no válido en este modo. Se limpia.`);
         customerId = undefined;
-        // Autocurativo: borramos el ID obsoleto (y la suscripción asociada, también inválida)
-        // para que no vuelva a romper checkout/webhook/billing.
         await prisma.user.update({
           where: { id: req.user.id },
           data: { stripeCustomerId: null, stripeSubscriptionId: null },
@@ -528,46 +566,65 @@ app.post("/api/checkout", authenticateToken as any, async (req: AuthRequest, res
       }
     }
 
-    const sessionParams: Stripe.Checkout.SessionCreateParams = {
-      // dahlia (2026-03-25) renombró el ui_mode: "embedded" → "embedded_page" (mismo modo
-      // de página embebida con client_secret + initEmbeddedCheckout en el front).
-      ui_mode: "embedded_page" as any,
-      // NO pasamos payment_method_types: dejamos que Stripe muestre los métodos elegibles.
-      line_items: [{ price: priceId, quantity: 1 }],
-      mode: "subscription",
-      return_url: successUrl || `${process.env.FRONTEND_URL || "http://localhost:5173"}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      metadata: {
-        userId: req.user.id.toString(),
-        webType,
-        companyName: billingData?.companyName ?? "",
-        cif: billingData?.cif ?? "",
-      },
+    // Datos fiscales B2B para el Customer (nombre/CIF/dirección) → facturas correctas.
+    const fiscalAddress = billingData ? {
+      line1: billingData.address || undefined,
+      city: billingData.city || undefined,
+      postal_code: billingData.postalCode || undefined,
+      country: countryToIso(billingData.country),
+    } : undefined;
+    const customerData: Stripe.CustomerCreateParams = {
+      name: billingData?.companyName || undefined,
+      metadata: { userId: String(req.user.id), cif: billingData?.cif ?? "" },
     };
+    if (fiscalAddress && (fiscalAddress.line1 || fiscalAddress.postal_code)) customerData.address = fiscalAddress;
 
-    if (customerId) {
-      // Cliente ya existente (pago previo): reutilizarlo para no duplicar.
-      sessionParams.customer = customerId;
+    if (!customerId) {
+      // Cliente nuevo: se crea SOLO al pulsar Pagar (no antes). Si abandona sin pagar, la
+      // suscripción incompleta caduca sola en 24h y no queda cobro alguno.
+      const customer = await stripe.customers.create({ email: req.user.email, ...customerData });
+      customerId = customer.id;
     } else {
-      // Cliente nuevo: prerelleno el email; Stripe crea el Customer al completar el pago.
-      sessionParams.customer_email = req.user.email;
+      // Cliente existente: refrescamos sus datos fiscales (best-effort).
+      await stripe.customers.update(customerId, customerData as Stripe.CustomerUpdateParams).catch(() => {});
+    }
+    // Persistimos el customerId ya, para que el webhook pueda localizar al usuario.
+    await prisma.user.update({ where: { id: req.user.id }, data: { stripeCustomerId: customerId } }).catch(() => {});
+
+    // Crear la suscripción incompleta. Expandimos confirmation_secret (API dahlia) para obtener
+    // el client_secret del PaymentIntent de la primera factura.
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: "default_incomplete",
+      payment_settings: { save_default_payment_method: "on_subscription" },
+      expand: ["latest_invoice.confirmation_secret"],
+      metadata: { userId: String(req.user.id), webType, cif: billingData?.cif ?? "" },
+      ...(STRIPE_AUTOMATIC_TAX ? { automatic_tax: { enabled: true } } : {}),
+    } as any);
+
+    // Guardamos el subscriptionId (el plan/créditos los fija el webhook al confirmarse el pago).
+    await prisma.user.update({ where: { id: req.user.id }, data: { stripeSubscriptionId: subscription.id } }).catch(() => {});
+
+    const invoice: any = (subscription as any).latest_invoice;
+    const clientSecret: string | null =
+      invoice?.confirmation_secret?.client_secret ?? invoice?.payment_intent?.client_secret ?? null;
+    if (!clientSecret) {
+      console.error(`❌ [CHECKOUT] Suscripción ${subscription.id} creada sin client_secret de pago.`);
+      // Cancelamos la suscripción huérfana para no dejar una "incomplete" sin forma de pagar.
+      await stripe.subscriptions.cancel(subscription.id).catch(() => {});
+      await prisma.user.update({ where: { id: req.user.id }, data: { stripeSubscriptionId: null } }).catch(() => {});
+      return res.status(500).json({ error: "No se pudo iniciar el pago. Inténtalo de nuevo." });
     }
 
-    // IVA automático (Stripe Tax). Los precios son IVA incluido; Stripe desglosa el 21% en la
-    // factura. Requiere dirección del cliente (la recogemos) y, para B2B, el NIF/CIF (reverse
-    // charge intracomunitario). Solo cuando STRIPE_AUTOMATIC_TAX=true para no romper el cobro.
-    if (STRIPE_AUTOMATIC_TAX) {
-      sessionParams.automatic_tax = { enabled: true };
-      sessionParams.billing_address_collection = "required";
-      sessionParams.tax_id_collection = { enabled: true };
-      // customer_update solo aplica a un customer ya existente; si es nuevo, Stripe lo crea
-      // con la dirección recogida en el Checkout.
-      if (customerId) sessionParams.customer_update = { address: "auto", name: "auto" };
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionParams);
-
-    console.log(`💳 Sesión de suscripción Stripe creada (Embedded): ${session.id}`);
-    return res.json({ sessionId: session.id, clientSecret: session.client_secret });
+    console.log(`💳 Suscripción ${subscription.id} (incompleta) creada para pago con pasarela propia.`);
+    return res.json({
+      clientSecret,
+      subscriptionId: subscription.id,
+      plan: webType,
+      amount: PLAN_MONTHLY_AMOUNT[webType] ?? null,
+      currency: "eur",
+    });
 
   } catch (error: any) {
     console.error("❌ Error creando sesión de suscripción Stripe:", error);
@@ -791,19 +848,50 @@ app.post("/api/billing/update-payment-method", authenticateToken as any, async (
   if (!dbUser?.stripeCustomerId) return res.status(400).json({ error: "No tienes un perfil de facturación todavía." });
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "setup",
-      // dahlia (2026-03-25) renombró el ui_mode: "embedded" → "embedded_page" (mismo modo
-      // de página embebida con client_secret + initEmbeddedCheckout en el front).
-      ui_mode: "embedded_page" as any,
+    // SetupIntent para capturar una tarjeta nueva con NUESTRO formulario (Payment Element).
+    // El front confirma con stripe.confirmSetup y luego llama a /api/billing/default-card.
+    const setupIntent = await stripe.setupIntents.create({
       customer: dbUser.stripeCustomerId,
-      return_url: `${process.env.FRONTEND_URL || "http://localhost:5173"}/billing?card=updated&session_id={CHECKOUT_SESSION_ID}`,
+      usage: "off_session",
+      automatic_payment_methods: { enabled: true },
       metadata: { userId: req.user.id.toString() },
     });
-    return res.json({ clientSecret: session.client_secret });
+    return res.json({ clientSecret: setupIntent.client_secret });
   } catch (error: any) {
     console.error("❌ [BILLING] Error al iniciar actualización de tarjeta:", error);
     return res.status(500).json({ error: "No se pudo iniciar la actualización de la tarjeta.", details: error.message });
+  }
+});
+
+/**
+ * POST /api/billing/default-card  { paymentMethodId }
+ * Fija como predeterminada la tarjeta capturada por un SetupIntent confirmado en el cliente.
+ * Stripe valida que el PaymentMethod pertenezca al customer (se adjunta al confirmar el setup).
+ */
+app.post("/api/billing/default-card", authenticateToken as any, async (req: AuthRequest, res: Response): Promise<any> => {
+  if (!req.user) return res.status(401).json({ error: "No autorizado." });
+  if (!stripe) return res.status(503).json({ error: "El sistema de pago no está disponible." });
+
+  const { paymentMethodId } = req.body || {};
+  if (!paymentMethodId || typeof paymentMethodId !== "string" || !paymentMethodId.startsWith("pm_")) {
+    return res.status(400).json({ error: "Método de pago no válido." });
+  }
+
+  const dbUser = await prisma.user.findUnique({ where: { id: req.user.id } });
+  if (!dbUser?.stripeCustomerId) return res.status(400).json({ error: "No tienes un perfil de facturación." });
+
+  try {
+    await stripe.customers.update(dbUser.stripeCustomerId, {
+      invoice_settings: { default_payment_method: paymentMethodId },
+    });
+    if (dbUser.stripeSubscriptionId) {
+      await stripe.subscriptions.update(dbUser.stripeSubscriptionId, { default_payment_method: paymentMethodId }).catch(() => {});
+    }
+    console.log(`💳 [BILLING] Tarjeta predeterminada actualizada para customer ${dbUser.stripeCustomerId}.`);
+    return res.json({ success: true });
+  } catch (error: any) {
+    console.error("❌ [BILLING] Error al fijar la tarjeta predeterminada:", error);
+    return res.status(500).json({ error: "No se pudo guardar la tarjeta." });
   }
 });
 

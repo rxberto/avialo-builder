@@ -227,12 +227,26 @@ export async function resumeSubscription() {
   return response.json();
 }
 
-/** Inicia la actualización de la tarjeta: devuelve { clientSecret } para montar Checkout (setup) embedded. */
+/** Inicia la actualización de la tarjeta: devuelve { clientSecret } de un SetupIntent (panel propio). */
 export async function updatePaymentMethod() {
   const response = await fetch(`${API_BASE}/api/billing/update-payment-method`, { method: 'POST', headers: getHeaders() });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || 'No se pudo iniciar la actualización de la tarjeta.');
+  }
+  return response.json();
+}
+
+/** Fija como predeterminada la tarjeta capturada por un SetupIntent ya confirmado en el cliente. */
+export async function setDefaultCard(paymentMethodId) {
+  const response = await fetch(`${API_BASE}/api/billing/default-card`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ paymentMethodId }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo guardar la tarjeta.');
   }
   return response.json();
 }

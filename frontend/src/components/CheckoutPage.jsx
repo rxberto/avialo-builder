@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { createCheckoutSession } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
   Rocket, ShieldCheck, Zap, CheckCircle2,
-  Loader2, CreditCard, Building2, ShoppingBag, Lock, Building, AlertCircle, X, Apple, Smartphone
+  Loader2, CreditCard, Building2, ShoppingBag, Lock, Building, AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
+import StripePaymentModal from '@/components/StripePaymentModal';
 
 const PLANES = {
   corporativa: {
@@ -74,18 +72,17 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
   const [showSimulator, setShowSimulator] = useState(false);
   const [simulatorStep, setSimulatorStep] = useState(0);
 
-  // Estados para Stripe Checkout Empotrado (Embedded)
-  const [stripeClientSecret, setStripeClientSecret] = useState(null);
-  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
-  const [checkoutInstance, setCheckoutInstance] = useState(null);
+  // Pasarela PROPIA: client_secret del PaymentIntent de la suscripción para nuestro modal.
+  const [paymentSecret, setPaymentSecret] = useState(null);
 
   const handleCloseCheckoutModal = () => {
-    if (checkoutInstance) {
-      checkoutInstance.destroy();
-      setCheckoutInstance(null);
-    }
-    setShowCheckoutModal(false);
-    setStripeClientSecret(null);
+    setPaymentSecret(null);
+  };
+
+  // Pago correcto en nuestro panel: el plan lo activa el webhook. Volvemos por el flujo de
+  // retorno estándar (?payment=success) para que App sincronice el perfil hasta reflejarlo.
+  const handlePaymentSuccess = () => {
+    window.location.assign(`${window.location.origin}?payment=success`);
   };
 
   // Formulario B2B Facturación persistido en localStorage
@@ -176,40 +173,15 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
       }
 
       if (session.clientSecret) {
-        setStripeClientSecret(session.clientSecret);
-        setShowCheckoutModal(true);
+        // Abrimos NUESTRO panel de pago (Payment Element + Apple/Google Pay).
+        setPaymentSecret(session.clientSecret);
         setLoading(false);
-
-        // Montar pasarela empotrada de Stripe (Embedded Checkout)
-        setTimeout(async () => {
-          try {
-            const stripe = await stripePromise;
-            // Stripe.js (API dahlia) reemplazó initEmbeddedCheckout() por
-            // createEmbeddedCheckoutPage({ fetchClientSecret }). Como ya tenemos el
-            // client_secret de la sesión creada en el backend, lo devolvemos directamente.
-            const checkout = await stripe.createEmbeddedCheckoutPage({
-              fetchClientSecret: async () => session.clientSecret,
-            });
-            checkout.mount('#checkout-container');
-            setCheckoutInstance(checkout);
-          } catch (e) {
-            console.error("Error al montar Stripe Checkout:", e);
-            setError(e.message || "Error al iniciar pasarela empotrada.");
-          }
-        }, 100);
         return;
       }
 
-      if (session.url) {
-        window.location.href = session.url;
-        return;
-      }
-
-      if (session.sessionId) {
-        const stripe = await stripePromise;
-        const { error: stripeError } = await stripe.redirectToCheckout({ sessionId: session.sessionId });
-        if (stripeError) throw new Error(stripeError.message);
-      }
+      // Sin client_secret ni dev: error real.
+      setLoading(false);
+      setError('No se pudo iniciar el pago con Stripe. Vuelve a intentarlo más tarde.');
     } catch (err) {
       setError(err.message || 'Error al conectar con el sistema de pago.');
       setLoading(false);
@@ -245,12 +217,12 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-12 px-4 sm:px-6 lg:px-8 relative select-none">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 py-6 sm:py-12 px-4 sm:px-6 lg:px-8 relative select-none">
       {/* Glow Effects */}
       <div className="absolute top-1/4 left-1/3 w-[35rem] h-[35rem] bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="max-w-6xl mx-auto space-y-10 relative z-10">
-        
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-10 relative z-10">
+
         {/* Header Section */}
         <div className="text-center space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-950/30 text-indigo-650 dark:text-indigo-400 text-xs font-bold uppercase tracking-wider shadow-sm">
@@ -266,8 +238,8 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         </div>
 
         {/* 2-Column Grid Layout */}
-        <div className="grid lg:grid-cols-5 gap-8 items-start">
-          
+        <div className="grid lg:grid-cols-5 gap-6 lg:gap-8 items-start">
+
           {/* LEFT COLUMN (Span 3): B2B Billing Details & Secure Gateway */}
           <div className="lg:col-span-3 space-y-6">
             
@@ -537,63 +509,20 @@ export default function CheckoutPage({ clientData, onSkipPayment, onPreRedirect 
         </div>
       )}
 
-      {/* ── STRIPE EMBEDDED CHECKOUT MODAL OVERLAY ── */}
-      {showCheckoutModal && (
-        <div className="fixed inset-0 z-[100] flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 w-full sm:max-w-xl flex flex-col h-full sm:h-auto sm:max-h-[92vh] sm:rounded-3xl overflow-hidden shadow-2xl sm:border border-zinc-200 dark:border-zinc-800 text-left animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
-            {/* Cabecera con marca Avialo */}
-            <div className="px-5 py-4 sm:px-6 flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-                  <Lock className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black tracking-tight text-zinc-900 dark:text-white leading-none">Pago seguro</h3>
-                  <p className="text-[10px] text-zinc-450 dark:text-zinc-500 mt-1 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cifrado de extremo a extremo · Avialo × Stripe
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleCloseCheckoutModal}
-                aria-label="Cerrar"
-                className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Resumen del plan */}
-            <div className="px-5 sm:px-6 py-3 flex items-center justify-between border-b border-zinc-150 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/40 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <PlanIcon className="w-4 h-4 text-brand" />
-                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300">{plan.nombre}</span>
-              </div>
-              <span className="text-sm font-black text-zinc-900 dark:text-white">
-                {plan.precio}€ <span className="text-[10px] font-semibold text-zinc-400">/ mes · IVA incl.</span>
-              </span>
-            </div>
-
-            {/* Pasarela empotrada: scroll propio y sin centrar (evita que se "pille" con iframes altos) */}
-            <div className="relative flex-1 overflow-y-auto bg-white dark:bg-zinc-900 px-3 sm:px-5 py-4">
-              {!checkoutInstance && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-center bg-white dark:bg-zinc-900">
-                  <Loader2 className="animate-spin text-brand" size={30} />
-                  <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Cargando pasarela segura…</p>
-                </div>
-              )}
-              <div id="checkout-container" className="w-full min-h-[340px]" />
-            </div>
-
-            {/* Pie de confianza */}
-            <div className="px-5 sm:px-6 py-2.5 border-t border-zinc-150 dark:border-zinc-800 flex items-center justify-center gap-3 shrink-0 text-zinc-400">
-              <span className="flex items-center gap-1 text-[10px] font-semibold"><Apple className="w-3 h-3" /> Apple Pay</span>
-              <span className="flex items-center gap-1 text-[10px] font-semibold"><Smartphone className="w-3 h-3" /> Google Pay</span>
-              <span className="flex items-center gap-1 text-[10px] font-semibold"><ShieldCheck className="w-3 h-3 text-emerald-500" /> Stripe</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── PANEL DE PAGO PROPIO (Stripe solo de pasarela) ── */}
+      <StripePaymentModal
+        open={!!paymentSecret}
+        clientSecret={paymentSecret}
+        intentMode="payment"
+        title="Pago seguro"
+        planLabel={plan.nombre}
+        amountLabel={`${plan.precio}€`}
+        PlanIcon={PlanIcon}
+        payButtonLabel={`Pagar ${plan.precio}€ / mes`}
+        returnUrl={`${window.location.origin}?payment=success`}
+        onSuccess={handlePaymentSuccess}
+        onClose={handleCloseCheckoutModal}
+      />
     </div>
   );
 }

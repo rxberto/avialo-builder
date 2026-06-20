@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import {
@@ -14,10 +13,9 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import {
   getSubscription, getRealInvoices, changePlan, cancelSubscription, resumeSubscription,
-  updatePaymentMethod, createCheckoutSession,
+  updatePaymentMethod, createCheckoutSession, setDefaultCard,
 } from '@/lib/api';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder');
+import StripePaymentModal from '@/components/StripePaymentModal';
 
 // Metadatos de presentación de los 3 planes facturables (orden = nivel).
 const PLAN_META = {
@@ -72,9 +70,11 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
   const [action, setAction] = useState(null); // 'plan:<id>' | 'cancel' | 'resume' | 'card' | null
   const [confirmCancel, setConfirmCancel] = useState(false);
 
-  // Checkout embedded (compra inicial o actualización de tarjeta)
-  const [checkoutSecret, setCheckoutSecret] = useState(null);
-  const [checkoutInstance, setCheckoutInstance] = useState(null);
+  // Panel de pago PROPIO (contratar plan / actualizar tarjeta). Stripe solo de pasarela.
+  const [paymentSecret, setPaymentSecret] = useState(null);
+  const [paymentMode, setPaymentMode] = useState('payment'); // 'payment' | 'setup'
+  const [paymentPlanLabel, setPaymentPlanLabel] = useState('');
+  const [paymentAmountLabel, setPaymentAmountLabel] = useState('');
 
   const billing = useMemo(() => readBillingData(), []);
 
@@ -107,25 +107,30 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
     }
   }, [load]);
 
-  const mountCheckout = async (clientSecret) => {
-    setCheckoutSecret(clientSecret);
-    setTimeout(async () => {
-      try {
-        const stripe = await stripePromise;
-        // Stripe.js (API dahlia): initEmbeddedCheckout() → createEmbeddedCheckoutPage({ fetchClientSecret }).
-        const checkout = await stripe.createEmbeddedCheckoutPage({ fetchClientSecret: async () => clientSecret });
-        checkout.mount('#billing-checkout-container');
-        setCheckoutInstance(checkout);
-      } catch (e) {
-        setError(e.message || 'No se pudo cargar la pasarela de pago.');
-        setCheckoutSecret(null);
-      }
-    }, 80);
+  const closeCheckout = () => {
+    setPaymentSecret(null);
   };
 
-  const closeCheckout = () => {
-    if (checkoutInstance) { checkoutInstance.destroy(); setCheckoutInstance(null); }
-    setCheckoutSecret(null);
+  // Pago de un nuevo plan correcto: el webhook activa el plan. Volvemos por el flujo estándar
+  // (?payment=success) para que App sincronice el perfil hasta reflejarlo.
+  const handleContractSuccess = () => {
+    window.location.assign(`${window.location.origin}/billing?payment=success`);
+  };
+
+  // Tarjeta guardada (SetupIntent confirmado): la fijamos como predeterminada y refrescamos.
+  const handleCardSuccess = async (setupIntent) => {
+    const pmId = typeof setupIntent?.payment_method === 'string'
+      ? setupIntent.payment_method
+      : setupIntent?.payment_method?.id;
+    try {
+      if (pmId) await setDefaultCard(pmId);
+      toast.success('Tarjeta actualizada', { description: 'Tu nuevo método de pago quedó guardado.' });
+    } catch (e) {
+      setError(e.message || 'No se pudo guardar la tarjeta.');
+    } finally {
+      setPaymentSecret(null);
+      await load();
+    }
   };
 
   const handleChangePlan = async (plan) => {
@@ -140,16 +145,21 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
       await load();
     } catch (e) {
       if (e.needsCheckout) {
-        // No hay suscripción activa: abrir Checkout para contratar este plan.
+        // No hay suscripción activa: abrir NUESTRO panel de pago para contratar este plan.
         try {
+          const billingData = readBillingData() || undefined;
           const session = await createCheckoutSession({
             clientData: { websiteArchitecture: { type: plan } },
-            successUrl: `${window.location.origin}/billing?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+            billingData,
+            successUrl: `${window.location.origin}/billing?payment=success`,
             cancelUrl: `${window.location.origin}/billing`,
           });
-          if (session.clientSecret) { await mountCheckout(session.clientSecret); }
-          else if (session.url) { window.location.href = session.url; }
-          else { setError('No se pudo iniciar el pago.'); }
+          if (session.clientSecret) {
+            setPaymentMode('payment');
+            setPaymentPlanLabel(`Plan ${PLAN_META[plan]?.label || ''}`.trim());
+            setPaymentAmountLabel(PLAN_META[plan]?.price != null ? `${PLAN_META[plan].price}€` : '');
+            setPaymentSecret(session.clientSecret);
+          } else { setError('No se pudo iniciar el pago.'); }
         } catch (ce) {
           setError(ce.message || 'No se pudo iniciar el pago.');
         }
@@ -185,8 +195,12 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
     setError('');
     try {
       const { clientSecret } = await updatePaymentMethod();
-      if (clientSecret) await mountCheckout(clientSecret);
-      else setError('No se pudo iniciar la actualización de la tarjeta.');
+      if (clientSecret) {
+        setPaymentMode('setup');
+        setPaymentPlanLabel('');
+        setPaymentAmountLabel('');
+        setPaymentSecret(clientSecret);
+      } else setError('No se pudo iniciar la actualización de la tarjeta.');
     } catch (e) { setError(e.message); } finally { setAction(null); }
   };
 
@@ -549,44 +563,23 @@ export default function BillingPage({ user, onSyncProfile, onAddNotification }) 
         </div>
       )}
 
-      {/* ── Checkout embedded (compra inicial / actualizar tarjeta) ── */}
-      {checkoutSecret && (
-        <div className="fixed inset-0 z-[120] flex items-stretch sm:items-center justify-center bg-black/70 backdrop-blur-md sm:p-4 animate-in fade-in duration-200">
-          <div className="bg-card w-full sm:max-w-xl flex flex-col h-full sm:h-auto sm:max-h-[92vh] sm:rounded-3xl overflow-hidden shadow-2xl sm:border border-border animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-300">
-            <div className="px-5 py-4 sm:px-6 flex items-center justify-between border-b border-border shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-brand/10 text-brand flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-black tracking-tight leading-none">Pago seguro</h3>
-                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Cifrado · Avialo × Stripe
-                  </p>
-                </div>
-              </div>
-              <button onClick={closeCheckout} aria-label="Cerrar"
-                className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="relative flex-1 overflow-y-auto bg-card px-3 sm:px-5 py-4">
-              {!checkoutInstance && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-center bg-card">
-                  <Loader2 className="animate-spin text-brand" size={28} />
-                  <p className="text-xs font-semibold text-muted-foreground">Cargando pasarela segura…</p>
-                </div>
-              )}
-              <div id="billing-checkout-container" className="w-full min-h-[340px]" />
-            </div>
-            <div className="px-5 sm:px-6 py-2.5 border-t border-border flex items-center justify-center gap-3 shrink-0 text-muted-foreground">
-              <span className="flex items-center gap-1 text-[10px] font-semibold"><Apple className="w-3 h-3" /> Apple Pay</span>
-              <span className="flex items-center gap-1 text-[10px] font-semibold"><Smartphone className="w-3 h-3" /> Google Pay</span>
-              <span className="flex items-center gap-1 text-[10px] font-semibold"><ShieldCheck className="w-3 h-3 text-emerald-500" /> Stripe</span>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Panel de pago PROPIO (contratar plan / actualizar tarjeta) ── */}
+      <StripePaymentModal
+        open={!!paymentSecret}
+        clientSecret={paymentSecret}
+        intentMode={paymentMode}
+        title={paymentMode === 'setup' ? 'Actualizar tarjeta' : 'Pago seguro'}
+        planLabel={paymentPlanLabel}
+        amountLabel={paymentAmountLabel}
+        payButtonLabel={paymentMode === 'setup'
+          ? 'Guardar tarjeta'
+          : (paymentAmountLabel ? `Pagar ${paymentAmountLabel} / mes` : 'Pagar ahora')}
+        returnUrl={paymentMode === 'setup'
+          ? `${window.location.origin}/billing?card=updated`
+          : `${window.location.origin}/billing?payment=success`}
+        onSuccess={paymentMode === 'setup' ? handleCardSuccess : handleContractSuccess}
+        onClose={closeCheckout}
+      />
     </div>
   );
 }
