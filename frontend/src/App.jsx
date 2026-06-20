@@ -530,7 +530,7 @@ function App() {
           {/* Admin — role=admin va directo aquí, sin acceso a rutas normales */}
           <Route path="/admin" element={
             !user ? <Navigate to="/login" replace /> :
-            user.role === 'admin' ? <AdminPage user={user} onLogout={handleLogout} /> :
+            user.role === 'admin' ? <AdminPage user={user} onLogout={handleLogout} darkMode={darkMode} toggleTheme={toggleTheme} /> :
             <Navigate to="/dashboard" replace />
           } />
 
