@@ -168,7 +168,8 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
     }
   };
 
-  const showSolidBar = scrolled || menuOpen || !!activeMenu;
+  const isLanding = location.pathname === '/';
+  const showSolidBar = !isLanding || scrolled || menuOpen || !!activeMenu;
 
   return (
     <>
