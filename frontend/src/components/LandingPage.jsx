@@ -771,8 +771,8 @@ export default function LandingPage({ onNavigate }) {
             </motion.div>
 
             {/* Columna derecha — capturas ciclando (deck de cartas) */}
-            <Reveal delay={0.1} y={30}>
-              <div className="relative mx-auto w-full max-w-[560px] lg:mx-0 lg:max-w-none h-[460px] lg:h-[600px] overflow-visible">
+            <Reveal delay={0.1} y={30} className="w-full">
+              <div className="relative mx-auto w-full max-w-[560px] lg:mx-0 lg:max-w-none h-[300px] sm:h-[380px] md:h-[460px] lg:h-[600px] overflow-visible">
                 {/* Glow ambiental detrás del mazo */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-500/20 blur-[120px] rounded-full pointer-events-none" />
                 
