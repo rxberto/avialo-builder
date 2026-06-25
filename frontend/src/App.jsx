@@ -380,6 +380,7 @@ function App() {
 
 
   const isIDERoute = location.pathname === '/ide';
+  const isLandingRoute = location.pathname === '/';
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
@@ -397,7 +398,7 @@ function App() {
         />
       )}
 
-      <main className={`flex-1 flex flex-col relative z-0 ${isIDERoute ? '' : 'pt-16'}`}>
+      <main className={`flex-1 flex flex-col relative z-0 ${isIDERoute || isLandingRoute ? '' : 'pt-16'}`}>
         <Suspense fallback={<RouteFallback />}>
         <Routes>
           {/* Landing pública */}

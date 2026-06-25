@@ -69,7 +69,7 @@ const MEGA_MENUS = {
 export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNavigate, notifications = [], onMarkRead, onMarkAllRead, onOpenNotifications }) {
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);       // drawer móvil
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] = useState(() => typeof window !== 'undefined' ? window.scrollY > 300 : false);
   const [activeMenu, setActiveMenu] = useState(null);    // mega-menú abierto (desktop)
   const [mobileSection, setMobileSection] = useState(null); // acordeón móvil
 
@@ -94,8 +94,10 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
   // Estado de scroll + cierre del mega-menú al hacer scroll
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 8);
-      setActiveMenu(null);
+      setScrolled(window.scrollY > 300);
+      if (window.scrollY > 300) {
+        setActiveMenu(null);
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -185,23 +187,33 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
         )}
       </AnimatePresence>
 
-      <nav
-        className={cn(
-          'fixed top-0 left-0 z-50 flex h-16 w-full items-center border-b transition-all duration-300 select-none',
-          showSolidBar
-            ? 'border-border/70 bg-background/80 shadow-sm shadow-black/5 backdrop-blur-xl'
-            : 'border-transparent bg-transparent'
-        )}
-      >
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 lg:px-10">
+      <div className="fixed top-0 left-0 w-full z-50 flex justify-center pointer-events-none">
+        <nav
+          className={cn(
+            'pointer-events-auto flex items-center transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] select-none overflow-visible',
+            showSolidBar
+              ? 'mt-0 h-16 w-full max-w-[100vw] border-b border-border/70 bg-background/80 shadow-sm shadow-black/5 backdrop-blur-xl rounded-[0px]'
+              : 'mt-6 h-14 w-[92%] max-w-[1024px] rounded-[32px] border border-white/20 bg-white/5 dark:bg-black/20 shadow-2xl backdrop-blur-md'
+          )}
+        >
+          <div className={cn(
+            "mx-auto flex w-full items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]",
+            showSolidBar ? "max-w-7xl px-6 lg:px-10" : "px-5 lg:px-8"
+          )}>
 
           {/* ===== Logo ===== */}
           <button
             onClick={(e) => handleNavClick(e, user ? 'dashboard' : 'landing')}
             className="group flex shrink-0 items-center gap-2.5 outline-none"
           >
-            <Logo className="transition-transform duration-500 group-hover:scale-105" />
-            <span className="text-lg font-semibold tracking-tight text-foreground">
+            <Logo className={cn(
+              "transition-all duration-500 group-hover:scale-105",
+              !showSolidBar && "text-white dark:text-white"
+            )} />
+            <span className={cn(
+              "text-lg font-semibold tracking-tight transition-colors duration-500",
+              showSolidBar ? "text-foreground" : "text-white"
+            )}>
               Avialo<span className="text-brand">.</span>
             </span>
           </button>
@@ -220,7 +232,9 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
                   onClick={() => setActiveMenu(activeMenu === key ? null : key)}
                   className={cn(
                     'flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
-                    activeMenu === key ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    activeMenu === key 
+                      ? (showSolidBar ? 'text-foreground' : 'text-white') 
+                      : (showSolidBar ? 'text-muted-foreground hover:text-foreground' : 'text-white/70 hover:text-white')
                   )}
                 >
                   {menu.label}
@@ -232,11 +246,11 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
               ))}
 
               <a href="#pricing" onClick={(e) => goToSection(e, 'pricing')} onMouseEnter={() => openMega(null)}
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                className={cn("rounded-lg px-3.5 py-2 text-sm font-medium transition-colors", showSolidBar ? "text-muted-foreground hover:text-foreground" : "text-white/70 hover:text-white")}>
                 Precios
               </a>
               <a href="#testimonios" onClick={(e) => goToSection(e, 'testimonios')} onMouseEnter={() => openMega(null)}
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                className={cn("rounded-lg px-3.5 py-2 text-sm font-medium transition-colors", showSolidBar ? "text-muted-foreground hover:text-foreground" : "text-white/70 hover:text-white")}>
                 Opiniones
               </a>
             </div>
@@ -273,7 +287,10 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
             <button
               aria-label="Alternar tema"
               onClick={toggleTheme}
-              className="rounded-lg border border-transparent p-2 text-muted-foreground transition-all duration-300 hover:border-border/50 hover:bg-muted/50 hover:text-foreground"
+              className={cn(
+                "rounded-lg border p-2 transition-all duration-300",
+                showSolidBar ? "border-transparent text-muted-foreground hover:border-border/50 hover:bg-muted/50 hover:text-foreground" : "border-transparent text-white/80 hover:bg-white/10 hover:text-white"
+              )}
             >
               {darkMode ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -404,7 +421,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={(e) => handleNavClick(e, 'login')} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="sm" onClick={(e) => handleNavClick(e, 'login')} className={cn("text-sm font-medium transition-colors", showSolidBar ? "text-muted-foreground hover:text-foreground" : "text-white/80 hover:text-white hover:bg-white/10")}>
                   Iniciar Sesión
                 </Button>
                 <Button
@@ -422,7 +439,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
           {/* ===== Acciones (móvil) ===== */}
           <div className="flex items-center gap-2 md:hidden">
             {user && (
-              <button onClick={() => setNotifDropdownOpen(!notifDropdownOpen)} className="relative rounded-lg p-2 text-muted-foreground">
+              <button onClick={() => setNotifDropdownOpen(!notifDropdownOpen)} className={cn("relative rounded-lg p-2 transition-colors", showSolidBar ? "text-muted-foreground" : "text-white/80")}>
                 <Bell size={18} />
                 {unreadCount > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand" />}
               </button>
@@ -430,7 +447,10 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               aria-label="Abrir menú"
-              className="rounded-xl border border-border/40 bg-muted/60 p-2 text-foreground transition-all"
+              className={cn(
+                "rounded-xl border p-2 transition-all",
+                showSolidBar ? "border-border/40 bg-muted/60 text-foreground" : "border-white/10 bg-white/5 text-white"
+              )}
             >
               {menuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
@@ -504,6 +524,7 @@ export default function Navbar({ darkMode, toggleTheme, user, onLogout, onNaviga
           )}
         </AnimatePresence>
       </nav>
+      </div>
 
       {/* ===== Drawer móvil (totalmente responsive) ===== */}
       <AnimatePresence>

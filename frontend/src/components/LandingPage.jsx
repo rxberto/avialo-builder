@@ -13,6 +13,9 @@ import ProgressiveImage from './ui/ProgressiveImage';
 import NumberTicker from './ui/number-ticker';
 import { cn } from '@/lib/utils';
 import lqip from '@/data/lqip.json';
+import Hyperspeed from './ui/Hyperspeed';
+import LineWaves from './ui/LineWaves';
+import CardSwap, { Card } from './ui/CardSwap';
 
 // Monta a sus hijos solo cuando el contenedor se acerca al viewport.
 // Evita que los fondos decorativos pesados compitan con el LCP del héroe.
@@ -697,23 +700,41 @@ export default function LandingPage({ onNavigate }) {
       {/* ============================================================
           HÉROE — texto izquierda, capturas ciclando derecha
           ============================================================ */}
-      <section className="relative isolate overflow-hidden bg-background px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
-        <MotionTrailsHero />
+      <section className="relative isolate overflow-hidden bg-slate-950 dark px-6 pb-20 pt-24 sm:pt-28 lg:pt-32">
+        <div className="absolute inset-0 z-0">
+          <LineWaves
+            speed={0.12}
+            innerLineCount={25}
+            outerLineCount={36}
+            warpIntensity={1.2}
+            rotation={-42}
+            edgeFadeWidth={0}
+            colorCycleSpeed={1.5}
+            brightness={0.35}
+            color1="#3b82f6"
+            color2="#0ea5e9"
+            color3="#ffffff"
+            enableMouseInteraction
+            mouseInfluence={2.5}
+          />
+          {/* Un velo oscuro fijo para garantizar un contraste perfecto del texto del hero, sin depender del modo claro/oscuro */}
+          <div className="absolute inset-0 bg-slate-950/60 z-10 pointer-events-none" />
+        </div>
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
 
             {/* Columna izquierda — texto con parallax */}
-            <motion.div style={{ y: heroTextY, opacity: heroOpacity }}>
+            <motion.div style={{ y: heroTextY, opacity: heroOpacity }} className="relative z-20">
               <Reveal delay={0.04}>
-                <h1 className="text-[2.8rem] font-bold leading-[1.06] tracking-tight text-foreground sm:text-5xl lg:text-6xl xl:text-[4rem]">
+                <h1 className="text-[2.8rem] font-extrabold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-[4rem]">
                   Tu negocio en internet,{' '}
-                  <span className="text-brand">listo en 2 minutos.</span>
+                  <span className="bg-gradient-to-r from-blue-400 via-sky-300 to-cyan-200 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(56,189,248,0.5)]">listo en 2 minutos.</span>
                 </h1>
               </Reveal>
 
               <Reveal delay={0.12}>
-                <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-[1.05rem]">
+                <p className="mt-6 max-w-lg text-base leading-relaxed text-slate-300 sm:text-[1.1rem]">
                   Describe tu PYME en español. El algoritmo genera tu web
                   profesional con reservas o cobros incluidos.
                   Sin plantillas, sin código, sin técnicos.
@@ -741,7 +762,7 @@ export default function LandingPage({ onNavigate }) {
               <Reveal delay={0.24}>
                 <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2">
                   {['Web autogestionada', 'Sin comisiones por reservas', 'Dominio propio incluido'].map((t) => (
-                    <li key={t} className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <li key={t} className="flex items-center gap-1.5 text-xs font-medium text-slate-300">
                       <Check className="h-3.5 w-3.5 shrink-0 text-brand-success" /> {t}
                     </li>
                   ))}
@@ -751,49 +772,34 @@ export default function LandingPage({ onNavigate }) {
 
             {/* Columna derecha — capturas ciclando (deck de cartas) */}
             <Reveal delay={0.1} y={30}>
-              <div className="relative mx-auto h-[300px] w-full max-w-[460px] lg:mx-0 lg:h-[460px] lg:max-w-none">
-                {[
-                  { src: '/optimized/ide-avialo.webp', lqip: lqip['ide-avialo'], alt: 'Editor Visual IDE' },
-                  { src: '/optimized/webArquitectura.webp', lqip: lqip['webArquitectura'], alt: 'Web Estudio Arquitectura' },
-                  { src: '/optimized/placeholder-3.webp', lqip: lqip['placeholder-3'], alt: 'Diseño Personalizado' },
-                  { src: '/optimized/web-generada.webp', lqip: lqip['web-generada'], alt: 'Web generada por IA' },
-                ].map((shot, index) => {
-                  const pos = (index - activeShot + 4) % 4;
-                  const posMap = [
-                    { scale: 1,    rotate: 1,   x: '0%',    y: '0%',    opacity: 1    },
-                    { scale: 0.87, rotate: 6,   x: '18%',   y: '-11%',  opacity: 0.68 },
-                    { scale: 0.75, rotate: 0,   x: '0%',    y: '-18%',  opacity: 0    },
-                    { scale: 0.87, rotate: -5,  x: '-18%',  y: '-11%',  opacity: 0.68 },
-                  ];
-                  return (
-                    <motion.div
-                      key={index}
-                      className={cn(
-                        'absolute inset-0 cursor-pointer overflow-hidden rounded-2xl border bg-card shadow-2xl',
-                        pos === 0 ? 'z-30 border-brand/25 shadow-brand/15' : (pos === 1 || pos === 3) ? 'z-20 border-border/50' : 'z-10 border-border/30'
-                      )}
-                      animate={posMap[pos]}
-                      transition={{ duration: 0.65, ease: EASE }}
-                      onClick={() => setActiveShot(index)}
-                    >
+              <div className="relative mx-auto w-full max-w-[560px] lg:mx-0 lg:max-w-none h-[460px] lg:h-[600px] overflow-visible">
+                {/* Glow ambiental detrás del mazo */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-500/20 blur-[120px] rounded-full pointer-events-none" />
+                
+                <CardSwap
+                  width={700}
+                  height={450}
+                  cardDistance={80}
+                  verticalDistance={55}
+                  delay={2500}
+                  pauseOnHover={false}
+                >
+                  {[
+                    { src: '/optimized/ide-avialo.webp', lqip: lqip['ide-avialo'], alt: 'Editor Visual IDE' },
+                    { src: '/optimized/webArquitectura.webp', lqip: lqip['webArquitectura'], alt: 'Web Estudio Arquitectura' },
+                    { src: '/optimized/placeholder-3.webp', lqip: lqip['placeholder-3'], alt: 'Diseño Personalizado' },
+                    { src: '/optimized/web-generada.webp', lqip: lqip['web-generada'], alt: 'Web generada por IA' },
+                  ].map((shot, index) => (
+                    <Card key={index} style={{ width: '700px', height: '450px' }} className="overflow-hidden rounded-2xl ring-1 ring-white/10 shadow-[0_20px_60px_-15px_rgba(59,130,246,0.4)]">
                       <ProgressiveImage
                         src={shot.src}
                         lqip={shot.lqip}
                         alt={shot.alt}
-                        wrapperClassName="h-full w-full"
+                        wrapperClassName="h-full w-full object-cover"
                       />
-                    </motion.div>
-                  );
-                })}
-
-                {/* Dots indicadores */}
-                <div className="absolute -bottom-8 left-0 right-0 z-40 flex justify-center gap-2">
-                  {[0, 1, 2, 3].map(i => (
-                    <button key={i} onClick={() => setActiveShot(i)}
-                      className={cn('h-1.5 rounded-full transition-all duration-500',
-                        activeShot === i ? 'w-6 bg-brand' : 'w-1.5 bg-border hover:bg-muted-foreground/40')} />
+                    </Card>
                   ))}
-                </div>
+                </CardSwap>
               </div>
             </Reveal>
           </div>
