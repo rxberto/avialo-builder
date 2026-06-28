@@ -67,9 +67,28 @@ export interface AppConfig {
   server: {
     port: number;
   };
+  // URL INTERNA del orquestador, tal como la alcanza un contenedor de preview dentro de la red
+  // Docker (avialo-network). El panel del cliente la usa para gestionar su tienda vía el portero.
+  orchestrator: {
+    internalUrl: string;
+  };
   auth: {
     jwtSecret: string;
     nextauthSecret: string;
+  };
+  // Backend Medusa compartido (ecommerce). El worker lo usa para aprovisionar la tienda
+  // de cada cliente (Sales Channel + Publishable Key) vía Admin API.
+  medusa: {
+    // URL interna (red Docker) para la Admin API server-to-server: http://medusa:9000.
+    backendUrl: string;
+    // URL PÚBLICA del Store API que se inyecta en la storefront. El carrito/checkout corren
+    // en el navegador, así que NO sirve la URL interna: debe ser https://tienda-api.<dominio>.
+    storefrontApiUrl: string;
+    adminEmail: string;
+    adminPassword?: string;
+    // Clave publicable de Stripe (pk_...) de la misma cuenta que usa Medusa. La storefront la
+    // necesita en el navegador para el Payment Element.
+    stripePublishableKey?: string;
   };
 }
 
@@ -103,8 +122,31 @@ export const config: AppConfig = {
   server: {
     port: parseInt(process.env.PORT || "3000", 10),
   },
+  orchestrator: {
+    // En producción (compose) el contenedor del orquestador es avialo-orchestrator:3000.
+    // En dev puede sobreescribirse (p.ej. http://host.docker.internal:3000).
+    internalUrl:
+      process.env.ORCHESTRATOR_INTERNAL_URL || "http://avialo-orchestrator:3000",
+  },
   auth: {
     jwtSecret: requiredSecret("JWT_SECRET", process.env.JWT_SECRET),
     nextauthSecret: requiredSecret("NEXTAUTH_SECRET", process.env.NEXTAUTH_SECRET),
+  },
+  medusa: {
+    // Dentro de la red Docker, el backend compartido es http://medusa:9000.
+    backendUrl: process.env.MEDUSA_BACKEND_URL || "http://medusa:9000",
+    // URL pública del Store API para el navegador. Por defecto se deriva de PREVIEW_DOMAIN_BASE
+    // (Traefik enruta tienda-api.<dominio> → medusa:9000); en dev cae a localhost:9000.
+    storefrontApiUrl:
+      process.env.MEDUSA_STOREFRONT_URL ||
+      (process.env.PREVIEW_DOMAIN_BASE
+        ? `https://tienda-api.${process.env.PREVIEW_DOMAIN_BASE}`
+        : "http://localhost:9000"),
+    adminEmail: process.env.MEDUSA_ADMIN_EMAIL || "admin@avialo.app",
+    adminPassword: process.env.MEDUSA_ADMIN_PASSWORD,
+    // Aceptamos la pk pública dedicada o la del flujo de billing (misma cuenta Stripe).
+    stripePublishableKey:
+      process.env.STRIPE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
   },
 };

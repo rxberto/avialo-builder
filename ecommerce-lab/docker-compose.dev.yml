@@ -1,0 +1,26 @@
+# Laboratorio LOCAL para el prototipo de Medusa v2 (NO es la infra de producción).
+# Levanta Postgres + Redis dedicados en puertos no estándar para no chocar con la
+# infra de prod (5432/6379). Úsalo solo para validar el flujo de ecommerce en local.
+services:
+  medusa-db:
+    image: postgres:16-alpine
+    container_name: medusa-lab-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: medusa
+      POSTGRES_PASSWORD: medusa
+      POSTGRES_DB: medusa_store
+    ports:
+      - "127.0.0.1:5544:5432"
+    volumes:
+      - medusa_lab_pg:/var/lib/postgresql/data
+
+  medusa-redis:
+    image: redis:7-alpine
+    container_name: medusa-lab-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6399:6379"
+
+volumes:
+  medusa_lab_pg:

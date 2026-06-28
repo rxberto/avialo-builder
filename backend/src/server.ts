@@ -12,6 +12,8 @@ import { authRouter, authenticateToken, AuthRequest, verifyAndResetCredits, veri
 import { adminRouter } from "./routes/admin.js";
 import { domainsRouter } from "./routes/domains.js";
 import { emailRouter } from "./routes/email.js";
+import { tenantStoreRouter } from "./routes/tenantStore.js";
+import { internalRouter } from "./routes/internal.js";
 import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
 import { saveUserUpload, saveSandboxImage } from "./services/uploads.js";
@@ -25,6 +27,7 @@ import { readSiteConfig, applySiteConfig } from "./services/applyConfig.js";
 import { cleanupUserSite } from "./services/siteCleanup.js";
 import { creditsForPlan, nextCreditsResetDate, isAssignablePlan } from "./config/plans.js";
 import { stripe, priceIdForPlan, planFromPriceId, PLAN_MONTHLY_AMOUNT, STRIPE_AUTOMATIC_TAX } from "./config/stripe.js";
+import { applyConnectAccountUpdate } from "./services/payments.js";
 import { redisConnection } from "./config/redis.js";
 import { initObservability, logger, captureError } from "./config/observability.js";
 import { pinoHttp } from "pino-http";
@@ -344,6 +347,17 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), async
         break;
       }
 
+      case "account.updated": {
+        // Stripe Connect: la cuenta conectada de un tenant cambió de estado (completó el
+        // onboarding, habilitó cobros, etc.). Refrescamos su estado en BD + Sales Channel.
+        const account = event.data.object as Stripe.Account;
+        const matched = await applyConnectAccountUpdate(account);
+        if (matched) {
+          console.log(`💳 [CONNECT] Cuenta ${account.id} actualizada (charges=${account.charges_enabled}).`);
+        }
+        break;
+      }
+
       default:
         // Otros eventos no requieren acción
         break;
@@ -377,6 +391,10 @@ app.use("/api/auth", authRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/domains", domainsRouter);
 app.use("/api/email", emailRouter);
+// Gestión de la tienda por tenant (panel del cliente → orquestador → Medusa, con scope).
+app.use("/api/tenant-store", tenantStoreRouter);
+// Canal interno servicio↔servicio (provider Redsys de Medusa → firma/verificación con secreto).
+app.use("/internal", internalRouter);
 
 // ============================================
 // HELPER DE PROPIEDAD (anti-IDOR)

@@ -7,8 +7,13 @@ import { scaffoldProject } from "../scaffolding/scaffold.js";
 import { startPreviewContainer, prewarmImages } from "../docker/dockerode.js";
 import { createTenantSchema, migrateTenantSchema, seedTenantAdmin } from "../database/tenant.js";
 import { materializeUserPhotos } from "../services/uploads.js";
+import { provisionTenantStore, tenantPromoCodePrefix } from "../services/medusa.js";
 import { runAutocorrectionLoop } from "../agent/loop.js";
 import { prisma } from "../database/client.js";
+import { config } from "../config/env.js";
+import { sandboxPath } from "../config/sandbox.js";
+import { writeFile } from "fs/promises";
+import path from "path";
 import net from "net";
 import { randomBytes } from "crypto";
 
@@ -45,6 +50,13 @@ export const generationWorker = new Worker<GenerationJobData>(
   async (job: Job<GenerationJobData>) => {
     const jobId = job.id || `job-${Date.now()}`;
     const { clientId, webType, businessName, sector, city, primaryColor, pages, userId } = job.data;
+
+    // Env de la storefront ecommerce (NEXT_PUBLIC_*) que se inyecta al build del preview.
+    // Se rellena al aprovisionar la tienda Medusa; vacío para webs no-ecommerce.
+    let storefrontEnv: string[] = [];
+    // Secretos server-only del panel del cliente (token de gestión + URL del orquestador).
+    // Solo runtime; nunca build ni NEXT_PUBLIC.
+    let storefrontSecretEnv: string[] = [];
 
     // Estado inicial (persistido en Redis, compartido con el proceso de la API)
     await setJobStatus({
@@ -101,6 +113,66 @@ export const generationWorker = new Worker<GenerationJobData>(
         throw new Error(scaffold.reason || "Fallo el scaffolding base.");
       }
 
+      // Ecommerce: aprovisionar la tienda en el backend Medusa COMPARTIDO.
+      // Crea Sales Channel + Publishable Key aislados para este cliente y persiste la key,
+      // que la storefront usará (inyectada en build/runtime) para hablar con el Store API.
+      if (webType === "ecommerce") {
+        addJobLog(jobId, `🛒 [1/4] Aprovisionando tienda en Medusa (canal + clave de tienda)...`);
+        try {
+          const store = await provisionTenantStore(clientId, { withSampleProducts: true });
+          // Token máquina del panel del cliente (lo valida el orquestador → su Sales Channel).
+          const storeMgmtToken = `smt_${randomBytes(24).toString("hex")}`;
+          if (userId) {
+            await prisma.user.update({
+              where: { id: userId },
+              data: {
+                medusaSalesChannelId: store.salesChannelId,
+                medusaPublishableKey: store.publishableKey,
+                storeMgmtToken,
+              },
+            });
+          }
+          // La storefront necesita estas NEXT_PUBLIC_* en build-time (Next las inyecta) para
+          // hablar con el Store API público y pagar con Stripe en el navegador.
+          storefrontEnv = [
+            `NEXT_PUBLIC_MEDUSA_BACKEND_URL=${config.medusa.storefrontApiUrl}`,
+            `NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${store.publishableKey}`,
+            // Prefijo público para reconstruir los códigos de descuento del tenant
+            // al aplicarlos en el carrito (no es secreto; se deriva del Sales Channel).
+            `NEXT_PUBLIC_TENANT_PROMO_PREFIX=${tenantPromoCodePrefix(store.salesChannelId)}`,
+            // Provider de pago (Stripe Connect): enruta el cobro a la cuenta del tenant.
+            `NEXT_PUBLIC_STRIPE_PROVIDER_ID=pp_stripe-connect_stripe`,
+            ...(config.medusa.stripePublishableKey
+              ? [`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${config.medusa.stripePublishableKey}`]
+              : []),
+          ];
+
+          // Secretos del panel del dueño (server-only): token máquina + URL del orquestador.
+          // La comisión de la plataforma (puntos básicos) la lee la ruta server de config de pago.
+          storefrontSecretEnv = [
+            `STORE_MGMT_TOKEN=${storeMgmtToken}`,
+            `ORCHESTRATOR_URL=${config.orchestrator.internalUrl}`,
+            `AVIALO_PLATFORM_FEE_BPS=${process.env.AVIALO_PLATFORM_FEE_BPS || "0"}`,
+          ];
+
+          // Persistimos las mismas variables como .env.production en el sandbox. Next lo carga
+          // automáticamente en CUALQUIER build posterior (editLoop, panel ⚙️, re-generación),
+          // así una edición del IDE no deja la tienda sin clave. El runtime las recibe vía el
+          // env inyectado al contenedor (los .env no se leen en la salida standalone).
+          await writeFile(
+            path.join(sandboxPath(clientId), ".env.production"),
+            storefrontEnv.join("\n") + "\n"
+          ).catch((err) =>
+            console.error("⚠️ No se pudo escribir .env.production de la storefront:", err)
+          );
+
+          addJobLog(jobId, `🛒 Tienda Medusa lista (canal de venta y catálogo demo creados).`);
+        } catch (err: any) {
+          // La tienda no puede funcionar sin esto → abortar la generación.
+          throw new Error(`No se pudo aprovisionar la tienda Medusa: ${err?.message || err}`);
+        }
+      }
+
       // Copiar las fotos propias del negocio (subidas en el onboarding) a la carpeta pública
       // del proyecto y obtener sus rutas para inyectarlas en el prompt con prioridad.
       let userImages: string[] = [];
@@ -142,7 +214,7 @@ export const generationWorker = new Worker<GenerationJobData>(
       const previewBase = process.env.PREVIEW_DOMAIN_BASE || "";
       const previewHost = previewBase ? `${slug}.${previewBase}` : "";
 
-      const preview = await startPreviewContainer(clientId, previewHost, freePort);
+      const preview = await startPreviewContainer(clientId, previewHost, freePort, storefrontEnv, storefrontSecretEnv);
       const previewUrl = preview.previewUrl;
 
       // 4. ESTADO: deployed -> Éxito total

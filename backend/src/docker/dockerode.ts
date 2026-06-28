@@ -152,7 +152,13 @@ function traefikPreviewLabels(clientId: string, host: string, internalPort: numb
 export async function startPreviewContainer(
   clientId: string,
   previewHost: string,
-  port: number
+  port: number,
+  // Variables extra (p.ej. NEXT_PUBLIC_* de la storefront ecommerce) que deben estar
+  // presentes en BUILD (Next inyecta NEXT_PUBLIC_* en build-time) y en runtime.
+  extraBuildEnv: string[] = [],
+  // Secretos SOLO de runtime (no build, no NEXT_PUBLIC): token de gestión de la tienda y URL
+  // del orquestador. Los lee el código server-side del panel del cliente, nunca el navegador.
+  runtimeSecretEnv: string[] = []
 ): Promise<{ containerId: string; port: number; image: string; previewUrl: string }> {
   const containerName = `avialo-preview-${clientId}`;
   // fsPath: ruta que ve el worker (para existsSync/fs.rm).
@@ -259,13 +265,24 @@ export async function startPreviewContainer(
   }
 
   // FLUJO DINÁMICO ASIMÉTRICO (Node.js / Next.js)
-  let buildCmd = ["sh", "-c", "cd /usr/src/app && npm install && npm run build"];
-  let runtimeCmd = ["sh", "-c", "cd /usr/src/app && cp -r public .next/standalone/ 2>/dev/null || true && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js"];
+  // Raíz del proyecto Node dentro del contenedor (algunos boilerplates viejos usan /storefront).
+  const appDir = existsSync(path.join(fsPath, "storefront"))
+    ? "/usr/src/app/storefront"
+    : "/usr/src/app";
+  const prismaDir = appDir === "/usr/src/app/storefront" ? "storefront/prisma" : "prisma";
 
-  if (existsSync(path.join(fsPath, "storefront"))) {
-    buildCmd = ["sh", "-c", "cd /usr/src/app/storefront && npm install && npm run build"];
-    runtimeCmd = ["sh", "-c", "cd /usr/src/app/storefront && cp -r public .next/standalone/ 2>/dev/null || true && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js"];
-  }
+  // node:20-bookworm-slim NO trae OpenSSL y el engine NATIVO de Prisma lo necesita (si no,
+  // falla en runtime con "libssl.so.* cannot open shared object"). Solo instalamos openssl
+  // cuando el proyecto usa Prisma (tiene prisma/schema.prisma); el ecommerce usa `pg` y no paga
+  // este coste. Va en build (para que `prisma generate` elija el engine de OpenSSL 3) y en
+  // runtime (para que cargue). ~10s una vez por sitio (los restarts reutilizan el contenedor).
+  const usesPrisma = existsSync(path.join(fsPath, prismaDir, "schema.prisma"));
+  const opensslSetup = usesPrisma
+    ? "apt-get update && apt-get install -y --no-install-recommends openssl && "
+    : "";
+
+  const buildCmd = ["sh", "-c", `${opensslSetup}cd ${appDir} && npm install && npm run build`];
+  const runtimeCmd = ["sh", "-c", `${opensslSetup}cd ${appDir} && cp -r public .next/standalone/ 2>/dev/null || true && cp -r .next/static .next/standalone/.next/ 2>/dev/null || true && HOSTNAME=0.0.0.0 PORT=3000 node .next/standalone/server.js`];
 
   // Fase 1: BUILD CONTAINER (2GB RAM)
   addJobLog(clientId, `🏗️ [FASE 1] Lanzando contenedor efímero de Build (Límite: 2GB RAM)`);
@@ -274,6 +291,8 @@ export async function startPreviewContainer(
     Cmd: buildCmd,
     Env: [
       `DATABASE_URL=${tenantDbUrl}`,
+      // NEXT_PUBLIC_* de la storefront: deben existir en build-time para que Next las inyecte.
+      ...extraBuildEnv,
     ],
     HostConfig: {
       Binds: [`${bindPath}:/usr/src/app`],
@@ -322,7 +341,12 @@ export async function startPreviewContainer(
       `AUTH_TRUST_HOST=true`,
       `AUTH_URL=${publicUrl}`,
       `NEXTAUTH_SECRET=${config.auth.nextauthSecret}`,
-      `NEXTAUTH_URL=${publicUrl}`
+      `NEXTAUTH_URL=${publicUrl}`,
+      // Mismas NEXT_PUBLIC_* en runtime (los Server Components de la storefront leen
+      // process.env en tiempo de ejecución).
+      ...extraBuildEnv,
+      // Secretos server-only del panel del cliente (NO se inyectan en el build).
+      ...runtimeSecretEnv,
     ],
     HostConfig: {
       Binds: [`${bindPath}:/usr/src/app`],

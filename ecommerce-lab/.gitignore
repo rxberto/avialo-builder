@@ -1,0 +1,15 @@
+# Laboratorio ecommerce: evita ensuciar el repo principal con artefactos pesados/transitorios.
+# Dependencias y builds
+**/node_modules/
+**/.next/
+**/.medusa/
+**/dist/
+
+# Logs y dumps de validación
+*.log
+*.html
+cj.txt
+
+# Secretos locales del lab (no deben llegar al repo)
+**/.env
+**/.env.local

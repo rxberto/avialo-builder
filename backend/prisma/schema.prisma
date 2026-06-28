@@ -29,6 +29,31 @@ model User {
   siteJobId              String?
   siteStatus             String   @default("none") // "none" | "pending" | "generating" | "deployed" | "failed"
 
+  // Ecommerce (Medusa compartido): provisión por tienda. La storefront del cliente
+  // usa la publishable key para hablar con el Store API aislada a su Sales Channel.
+  medusaSalesChannelId   String?
+  medusaPublishableKey   String?
+  // Token máquina (secreto) que usa el panel del cliente para gestionar SU tienda vía el
+  // orquestador. El orquestador lo valida → mapea a este usuario → su Sales Channel.
+  storeMgmtToken         String?  @unique
+
+  // Stripe Connect (cobros de la TIENDA del cliente → a SU cuenta). Avialo es la plataforma;
+  // cada pyme conecta su propia cuenta Stripe. Los cobros de la storefront se enrutan a esta
+  // cuenta (destination charges). NO guardamos claves secretas del cliente: Stripe las custodia.
+  stripeConnectAccountId        String?  @unique // acct_...
+  stripeConnectChargesEnabled   Boolean  @default(false) // puede aceptar cobros
+  stripeConnectPayoutsEnabled   Boolean  @default(false) // puede recibir liquidaciones
+  stripeConnectDetailsSubmitted Boolean  @default(false) // completó el onboarding de Stripe
+
+  // Pasarela de pago ACTIVA de la tienda: "none" | "stripe" | "redsys" (extensible a otras).
+  paymentProvider               String   @default("none")
+  // Redsys (TPV virtual español). El secreto (clave SHA-256) se guarda CIFRADO (AES-256-GCM);
+  // nunca en claro. El código de comercio y el terminal no son secretos.
+  redsysMerchantCode            String?
+  redsysTerminal                String?
+  redsysEnvironment             String?  // "test" | "live"
+  redsysSecretKeyEnc            String?  // clave secreta cifrada (no es el valor en claro)
+
   // AI Credits Limits
   aiCredits              Int      @default(0) // Credits are assigned on plan purchase or manually
   creditsResetDate       DateTime?

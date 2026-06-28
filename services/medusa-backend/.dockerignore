@@ -1,0 +1,9 @@
+node_modules
+.medusa/server
+.medusa/admin
+.cache
+*.log
+.env
+.env.*
+!.env.template
+.git

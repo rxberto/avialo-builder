@@ -64,6 +64,51 @@ services:
     networks:
       - avialo-network
 
+  # Backend Medusa v2 COMPARTIDO por todas las tiendas ecommerce.
+  # Aislamiento por tienda vía Sales Channel + Publishable API Key (no un Medusa por tenant).
+  medusa:
+    build:
+      context: ../services/medusa-backend
+      dockerfile: Dockerfile
+    container_name: avialo-medusa
+    restart: always
+    environment:
+      # BD DEDICADA de Medusa (gestiona su propio esquema) — conexión DIRECTA a Postgres,
+      # NO vía pgbouncer transaction (Medusa usa prepared statements).
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@postgres:5432/${MEDUSA_DB_NAME:-medusa}
+      - REDIS_URL=redis://redis:6379
+      # CORS: permite los dominios de las tiendas de clientes (*.avialo.app) y el panel admin.
+      - STORE_CORS=${MEDUSA_STORE_CORS:-/\.avialo\.app$$/}
+      - ADMIN_CORS=${MEDUSA_ADMIN_CORS:-https://tienda-api.${PREVIEW_DOMAIN_BASE}}
+      - AUTH_CORS=${MEDUSA_AUTH_CORS:-https://tienda-api.${PREVIEW_DOMAIN_BASE},/\.avialo\.app$$/}
+      - JWT_SECRET=${MEDUSA_JWT_SECRET:-${JWT_SECRET}}
+      - COOKIE_SECRET=${MEDUSA_COOKIE_SECRET:-${NEXTAUTH_SECRET}}
+      # Checkout: misma cuenta Stripe del SaaS (o una dedicada). Vacío = checkout off.
+      - STRIPE_API_KEY=${MEDUSA_STRIPE_API_KEY:-${STRIPE_SECRET_KEY}}
+      # Primer arranque: crea BD, migra y siembra infraestructura base (región España).
+      - MEDUSA_SEED_BASE=${MEDUSA_SEED_BASE:-true}
+      - MEDUSA_ADMIN_EMAIL=${MEDUSA_ADMIN_EMAIL:-admin@avialo.app}
+      - MEDUSA_ADMIN_PASSWORD=${MEDUSA_ADMIN_PASSWORD}
+      - NODE_ENV=production
+      # Cookie de sesión del admin: por defecto Secure (correcto tras Traefik/HTTPS). Si se
+      # accede al panel por http://localhost (sin TLS), pon MEDUSA_COOKIE_SECURE=false o el
+      # login rebota (la cookie Secure no se guarda sobre http).
+      - MEDUSA_COOKIE_SECURE=${MEDUSA_COOKIE_SECURE:-}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - avialo-network
+    labels:
+      - "traefik.enable=true"
+      # Store API + panel admin de Medusa en tienda-api.avialo.app
+      - "traefik.http.routers.medusa.rule=Host(`tienda-api.${PREVIEW_DOMAIN_BASE}`)"
+      - "traefik.http.routers.medusa.entrypoints=websecure"
+      - "traefik.http.routers.medusa.tls=true"
+      - "traefik.http.routers.medusa.tls.certresolver=letsencrypt"
+      - "traefik.http.services.medusa.loadbalancer.server.port=9000"
+      - "traefik.docker.network=avialo-network"
+
   orchestrator:
     build:
       context: ../backend
@@ -178,6 +223,10 @@ services:
       - MAX_JOB_COST_USD=${MAX_JOB_COST_USD:-2.0}
       - SENTRY_DSN=${SENTRY_DSN}
       - LOG_LEVEL=${LOG_LEVEL:-info}
+      # Backend Medusa compartido: el worker aprovisiona la tienda de cada cliente ecommerce.
+      - MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL:-http://medusa:9000}
+      - MEDUSA_ADMIN_EMAIL=${MEDUSA_ADMIN_EMAIL:-admin@avialo.app}
+      - MEDUSA_ADMIN_PASSWORD=${MEDUSA_ADMIN_PASSWORD}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
@@ -186,6 +235,7 @@ services:
     depends_on:
       - pgbouncer
       - redis
+      - medusa
     networks:
       - avialo-network
 

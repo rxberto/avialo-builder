@@ -14,7 +14,8 @@
     "test": "vitest run",
     "test:scaffold": "node tests/test-scaffold.js",
     "migrate:tenants": "ts-node-esm src/database/migrator.ts",
-    "stripe:setup": "ts-node-esm src/scripts/stripe-setup.ts"
+    "stripe:setup": "ts-node-esm src/scripts/stripe-setup.ts",
+    "e2e:payment": "ts-node-esm src/scripts/e2e-payment.ts"
   },
   "keywords": [],
   "author": "Avialo",

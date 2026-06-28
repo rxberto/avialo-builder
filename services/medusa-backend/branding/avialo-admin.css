@@ -1,0 +1,14 @@
+/* Branding Avialo del panel admin de Medusa.
+   Sustituye el logo del login por el de Avialo sin tocar el bundle (robusto). */
+[data-avialo-logo] {
+  background-image: url("/app/avialo-favicon.svg");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-width: 40px;
+  min-height: 40px;
+}
+[data-avialo-logo] svg,
+[data-avialo-logo] img {
+  visibility: hidden !important;
+}
