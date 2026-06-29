@@ -159,6 +159,11 @@ services:
       # Pagos de las tiendas: cifrado de secretos de pasarela (Redsys) + canal interno con Medusa.
       - AVIALO_SECRETS_KEY=${AVIALO_SECRETS_KEY}
       - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN}
+      # Medusa: el PORTERO (API tenant-store del panel /admin) corre en el orquestador y se
+      # autentica contra Medusa para gestionar productos/pedidos/etc. de cada tienda.
+      - MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL:-http://medusa:9000}
+      - MEDUSA_ADMIN_EMAIL=${MEDUSA_ADMIN_EMAIL:-admin@avialo.app}
+      - MEDUSA_ADMIN_PASSWORD=${MEDUSA_ADMIN_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NODE_ENV=production
