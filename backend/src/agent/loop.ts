@@ -91,6 +91,14 @@ export const PROTECTED_FILES = new Set([
   "src/app/api/admin/payments/provider/route.ts",
   "src/app/api/admin/payments/redsys/route.ts",
   "src/app/api/store/payment-config/route.ts",
+  // ECOMMERCE — panel de usuarios del dueño (gestión de admins contra la BD del tenant).
+  "src/app/admin/usuarios/page.tsx",
+  "src/components/admin/UsersPanel.tsx",
+  "src/components/admin/AccountCard.tsx",
+  "src/components/admin/PasswordInput.tsx",
+  "src/lib/passwordTools.ts",
+  "src/app/api/admin/users/route.ts",
+  "src/app/api/admin/users/[id]/route.ts",
 ]);
 
 /**

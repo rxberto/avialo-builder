@@ -15,6 +15,7 @@ import {
   Ticket,
   Settings,
   CreditCard,
+  UserCog,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -49,6 +50,7 @@ const SECTIONS: { title: string | null; items: NavItem[] }[] = [
     title: "Configuración",
     items: [
       { href: "/admin/pagos", label: "Pagos", icon: CreditCard },
+      { href: "/admin/usuarios", label: "Usuarios", icon: UserCog },
       { href: "/admin/ajustes", label: "Ajustes", icon: Settings },
     ],
   },
