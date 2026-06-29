@@ -94,6 +94,12 @@ services:
       # accede al panel por http://localhost (sin TLS), pon MEDUSA_COOKIE_SECURE=false o el
       # login rebota (la cookie Secure no se guarda sobre http).
       - MEDUSA_COOKIE_SECURE=${MEDUSA_COOKIE_SECURE:-}
+      # Redsys: canal interno hacia el orquestador (firma/verificación con el secreto del tenant).
+      # INTERNAL_API_TOKEN debe ser IDÉNTICO al del orquestador.
+      - ORCHESTRATOR_INTERNAL_URL=${ORCHESTRATOR_INTERNAL_URL:-http://avialo-orchestrator:3000}
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN}
+      # URL pública de Medusa para la notificación server-to-server de Redsys.
+      - MEDUSA_PUBLIC_URL=${MEDUSA_PUBLIC_URL:-https://tienda-api.${PREVIEW_DOMAIN_BASE}}
     depends_on:
       - postgres
       - redis
@@ -150,6 +156,9 @@ services:
       # IVA automático (Stripe Tax). Precios IVA incluido. Activar solo cuando Stripe Tax
       # esté configurado en el Dashboard (registro fiscal España); si no, dejar sin definir.
       - STRIPE_AUTOMATIC_TAX=${STRIPE_AUTOMATIC_TAX}
+      # Pagos de las tiendas: cifrado de secretos de pasarela (Redsys) + canal interno con Medusa.
+      - AVIALO_SECRETS_KEY=${AVIALO_SECRETS_KEY}
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN}
       - JWT_SECRET=${JWT_SECRET}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NODE_ENV=production
@@ -227,6 +236,8 @@ services:
       - MEDUSA_BACKEND_URL=${MEDUSA_BACKEND_URL:-http://medusa:9000}
       - MEDUSA_ADMIN_EMAIL=${MEDUSA_ADMIN_EMAIL:-admin@avialo.app}
       - MEDUSA_ADMIN_PASSWORD=${MEDUSA_ADMIN_PASSWORD}
+      # Comisión de plataforma (puntos básicos) que el worker inyecta en las storefronts (Stripe Connect).
+      - AVIALO_PLATFORM_FEE_BPS=${AVIALO_PLATFORM_FEE_BPS:-0}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ../sandbox:/app/sandbox
