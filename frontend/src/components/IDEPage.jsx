@@ -7,9 +7,10 @@ import {
   Code, FileCode, Folder, Loader2, FileText,
   ChevronDown, ChevronUp, Sun, Moon, Zap, X,
   Settings2, Monitor, Smartphone, Tablet, Lock,
-  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus, MessageSquare, Wrench, Cog
+  Copy, Activity, Server, Clock, CheckCheck, Search, ImagePlus, MessageSquare, Wrench, Cog, Users
 } from 'lucide-react';
 import { getSandboxFiles, getSandboxFileContent, editJob, getJob, uploadJobImage, streamAssistant } from '../lib/api';
+import StoreUsers from './StoreUsers';
 import { downscaleImage } from '../lib/image';
 import SettingsModal from './SettingsModal';
 import { Button } from './ui/button';
@@ -512,9 +513,10 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
 
   /* Tabs del panel avanzado */
   const advancedTabs = [
-    { id: 'files',  label: 'Código',   Icon: Code     },
-    { id: 'db',     label: 'Datos',    Icon: Database  },
-    { id: 'deploy', label: 'Deploy',   Icon: Activity  },
+    { id: 'files',    label: 'Código',   Icon: Code     },
+    { id: 'db',       label: 'Datos',    Icon: Database  },
+    { id: 'usuarios', label: 'Usuarios', Icon: Users     },
+    { id: 'deploy',   label: 'Deploy',   Icon: Activity  },
   ];
 
   return (
@@ -780,6 +782,18 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
                         </table>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* ─── TAB USUARIOS (admins reales del panel /admin de la web) ─── */}
+                {sidebarTab === 'usuarios' && (
+                  <div className="h-full overflow-auto p-3">
+                    {(() => {
+                      const domain = (user?.siteDomain || '')
+                        .trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+                      const loginUrl = domain ? `https://${domain}/login` : undefined;
+                      return <StoreUsers siteReady={isLive} loginUrl={loginUrl} />;
+                    })()}
                   </div>
                 )}
 
