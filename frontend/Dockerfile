@@ -2,9 +2,11 @@
 FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
-# Instala dependencias con el lockfile (build reproducible).
+# Instala dependencias. Usamos `npm install` (no `npm ci`) porque el package-lock.json
+# del repo puede ir desincronizado con package.json (p.ej. optional deps @emnapi/*), y
+# `npm ci` aborta en ese caso. `npm install` lo resuelve de forma robusta en el build.
 COPY package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 # Variables VITE_* en BUILD-TIME: Vite las inyecta en el bundle, así que deben
 # estar disponibles aquí (no en runtime). Llegan como build-args desde compose.
