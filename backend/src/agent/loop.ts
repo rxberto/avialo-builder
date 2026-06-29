@@ -93,6 +93,22 @@ export const PROTECTED_FILES = new Set([
   "src/app/api/store/payment-config/route.ts",
 ]);
 
+/**
+ * Rutas que en una tienda (ecommerce) NO debe crear la IA porque rompen el build del
+ * boilerplate Next: el route group `(store)` ya define la home en `/`, así que un
+ * `src/app/page.tsx` colisiona ("two parallel pages resolve to the same path"); y las
+ * páginas `src/app/auth/*` son patrón de web corporativa (la tienda usa /login + (store)).
+ */
+function isForbiddenEcommercePath(rel: string): boolean {
+  const p = rel.replace(/^\.?\//, "");
+  return (
+    p === "src/app/page.tsx" ||
+    p === "src/app/page.jsx" ||
+    p === "src/app/page.js" ||
+    p.startsWith("src/app/auth/")
+  );
+}
+
 // Elimina secuencias de escape ANSI (colores/control) del output de npm/vite:
 // ESC (27) + "[" + parametros + byte final. Ensucian logs e impiden que el modelo
 // entienda el error de build en el prompt de correccion.
@@ -284,6 +300,15 @@ export async function runAutocorrectionLoop(
         // tumbaba el build en todos los intentos).
         if (PROTECTED_FILES.has(rel)) {
           addJobLog(jobId, `   ⏭️  Protegido (ignoro la versión de la IA): ${rel}`);
+          continue;
+        }
+        // ECOMMERCE: rutas que ROMPEN el build del boilerplate (conflicto de rutas con el
+        // route group (store)). `src/app/page.tsx` resuelve a "/" IGUAL que `(store)/page.tsx`
+        // → Next falla con "two parallel pages resolve to the same path". `src/app/auth/*` es
+        // patrón de web corporativa; la tienda usa /login + el panel (store)/admin. La home de
+        // la tienda se personaliza editando `src/app/(store)/page.tsx`, NO creando una raíz.
+        if (clientData.webType === "ecommerce" && isForbiddenEcommercePath(rel)) {
+          addJobLog(jobId, `   ⏭️  Ruta no válida en tienda (rompería el build): ${rel}. La home es src/app/(store)/page.tsx.`);
           continue;
         }
         // No sobrescribir con un archivo vacío (p.ej. si la IA solo devolvió ruido markdown
