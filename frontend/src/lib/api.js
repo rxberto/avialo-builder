@@ -663,4 +663,80 @@ export async function revokeOtherSessions() {
   return response.json();
 }
 
+// ============================================
+// USUARIOS ADMIN DE LA TIENDA (panel /admin del sitio del cliente)
+// Gestionados desde el IDE contra la BD del tenant, sin necesitar la clave del panel.
+// ============================================
+
+/** Lista los usuarios del panel de la tienda. Devuelve { users, adminCount }. */
+export async function listStoreUsers() {
+  const response = await fetch(`${API_BASE}/api/store-users`, { headers: getHeaders() });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudieron cargar los administradores.');
+  }
+  return response.json();
+}
+
+/**
+ * Crea un usuario del panel. Si no se pasa contraseña, el backend genera una y la
+ * devuelve UNA sola vez en { password, generated }.
+ */
+export async function createStoreUser({ name, email, role = 'admin', password } = {}) {
+  const response = await fetch(`${API_BASE}/api/store-users`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ name, email, role, password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo crear el usuario.');
+  }
+  return response.json();
+}
+
+/**
+ * Restablece la contraseña de un usuario del panel. Sin `password`, el backend genera
+ * una y la devuelve UNA sola vez en { password, generated }.
+ */
+export async function resetStoreUserPassword(id, password) {
+  const response = await fetch(`${API_BASE}/api/store-users/${id}/reset-password`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo restablecer la contraseña.');
+  }
+  return response.json();
+}
+
+/** Actualiza nombre o rol de un usuario del panel. */
+export async function updateStoreUser(id, patch) {
+  const response = await fetch(`${API_BASE}/api/store-users/${id}`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify(patch),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo actualizar el usuario.');
+  }
+  return response.json();
+}
+
+/** Elimina un usuario del panel. */
+export async function deleteStoreUser(id) {
+  const response = await fetch(`${API_BASE}/api/store-users/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'No se pudo eliminar el usuario.');
+  }
+  return response.json();
+}
+
 

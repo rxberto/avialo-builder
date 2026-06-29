@@ -150,5 +150,150 @@ export async function seedTenantAdmin(
   }
 }
 
+// ============================================================================
+// GESTIÓN DE USUARIOS DEL PANEL DE LA TIENDA (desde el IDE de Avialo)
+// El cliente, ya autenticado en Avialo, gestiona los usuarios admin de SU tienda
+// (la tabla "User" de su esquema tenant) SIN necesitar la contraseña del panel.
+// Rompe el círculo "para entrar al panel necesito la contraseña que no tengo".
+// ============================================================================
+
+export type TenantRole = "admin" | "client";
+
+export interface TenantUserSummary {
+  id: string;
+  name: string | null;
+  email: string;
+  role: TenantRole;
+  createdAt: string;
+}
+
+// Error de dominio con código HTTP para que la ruta devuelva el estado correcto.
+export class TenantUserError extends Error {
+  status: number;
+  constructor(message: string, status = 400) {
+    super(message);
+    this.name = "TenantUserError";
+    this.status = status;
+  }
+}
+
+const TENANT_USER_FIELDS = `id, name, email, role, "createdAt"`;
+
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    (err as { code?: string }).code === "23505"
+  );
+}
+
+/** Lista los usuarios del panel de un tenant (admins primero, luego por antigüedad). */
+export async function listTenantUsers(clientId: string): Promise<TenantUserSummary[]> {
+  const schema = tenantSchema(clientId);
+  const result = await pool.query<TenantUserSummary>(
+    `SELECT ${TENANT_USER_FIELDS}
+       FROM "${schema}"."User"
+      ORDER BY (role = 'admin') DESC, "createdAt" ASC`
+  );
+  return result.rows;
+}
+
+/** Nº de admins del tenant (para no quedarse sin acceso al panel). */
+export async function countTenantAdmins(clientId: string): Promise<number> {
+  const schema = tenantSchema(clientId);
+  const result = await pool.query<{ count: string }>(
+    `SELECT COUNT(*)::int AS count FROM "${schema}"."User" WHERE role = 'admin'`
+  );
+  return Number(result.rows[0]?.count ?? 0);
+}
+
+export async function getTenantUserById(
+  clientId: string,
+  id: string
+): Promise<TenantUserSummary | null> {
+  const schema = tenantSchema(clientId);
+  const result = await pool.query<TenantUserSummary>(
+    `SELECT ${TENANT_USER_FIELDS} FROM "${schema}"."User" WHERE id = $1 LIMIT 1`,
+    [id]
+  );
+  return result.rows[0] ?? null;
+}
+
+export interface CreateTenantUserInput {
+  name?: string | null;
+  email: string;
+  password: string;
+  role: TenantRole;
+}
+
+export async function createTenantUser(
+  clientId: string,
+  input: CreateTenantUserInput
+): Promise<TenantUserSummary> {
+  const schema = tenantSchema(clientId);
+  const hash = await bcrypt.hash(input.password, 10);
+  try {
+    const result = await pool.query<TenantUserSummary>(
+      `INSERT INTO "${schema}"."User" ("id","name","email","passwordHash","role","createdAt","updatedAt")
+       VALUES ($1,$2,$3,$4,$5,NOW(),NOW())
+       RETURNING ${TENANT_USER_FIELDS}`,
+      [randomUUID(), input.name?.trim() || null, input.email.toLowerCase(), hash, input.role]
+    );
+    return result.rows[0];
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new TenantUserError("Ya existe un usuario con ese correo.", 409);
+    }
+    throw err;
+  }
+}
+
+export interface UpdateTenantUserInput {
+  name?: string | null;
+  role?: TenantRole;
+  password?: string;
+}
+
+export async function updateTenantUser(
+  clientId: string,
+  id: string,
+  input: UpdateTenantUserInput
+): Promise<TenantUserSummary | null> {
+  const schema = tenantSchema(clientId);
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  let i = 1;
+
+  if (input.name !== undefined) {
+    sets.push(`"name" = $${i++}`);
+    values.push(input.name?.trim() || null);
+  }
+  if (input.role !== undefined) {
+    sets.push(`"role" = $${i++}`);
+    values.push(input.role);
+  }
+  if (input.password !== undefined) {
+    sets.push(`"passwordHash" = $${i++}`);
+    values.push(await bcrypt.hash(input.password, 10));
+  }
+
+  if (sets.length === 0) return getTenantUserById(clientId, id);
+
+  sets.push(`"updatedAt" = NOW()`);
+  values.push(id);
+
+  const result = await pool.query<TenantUserSummary>(
+    `UPDATE "${schema}"."User" SET ${sets.join(", ")} WHERE id = $${i} RETURNING ${TENANT_USER_FIELDS}`,
+    values
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function deleteTenantUser(clientId: string, id: string): Promise<boolean> {
+  const schema = tenantSchema(clientId);
+  const result = await pool.query(`DELETE FROM "${schema}"."User" WHERE id = $1`, [id]);
+  return (result.rowCount ?? 0) > 0;
+}
+
 // Exportar el pool por si se requiere realizar consultas globales
 export { pool };

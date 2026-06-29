@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  User, Globe, Database, CreditCard, ShieldCheck, 
-  Key, RefreshCw, Server, ArrowUpRight, Copy, CheckCircle, 
+  User, Globe, Database, CreditCard, ShieldCheck,
+  Key, RefreshCw, Server, ArrowUpRight, Copy, CheckCircle,
   Trash2, Sparkles, Activity,
-  Mail, Plus, Loader2, HelpCircle, ExternalLink, Smartphone, Laptop
+  Mail, Plus, Loader2, HelpCircle, ExternalLink, Smartphone, Laptop, Users
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { updateProfile, verifyDns, changePassword, getRealInvoices, createBillin
 import { cn } from '@/lib/utils';
 import DomainSetup from './DomainSetup';
 import EmailAccounts from './EmailAccounts';
+import StoreUsers from './StoreUsers';
 
 export default function SettingsPage({ user, onUpdateUser, onAddNotification }) {
   const [activeTab, setActiveTab] = useState('perfil');
@@ -354,6 +355,7 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
     { id: 'perfil', label: 'Mi Perfil', icon: User, desc: 'Ajustes generales del perfil y cargo.' },
     { id: 'sitio', label: 'Mi Sitio Web', icon: Globe, desc: 'Dominio personalizado, preview y Traefik.' },
     { id: 'correos', label: 'Correos Corporativos', icon: Mail, desc: 'Configura cuentas de correo profesionales con tu dominio.' },
+    { id: 'administradores', label: 'Administradores', icon: Users, desc: 'Gestiona las cuentas que acceden al panel /admin de tu web.' },
     { id: 'base-datos', label: 'Base de Datos & API', icon: Database, desc: 'Esquema PostgreSQL, logs de migración y tokens.' },
     { id: 'plan', label: 'Plan & Suscripción', icon: CreditCard, desc: 'Tu plan SaaS, créditos consumidos y facturas.' },
     { id: 'seguridad', label: 'Seguridad', icon: ShieldCheck, desc: 'Cambio de contraseña y sesiones activas.' }
@@ -829,6 +831,34 @@ export default function SettingsPage({ user, onUpdateUser, onAddNotification }) 
                       </p>
                     </div>
 
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ──────────────── TAB: ADMINISTRADORES DE LA WEB ──────────────── */}
+              {activeTab === 'administradores' && (
+                <Card className="glass shadow-sm border-border/60 rounded-2xl overflow-hidden text-left">
+                  <CardHeader className="border-b border-border/40 pb-4 bg-muted/10">
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      <Users size={18} className="text-brand" /> Administradores del panel de tu web
+                    </CardTitle>
+                    <CardDescription className="text-[11px]">
+                      Gestiona desde aquí las cuentas que entran al panel <code className="font-mono">/admin</code> de
+                      tu sitio. Si perdiste la contraseña, crea una cuenta nueva o restablece la clave — sin salir de Avialo.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 md:p-8">
+                    {(() => {
+                      const domain = (customDomain || user?.siteDomain || '')
+                        .trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
+                      const loginUrl = domain ? `https://${domain}/login` : undefined;
+                      return (
+                        <StoreUsers
+                          siteReady={user?.siteStatus === 'deployed'}
+                          loginUrl={loginUrl}
+                        />
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               )}

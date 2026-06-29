@@ -13,6 +13,7 @@ import { adminRouter } from "./routes/admin.js";
 import { domainsRouter } from "./routes/domains.js";
 import { emailRouter } from "./routes/email.js";
 import { tenantStoreRouter } from "./routes/tenantStore.js";
+import { storeUsersRouter } from "./routes/storeUsers.js";
 import { internalRouter } from "./routes/internal.js";
 import { connectPrisma, prisma } from "./database/client.js";
 import { listSandboxFiles, getSandboxFileContent } from "./scaffolding/fileHelper.js";
@@ -393,6 +394,8 @@ app.use("/api/domains", domainsRouter);
 app.use("/api/email", emailRouter);
 // Gestión de la tienda por tenant (panel del cliente → orquestador → Medusa, con scope).
 app.use("/api/tenant-store", tenantStoreRouter);
+// Gestión de usuarios admin de la tienda del cliente (desde el IDE, contra la BD del tenant).
+app.use("/api/store-users", storeUsersRouter);
 // Canal interno servicio↔servicio (provider Redsys de Medusa → firma/verificación con secreto).
 app.use("/internal", internalRouter);
 
