@@ -611,7 +611,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                       <div className="p-3.5 rounded-2xl bg-muted/30 border border-border/40 space-y-1 hover:bg-muted/50 transition-colors">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Subdominio de Preview</p>
                         <a
-                          href={`http://${site.dominio}`}
+                          href={`https://${site.dominio}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs font-bold text-brand hover:text-brand-2 hover:underline underline-offset-4 flex items-center gap-1 truncate outline-none"
@@ -684,7 +684,7 @@ export default function DashboardPage({ user, onLogout, onCreateNewSite, onOpenS
                             abrimos la web publicada en una pestaña nueva. */}
                         <Button
                           variant="outline"
-                          onClick={() => site.dominio && window.open(`http://${site.dominio}`, '_blank', 'noopener')}
+                          onClick={() => site.dominio && window.open(`https://${site.dominio}`, '_blank', 'noopener')}
                           disabled={!site.dominio}
                           className="gap-2 rounded-full border-border hover:bg-muted/80 h-11"
                         >

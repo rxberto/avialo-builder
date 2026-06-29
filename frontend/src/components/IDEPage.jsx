@@ -173,7 +173,7 @@ export default function IDEPage({ jobId, user, onReset, onSyncProfile, onUpdateU
      está desplegado, caemos al dominio publicado para que la web NO desaparezca al
      reentrar al IDE (antes quedaba en blanco "Conectando con el contenedor…"). */
   const isLive = status === 'deployed' || user?.siteStatus === 'deployed';
-  const effectivePreviewUrl = previewUrl || (isLive && user?.siteDomain ? `http://${user.siteDomain}` : null);
+  const effectivePreviewUrl = previewUrl || (isLive && user?.siteDomain ? `https://${user.siteDomain}` : null);
 
   /* Estado de carga del iframe del preview (para auto-recuperar arranques en frío). */
   const [previewLoaded, setPreviewLoaded] = useState(false);
