@@ -14,6 +14,10 @@ import { config } from "../config/env.js";
  */
 
 const BASE = config.medusa.backendUrl.replace(/\/$/, "");
+// Base PÚBLICA para las URLs que verá el navegador (imágenes en /static/...). El backendUrl
+// interno (http://medusa:9000) no es resoluble desde el cliente; Traefik publica el Store API
+// en tienda-api.<dominio>, que sí lo es.
+const PUBLIC_BASE = config.medusa.storefrontApiUrl.replace(/\/$/, "");
 
 export interface TenantStoreProvision {
   salesChannelId: string;
@@ -3140,20 +3144,21 @@ const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
 
 /**
  * Normaliza la URL devuelta por Medusa. El file provider LOCAL devuelve una URL
- * a su host interno (p. ej. `http://localhost:9000/static/...`) que el navegador
- * no alcanza → la reescribimos al `backendUrl` configurado conservando la ruta.
- * Un provider EXTERNO (S3/MinIO/CDN) devuelve una URL absoluta ya pública: en ese
- * caso la dejamos intacta (solo reescribimos cuando la ruta es `/static/...`).
+ * al host interno de Medusa (p. ej. `http://medusa:9000/static/...`) que el navegador
+ * NO alcanza → la reescribimos a la base PÚBLICA (`storefrontApiUrl`, p. ej.
+ * `https://tienda-api.<dominio>`) conservando la ruta. Un provider EXTERNO (S3/MinIO/CDN)
+ * devuelve una URL absoluta ya pública: en ese caso la dejamos intacta (solo reescribimos
+ * cuando la ruta es `/static/...`).
  */
 function normalizeStaticUrl(raw: string): string {
   if (raw.startsWith("/")) {
-    // URL relativa → la prefijamos con el backendUrl.
-    return `${BASE}${raw}`;
+    // URL relativa → la prefijamos con la base pública.
+    return `${PUBLIC_BASE}${raw}`;
   }
   try {
     const u = new URL(raw);
     if (u.pathname.startsWith("/static/")) {
-      return `${BASE}${u.pathname}${u.search}`;
+      return `${PUBLIC_BASE}${u.pathname}${u.search}`;
     }
     // URL pública de un provider externo → no tocar.
     return raw;

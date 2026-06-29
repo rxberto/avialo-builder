@@ -266,9 +266,9 @@ export function UsersPanel() {
               className="pl-8"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as RoleFilter)}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[140px] flex-1 sm:flex-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -278,7 +278,7 @@ export function UsersPanel() {
               </SelectContent>
             </Select>
             <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-[140px] flex-1 sm:flex-none">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -288,7 +288,7 @@ export function UsersPanel() {
                 <SelectItem value="name">Nombre (A–Z)</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" onClick={openCreate}>
+            <Button size="sm" onClick={openCreate} className="shrink-0">
               <UserPlus className="h-4 w-4" /> Añadir
             </Button>
           </div>

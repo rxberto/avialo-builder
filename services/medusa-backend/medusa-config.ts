@@ -80,6 +80,29 @@ if (paymentProviders.length > 0) {
   })
 }
 
+// Almacenamiento de archivos (imágenes de producto). Por defecto Medusa usa el provider local y
+// construye las URLs con `http://localhost:9000/static`, no resoluble desde el navegador. En
+// producción fijamos `backend_url` a la URL PÚBLICA (Traefik publica /static en tienda-api.<dominio>)
+// para que el Store API devuelva imágenes que el navegador SÍ puede cargar. Solo cuando hay una URL
+// pública real (no el host interno medusa:9000); en dev/local cae al default del provider.
+const MEDUSA_FILES_PUBLIC_URL = process.env.MEDUSA_PUBLIC_URL
+if (MEDUSA_FILES_PUBLIC_URL) {
+  modules.push({
+    resolve: '@medusajs/medusa/file',
+    options: {
+      providers: [
+        {
+          resolve: '@medusajs/medusa/file-local',
+          id: 'local',
+          options: {
+            backend_url: `${MEDUSA_FILES_PUBLIC_URL.replace(/\/$/, '')}/static`,
+          },
+        },
+      ],
+    },
+  })
+}
+
 module.exports = defineConfig({
   projectConfig: {
     databaseUrl: process.env.DATABASE_URL,

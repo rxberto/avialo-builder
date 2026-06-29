@@ -63,6 +63,7 @@ export const PROTECTED_FILES = new Set([
   "src/components/admin/SettingsForm.tsx", "src/components/admin/PrintButton.tsx",
   "src/components/admin/PaymentsPanel.tsx", "src/components/RedsysRedirect.tsx",
   "src/components/admin/LogoutButton.tsx", "src/components/admin/AdminUserMenu.tsx",
+  "src/components/admin/AdminMobileNav.tsx",
   "src/lib/orderLabels.ts", "src/lib/promoLabels.ts", "src/lib/utils.ts",
   "src/components/ui/button.tsx", "src/components/ui/input.tsx", "src/components/ui/textarea.tsx",
   "src/components/ui/label.tsx", "src/components/ui/badge.tsx", "src/components/ui/card.tsx",
