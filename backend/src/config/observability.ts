@@ -9,8 +9,25 @@ const SENTRY_DSN = process.env.SENTRY_DSN;
 const isProd = process.env.NODE_ENV === "production";
 
 // Logger estructurado (JSON en producción; legible en desarrollo).
+// SEGURIDAD: redactamos cabeceras y campos con secretos para que NUNCA aparezcan en los logs
+// (tokens de tenant, token del canal interno, cookies de sesión, firmas y secretos de Stripe).
 export const logger = pino({
   level: process.env.LOG_LEVEL || (isProd ? "info" : "debug"),
+  redact: {
+    paths: [
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'req.headers["x-internal-token"]',
+      'req.headers["stripe-signature"]',
+      'res.headers["set-cookie"]',
+      // Por si algún log estructurado incluye estos campos directamente.
+      'storeMgmtToken',
+      'secretKey',
+      'redsysSecretKeyEnc',
+      '*.authorization',
+    ],
+    censor: '[REDACTED]',
+  },
   ...(isProd
     ? {}
     : { transport: { target: "pino-pretty", options: { colorize: true, translateTime: "SYS:standard" } } }),
