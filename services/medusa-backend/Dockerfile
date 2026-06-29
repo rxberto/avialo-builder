@@ -19,8 +19,10 @@ COPY .yarn ./.yarn
 RUN yarn install
 
 # Copia el código y compila el servidor + panel admin de Medusa.
+# El build del panel admin (Vite) es intensivo en memoria; subimos el heap de Node para
+# evitar OOM en droplets pequeños (combínalo con swap si la RAM física es ≤ 2 GB).
 COPY . .
-RUN chmod +x docker-entrypoint.sh && yarn build
+RUN chmod +x docker-entrypoint.sh && NODE_OPTIONS=--max-old-space-size=3072 yarn build
 
 # Branding de Avialo sobre el panel admin compilado (favicon, título, textos).
 RUN sh branding/brand.sh
