@@ -255,29 +255,11 @@ services:
     networks:
       - avialo-network
 
-  # IDE / dashboard del cliente (app Vite/React). Se compila y se sirve como estático con nginx,
-  # publicado por Traefik en avialo.app. Las VITE_* se inyectan en BUILD-TIME (Vite las hornea).
-  frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=${VITE_API_URL:-https://api.avialo.app}
-        - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID:-}
-        - VITE_STRIPE_PUBLISHABLE_KEY=${VITE_STRIPE_PUBLISHABLE_KEY:-}
-    container_name: avialo-frontend
-    restart: always
-    networks:
-      - avialo-network
-    labels:
-      - "traefik.enable=true"
-      # El IDE vive en el dominio raíz (avialo.app/ide, avialo.app/dashboard, …).
-      - "traefik.http.routers.avialoide.rule=Host(`avialo.app`)"
-      - "traefik.http.routers.avialoide.entrypoints=websecure"
-      - "traefik.http.routers.avialoide.tls=true"
-      - "traefik.http.routers.avialoide.tls.certresolver=letsencrypt"
-      - "traefik.http.services.avialoide.loadbalancer.server.port=80"
-      - "traefik.docker.network=avialo-network"
+  # NOTA: el IDE/dashboard (frontend Vite) se despliega en Vercel desde la rama `prod`
+  # (Production Branch del proyecto). Por eso NO hay servicio `frontend` aquí: evitamos que
+  # un `docker compose up --build` arranque un nginx que pelee con Vercel por avialo.app y
+  # rompa el certificado. El Dockerfile/nginx del frontend quedan en el repo por si algún día
+  # se migra a self-host (repuntando el DNS de avialo.app a este droplet).
 
 volumes:
   postgres_data:
