@@ -20,7 +20,10 @@ function getPool(): Pool {
 function tenantSchema(): string {
   try {
     const schema = new URL(CONNECTION_STRING).searchParams.get("schema") || "public";
-    return /^[A-Za-z0-9_]+$/.test(schema) ? schema : "public";
+    // El esquema del tenant es `tenant_<clientId>` y el clientId lleva guion+timestamp
+    // (p.ej. `tenant_mitienda-1782698173501`), así que el guion DEBE permitirse. Sigue siendo
+    // seguro como identificador entre comillas (solo [A-Za-z0-9_-], sin inyección posible).
+    return /^[A-Za-z0-9_-]+$/.test(schema) ? schema : "public";
   } catch {
     return "public";
   }
